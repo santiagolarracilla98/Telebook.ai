@@ -218,20 +218,35 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                         <>
                           <div className="flex justify-between py-2 border-b border-border">
                             <span className="text-muted-foreground">Sales Rank (Current)</span>
-                            <span className="font-semibold">{keepaData.products[0].stats.current?.[0]?.toLocaleString() || 'N/A'}</span>
+                            <span className="font-semibold">
+                              {keepaData.products[0].stats.current?.[0] && keepaData.products[0].stats.current[0] > 0 
+                                ? keepaData.products[0].stats.current[0].toLocaleString() 
+                                : 'N/A'}
+                            </span>
                           </div>
                           <div className="flex justify-between py-2 border-b border-border">
                             <span className="text-muted-foreground">Avg Sales Rank (180d)</span>
-                            <span className="font-semibold">{keepaData.products[0].stats.avg?.[0]?.toLocaleString() || 'N/A'}</span>
+                            <span className="font-semibold">
+                              {keepaData.products[0].stats.avg?.[0] && keepaData.products[0].stats.avg[0] > 0 
+                                ? keepaData.products[0].stats.avg[0].toLocaleString() 
+                                : 'N/A'}
+                            </span>
                           </div>
                         </>
                       )}
                       {keepaData.products[0].csv && Array.isArray(keepaData.products[0].csv) && keepaData.products[0].csv[0] && (
                         <div className="py-2 border-b border-border">
                           <span className="text-muted-foreground block mb-2">Current Amazon Price</span>
-                          <span className="font-semibold text-lg text-primary">
-                            ${((keepaData.products[0].csv[0][keepaData.products[0].csv[0].length - 1] || 0) / 100).toFixed(2)}
-                          </span>
+                          {(() => {
+                            const priceValue = keepaData.products[0].csv[0][keepaData.products[0].csv[0].length - 1] || -1;
+                            return priceValue > 0 ? (
+                              <span className="font-semibold text-lg text-primary">
+                                ${(priceValue / 100).toFixed(2)}
+                              </span>
+                            ) : (
+                              <span className="font-semibold text-muted-foreground">N/A</span>
+                            );
+                          })()}
                         </div>
                       )}
                       <div className="mt-4">
