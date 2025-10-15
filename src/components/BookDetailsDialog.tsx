@@ -42,6 +42,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange }: BookDetailsDialogProps)
         throw new Error(functionError.message || 'Failed to fetch Amazon data');
       }
       
+      console.log('Keepa response:', data);
       setKeepaData(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Could not load Amazon product data';
@@ -195,49 +196,73 @@ const BookDetailsDialog = ({ book, open, onOpenChange }: BookDetailsDialogProps)
 
             {!loading && !error && keepaData && (
               <div className="space-y-4">
-                <div className="p-4 rounded-lg border border-border">
-                  <h3 className="font-semibold text-lg mb-3">Amazon Product Data</h3>
-                  <div className="space-y-2 text-sm">
-                    {keepaData.products?.[0] ? (
-                      <>
-                        <div className="flex justify-between py-2 border-b border-border">
-                          <span className="text-muted-foreground">ASIN</span>
-                          <span className="font-mono">{keepaData.products[0].asin}</span>
+                {keepaData.products && keepaData.products.length > 0 && keepaData.products[0] ? (
+                  <div className="p-4 rounded-lg border border-border">
+                    <h3 className="font-semibold text-lg mb-3">Amazon Product Data</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between py-2 border-b border-border">
+                        <span className="text-muted-foreground">ASIN</span>
+                        <span className="font-mono">{keepaData.products[0].asin || book.isbn.replace(/-/g, '')}</span>
+                      </div>
+                      {keepaData.products[0].title && (
+                        <div className="py-2 border-b border-border">
+                          <span className="text-muted-foreground block mb-1">Amazon Title</span>
+                          <span className="text-foreground">{keepaData.products[0].title}</span>
                         </div>
-                        {keepaData.products[0].title && (
+                      )}
+                      {keepaData.products[0].stats && (
+                        <>
                           <div className="flex justify-between py-2 border-b border-border">
-                            <span className="text-muted-foreground">Amazon Title</span>
-                            <span className="text-right max-w-md">{keepaData.products[0].title}</span>
+                            <span className="text-muted-foreground">Sales Rank (Current)</span>
+                            <span className="font-semibold">{keepaData.products[0].stats.current?.[0]?.toLocaleString() || 'N/A'}</span>
                           </div>
-                        )}
-                        {keepaData.products[0].stats && (
-                          <>
-                            <div className="flex justify-between py-2 border-b border-border">
-                              <span className="text-muted-foreground">Sales Rank (Current)</span>
-                              <span className="font-semibold">{keepaData.products[0].stats.current[0]?.toLocaleString() || 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between py-2 border-b border-border">
-                              <span className="text-muted-foreground">Avg Sales Rank (180d)</span>
-                              <span className="font-semibold">{keepaData.products[0].stats.avg[0]?.toLocaleString() || 'N/A'}</span>
-                            </div>
-                          </>
-                        )}
-                        <div className="mt-4">
-                          <a
-                            href={`https://www.amazon.com/dp/${keepaData.products[0].asin}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                          >
-                            View on Amazon →
-                          </a>
+                          <div className="flex justify-between py-2 border-b border-border">
+                            <span className="text-muted-foreground">Avg Sales Rank (180d)</span>
+                            <span className="font-semibold">{keepaData.products[0].stats.avg?.[0]?.toLocaleString() || 'N/A'}</span>
+                          </div>
+                        </>
+                      )}
+                      {keepaData.products[0].csv && Array.isArray(keepaData.products[0].csv) && keepaData.products[0].csv[0] && (
+                        <div className="py-2 border-b border-border">
+                          <span className="text-muted-foreground block mb-2">Current Amazon Price</span>
+                          <span className="font-semibold text-lg text-primary">
+                            ${((keepaData.products[0].csv[0][keepaData.products[0].csv[0].length - 1] || 0) / 100).toFixed(2)}
+                          </span>
                         </div>
-                      </>
-                    ) : (
-                      <p className="text-muted-foreground">No Amazon data available for this ISBN</p>
-                    )}
+                      )}
+                      <div className="mt-4">
+                        <a
+                          href={`https://www.amazon.com/dp/${keepaData.products[0].asin || book.isbn.replace(/-/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-primary hover:underline font-medium"
+                        >
+                          View on Amazon →
+                        </a>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="p-4 rounded-lg border border-border">
+                    <h3 className="font-semibold text-lg mb-3">Amazon Product Data</h3>
+                    <p className="text-muted-foreground mb-3">
+                      No Amazon data found for ISBN: {book.isbn}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      This could mean the product is not available on Amazon, or the ISBN doesn't match any Amazon listing.
+                    </p>
+                    <div className="mt-4">
+                      <a
+                        href={`https://www.amazon.com/s?k=${book.isbn.replace(/-/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-primary hover:underline font-medium"
+                      >
+                        Search on Amazon →
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
