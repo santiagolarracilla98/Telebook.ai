@@ -3,6 +3,8 @@ export interface Book {
   title: string;
   author: string;
   isbn: string;
+  uk_asin?: string | null;
+  us_asin?: string | null;
   publisher: string;
   category: string;
   wholesalePrice: number;

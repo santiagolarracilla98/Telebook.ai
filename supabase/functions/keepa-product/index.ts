@@ -39,13 +39,18 @@ serve(async (req) => {
       );
     }
 
-    // Remove hyphens from ISBN for Keepa API
-    const cleanIsbn = isbn.replace(/-/g, '');
+    // Remove hyphens from identifier for Keepa API
+    const cleanIdentifier = isbn.replace(/-/g, '');
     
-    console.log(`Fetching Keepa data for ISBN: ${cleanIsbn} (${marketplace.toUpperCase()} marketplace, domain: ${domain})`);
+    console.log(`Fetching Keepa data for identifier: ${cleanIdentifier} (${marketplace.toUpperCase()} marketplace, domain: ${domain})`);
     
-    // Try multiple search strategies: first by ASIN, then by code (for ISBN-13)
-    const keepaUrl = `https://api.keepa.com/product?key=${KEEPA_API_KEY}&domain=${domain}&code=${cleanIsbn}&stats=180&rating=1`;
+    // Determine if this is an ASIN (starts with B) or ISBN
+    const isAsin = cleanIdentifier.startsWith('B') || cleanIdentifier.length === 10;
+    const searchParam = isAsin ? 'asin' : 'code';
+    
+    console.log(`Using search parameter: ${searchParam}`);
+    
+    const keepaUrl = `https://api.keepa.com/product?key=${KEEPA_API_KEY}&domain=${domain}&${searchParam}=${cleanIdentifier}&stats=180&rating=1`;
     
     const response = await fetch(keepaUrl);
     
@@ -61,7 +66,28 @@ serve(async (req) => {
     }
     
     const data = await response.json();
-    console.log('Keepa data fetched successfully');
+    
+    // If no products found and we used 'code', try with 'asin' as fallback
+    if ((!data.products || data.products.length === 0) && !isAsin) {
+      console.log(`No results with code parameter, trying asin parameter`);
+      const asinUrl = `https://api.keepa.com/product?key=${KEEPA_API_KEY}&domain=${domain}&asin=${cleanIdentifier}&stats=180&rating=1`;
+      const asinResponse = await fetch(asinUrl);
+      
+      if (asinResponse.ok) {
+        const asinData = await asinResponse.json();
+        if (asinData.products && asinData.products.length > 0) {
+          console.log('Found data using asin parameter');
+          return new Response(
+            JSON.stringify(asinData),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          );
+        }
+      }
+    }
+    
+    console.log(`Keepa data fetched - found ${data.products?.length || 0} products`);
     
     return new Response(
       JSON.stringify(data),

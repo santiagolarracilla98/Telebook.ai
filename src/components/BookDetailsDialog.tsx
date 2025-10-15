@@ -36,17 +36,17 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     
     try {
       if (marketplace === 'both') {
-        // Fetch data from both marketplaces
+        // Fetch data from both marketplaces using the appropriate ASIN
         const [usaResponse, ukResponse] = await Promise.all([
           supabase.functions.invoke('keepa-product', {
             body: { 
-              isbn: book.isbn,
+              isbn: book.us_asin || book.isbn,
               marketplace: 'usa'
             }
           }),
           supabase.functions.invoke('keepa-product', {
             body: { 
-              isbn: book.isbn,
+              isbn: book.uk_asin || book.isbn,
               marketplace: 'uk'
             }
           })
@@ -63,10 +63,11 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
           marketplace: 'both'
         });
       } else {
-        // Fetch from single marketplace
+        // Fetch from single marketplace using the appropriate ASIN
+        const asinToUse = marketplace === 'uk' ? (book.uk_asin || book.isbn) : (book.us_asin || book.isbn);
         const { data, error: functionError } = await supabase.functions.invoke('keepa-product', {
           body: { 
-            isbn: book.isbn,
+            isbn: asinToUse,
             marketplace: marketplace
           }
         });
