@@ -6,7 +6,11 @@ import { ShieldCheck, TrendingUp, Eye } from "lucide-react";
 import BookDetailsDialog from "./BookDetailsDialog";
 import type { Book } from "@/data/mockBooks";
 
-const BookCard = (book: Book) => {
+interface BookCardProps extends Book {
+  marketplace?: 'usa' | 'uk';
+}
+
+const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const {
@@ -93,6 +97,7 @@ const BookCard = (book: Book) => {
         book={book}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        marketplace={marketplace}
       />
     </Card>
   );

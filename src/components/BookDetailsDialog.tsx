@@ -16,9 +16,10 @@ interface BookDetailsDialogProps {
   book: Book;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  marketplace?: 'usa' | 'uk';
 }
 
-const BookDetailsDialog = ({ book, open, onOpenChange }: BookDetailsDialogProps) => {
+const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: BookDetailsDialogProps) => {
   const [keepaData, setKeepaData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +28,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange }: BookDetailsDialogProps)
     if (open && book.isbn) {
       fetchKeepaData();
     }
-  }, [open, book.isbn]);
+  }, [open, book.isbn, marketplace]);
 
   const fetchKeepaData = async () => {
     setLoading(true);
@@ -35,7 +36,10 @@ const BookDetailsDialog = ({ book, open, onOpenChange }: BookDetailsDialogProps)
     
     try {
       const { data, error: functionError } = await supabase.functions.invoke('keepa-product', {
-        body: { isbn: book.isbn }
+        body: { 
+          isbn: book.isbn,
+          marketplace: marketplace
+        }
       });
       
       if (functionError) {
@@ -232,12 +236,12 @@ const BookDetailsDialog = ({ book, open, onOpenChange }: BookDetailsDialogProps)
                       )}
                       <div className="mt-4">
                         <a
-                          href={`https://www.amazon.com/dp/${keepaData.products[0].asin || book.isbn.replace(/-/g, '')}`}
+                          href={`https://www.amazon.${marketplace === 'uk' ? 'co.uk' : 'com'}/dp/${keepaData.products[0].asin || book.isbn.replace(/-/g, '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center text-primary hover:underline font-medium"
                         >
-                          View on Amazon →
+                          View on Amazon ({marketplace.toUpperCase()}) →
                         </a>
                       </div>
                     </div>
@@ -253,12 +257,12 @@ const BookDetailsDialog = ({ book, open, onOpenChange }: BookDetailsDialogProps)
                     </p>
                     <div className="mt-4">
                       <a
-                        href={`https://www.amazon.com/s?k=${book.isbn.replace(/-/g, '')}`}
+                        href={`https://www.amazon.${marketplace === 'uk' ? 'co.uk' : 'com'}/s?k=${book.isbn.replace(/-/g, '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center text-primary hover:underline font-medium"
                       >
-                        Search on Amazon →
+                        Search on Amazon ({marketplace.toUpperCase()}) →
                       </a>
                     </div>
                   </div>

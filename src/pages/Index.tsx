@@ -7,6 +7,7 @@ import { mockBooks } from "@/data/mockBooks";
 
 const Index = () => {
   const [books] = useState(mockBooks);
+  const [marketplace, setMarketplace] = useState<'usa' | 'uk'>('usa');
 
   return (
     <div className="min-h-screen bg-background">
@@ -14,7 +15,7 @@ const Index = () => {
       <Hero />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" id="inventory">
-        <FilterBar />
+        <FilterBar onMarketplaceChange={(value) => setMarketplace(value as 'usa' | 'uk')} />
         
         <div className="mt-12">
           <div className="flex items-center justify-between mb-6">
@@ -26,7 +27,7 @@ const Index = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {books.map((book) => (
-              <BookCard key={book.id} {...book} />
+              <BookCard key={book.id} {...book} marketplace={marketplace} />
             ))}
           </div>
         </div>

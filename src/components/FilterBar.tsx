@@ -7,9 +7,10 @@ interface FilterBarProps {
   onSearch?: (query: string) => void;
   onCategoryChange?: (category: string) => void;
   onPublisherChange?: (publisher: string) => void;
+  onMarketplaceChange?: (marketplace: string) => void;
 }
 
-const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange }: FilterBarProps) => {
+const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplaceChange }: FilterBarProps) => {
   return (
     <div className="bg-card rounded-2xl shadow-md border border-border p-6 space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -17,7 +18,7 @@ const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange }: FilterBarP
         <h2 className="text-lg font-semibold text-foreground">Filter Inventory</h2>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="md:col-span-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -28,6 +29,16 @@ const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange }: FilterBarP
             />
           </div>
         </div>
+        
+        <Select onValueChange={onMarketplaceChange} defaultValue="usa">
+          <SelectTrigger>
+            <SelectValue placeholder="Marketplace" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="usa">🇺🇸 USA</SelectItem>
+            <SelectItem value="uk">🇬🇧 UK</SelectItem>
+          </SelectContent>
+        </Select>
         
         <Select onValueChange={onCategoryChange}>
           <SelectTrigger>
@@ -66,6 +77,7 @@ const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange }: FilterBarP
           onClick={() => {
             onCategoryChange?.('all');
             onPublisherChange?.('all');
+            onMarketplaceChange?.('usa');
             onSearch?.('');
           }}
         >

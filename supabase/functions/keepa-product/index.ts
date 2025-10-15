@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { isbn } = await req.json();
+    const { isbn, marketplace = 'usa' } = await req.json();
     
     if (!isbn) {
       return new Response(
@@ -22,6 +22,9 @@ serve(async (req) => {
         }
       );
     }
+    
+    // Map marketplace to Keepa domain: USA = 1, UK = 2
+    const domain = marketplace === 'uk' ? 2 : 1;
 
     const KEEPA_API_KEY = Deno.env.get('KEEPA_API_KEY');
     
@@ -39,9 +42,9 @@ serve(async (req) => {
     // Remove hyphens from ISBN for Keepa API
     const cleanIsbn = isbn.replace(/-/g, '');
     
-    console.log(`Fetching Keepa data for ISBN: ${cleanIsbn}`);
+    console.log(`Fetching Keepa data for ISBN: ${cleanIsbn} (${marketplace.toUpperCase()} marketplace, domain: ${domain})`);
     
-    const keepaUrl = `https://api.keepa.com/product?key=${KEEPA_API_KEY}&domain=1&asin=${cleanIsbn}&stats=180&rating=1`;
+    const keepaUrl = `https://api.keepa.com/product?key=${KEEPA_API_KEY}&domain=${domain}&asin=${cleanIsbn}&stats=180&rating=1`;
     
     const response = await fetch(keepaUrl);
     
