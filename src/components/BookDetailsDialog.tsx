@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShieldCheck, TrendingUp, Package, DollarSign, BarChart3, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import type { Book } from "@/data/mockBooks";
 
 interface BookDetailsDialogProps {
@@ -16,8 +17,6 @@ interface BookDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const KEEPA_API_KEY = "d452t88rcid318a6aii79vj5lgh5kd46o71u0ht5vnddqobb0b180ar4belbpitp";
 
 const BookDetailsDialog = ({ book, open, onOpenChange }: BookDetailsDialogProps) => {
   const [keepaData, setKeepaData] = useState<any>(null);
@@ -35,21 +34,18 @@ const BookDetailsDialog = ({ book, open, onOpenChange }: BookDetailsDialogProps)
     setError(null);
     
     try {
-      // Remove hyphens from ISBN for Keepa API
-      const cleanIsbn = book.isbn.replace(/-/g, '');
+      const { data, error: functionError } = await supabase.functions.invoke('keepa-product', {
+        body: { isbn: book.isbn }
+      });
       
-      const response = await fetch(
-        `https://api.keepa.com/product?key=${KEEPA_API_KEY}&domain=1&asin=${cleanIsbn}&stats=180&rating=1`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch Amazon data');
+      if (functionError) {
+        throw new Error(functionError.message || 'Failed to fetch Amazon data');
       }
       
-      const data = await response.json();
       setKeepaData(data);
     } catch (err) {
-      setError('Could not load Amazon product data');
+      const errorMessage = err instanceof Error ? err.message : 'Could not load Amazon product data';
+      setError(errorMessage);
       console.error('Keepa API error:', err);
     } finally {
       setLoading(false);

@@ -1,1 +1,4 @@
 project_id = "zvsmsjrjzrdtybtgfxzw"
+
+[functions.keepa-product]
+verify_jwt = false
