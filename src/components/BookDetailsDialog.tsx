@@ -1,0 +1,254 @@
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ShieldCheck, TrendingUp, Package, DollarSign, BarChart3, Loader2 } from "lucide-react";
+import type { Book } from "@/data/mockBooks";
+
+interface BookDetailsDialogProps {
+  book: Book;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const KEEPA_API_KEY = "d452t88rcid318a6aii79vj5lgh5kd46o71u0ht5vnddqobb0b180ar4belbpitp";
+
+const BookDetailsDialog = ({ book, open, onOpenChange }: BookDetailsDialogProps) => {
+  const [keepaData, setKeepaData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open && book.isbn) {
+      fetchKeepaData();
+    }
+  }, [open, book.isbn]);
+
+  const fetchKeepaData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Remove hyphens from ISBN for Keepa API
+      const cleanIsbn = book.isbn.replace(/-/g, '');
+      
+      const response = await fetch(
+        `https://api.keepa.com/product?key=${KEEPA_API_KEY}&domain=1&asin=${cleanIsbn}&stats=180&rating=1`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch Amazon data');
+      }
+      
+      const data = await response.json();
+      setKeepaData(data);
+    } catch (err) {
+      setError('Could not load Amazon product data');
+      console.error('Keepa API error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const profit = book.suggestedPrice - book.wholesalePrice;
+  const amazonFees = book.suggestedPrice * 0.15; // Approximate 15% Amazon fee
+  const netProfit = profit - amazonFees;
+  const netRoi = ((netProfit / book.wholesalePrice) * 100).toFixed(1);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">{book.title}</DialogTitle>
+          <DialogDescription className="text-base">
+            by {book.author}
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="pricing">Pricing Analysis</TabsTrigger>
+            <TabsTrigger value="amazon">Amazon Live Data</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">ISBN</h4>
+                  <p className="text-base font-mono">{book.isbn}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Author</h4>
+                  <p className="text-base">{book.author}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Publisher</h4>
+                  <p className="text-base">{book.publisher}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Category</h4>
+                  <Badge variant="outline">{book.category}</Badge>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="w-4 h-4 text-muted-foreground" />
+                    <h4 className="text-sm font-medium">Wholesale Price</h4>
+                  </div>
+                  <p className="text-2xl font-bold">${book.wholesalePrice.toFixed(2)}</p>
+                </div>
+
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="w-4 h-4 text-muted-foreground" />
+                    <h4 className="text-sm font-medium">Smart Price</h4>
+                  </div>
+                  <p className="text-2xl font-bold text-primary">${book.suggestedPrice.toFixed(2)}</p>
+                </div>
+
+                <div className="p-4 rounded-lg bg-success/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="w-4 h-4 text-success" />
+                    <h4 className="text-sm font-medium">Expected ROI</h4>
+                  </div>
+                  <p className="text-2xl font-bold text-success">{book.roi}%</p>
+                </div>
+
+                {book.verified && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10">
+                    <ShieldCheck className="w-5 h-5 text-success" />
+                    <span className="font-medium text-success">Verified Supplier</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="pricing" className="space-y-4 mt-4">
+            <div className="grid gap-4">
+              <div className="p-4 rounded-lg border border-border space-y-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  <h3 className="font-semibold text-lg">Cost Breakdown</h3>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-muted-foreground">Wholesale Cost</span>
+                    <span className="font-semibold">${book.wholesalePrice.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-muted-foreground">Smart Price (Your Price)</span>
+                    <span className="font-semibold text-primary">${book.suggestedPrice.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-muted-foreground">Amazon Current Price</span>
+                    <span className="font-semibold">${book.amazonPrice.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-muted-foreground">Gross Profit</span>
+                    <span className="font-semibold text-success">${profit.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-muted-foreground">Est. Amazon Fees (15%)</span>
+                    <span className="font-semibold text-warning">-${amazonFees.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 bg-success/10 px-3 rounded-lg mt-2">
+                    <span className="font-semibold">Net Profit</span>
+                    <span className="font-bold text-success text-lg">${netProfit.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 bg-primary/10 px-3 rounded-lg">
+                    <span className="font-semibold">Net ROI</span>
+                    <span className="font-bold text-primary text-lg">{netRoi}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg bg-muted/50">
+                <h4 className="font-medium mb-2">Price Positioning</h4>
+                <p className="text-sm text-muted-foreground">
+                  Your Smart Price is ${(book.amazonPrice - book.suggestedPrice).toFixed(2)} below Amazon's current price,
+                  giving you a competitive edge while maintaining a strong {netRoi}% net ROI.
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="amazon" className="space-y-4 mt-4">
+            {loading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            )}
+
+            {error && (
+              <div className="p-4 rounded-lg bg-destructive/10 text-destructive">
+                {error}
+              </div>
+            )}
+
+            {!loading && !error && keepaData && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg border border-border">
+                  <h3 className="font-semibold text-lg mb-3">Amazon Product Data</h3>
+                  <div className="space-y-2 text-sm">
+                    {keepaData.products?.[0] ? (
+                      <>
+                        <div className="flex justify-between py-2 border-b border-border">
+                          <span className="text-muted-foreground">ASIN</span>
+                          <span className="font-mono">{keepaData.products[0].asin}</span>
+                        </div>
+                        {keepaData.products[0].title && (
+                          <div className="flex justify-between py-2 border-b border-border">
+                            <span className="text-muted-foreground">Amazon Title</span>
+                            <span className="text-right max-w-md">{keepaData.products[0].title}</span>
+                          </div>
+                        )}
+                        {keepaData.products[0].stats && (
+                          <>
+                            <div className="flex justify-between py-2 border-b border-border">
+                              <span className="text-muted-foreground">Sales Rank (Current)</span>
+                              <span className="font-semibold">{keepaData.products[0].stats.current[0]?.toLocaleString() || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-border">
+                              <span className="text-muted-foreground">Avg Sales Rank (180d)</span>
+                              <span className="font-semibold">{keepaData.products[0].stats.avg[0]?.toLocaleString() || 'N/A'}</span>
+                            </div>
+                          </>
+                        )}
+                        <div className="mt-4">
+                          <a
+                            href={`https://www.amazon.com/dp/${keepaData.products[0].asin}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            View on Amazon →
+                          </a>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground">No Amazon data available for this ISBN</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default BookDetailsDialog;

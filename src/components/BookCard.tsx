@@ -1,35 +1,27 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, TrendingUp, Eye } from "lucide-react";
+import BookDetailsDialog from "./BookDetailsDialog";
+import type { Book } from "@/data/mockBooks";
 
-interface BookCardProps {
-  title: string;
-  author: string;
-  isbn: string;
-  publisher: string;
-  category: string;
-  wholesalePrice: number;
-  suggestedPrice: number;
-  amazonPrice: number;
-  roi: number;
-  verified: boolean;
-  imageUrl?: string;
-}
+const BookCard = (book: Book) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-const BookCard = ({
-  title,
-  author,
-  isbn,
-  publisher,
-  category,
-  wholesalePrice,
-  suggestedPrice,
-  amazonPrice,
-  roi,
-  verified,
-  imageUrl,
-}: BookCardProps) => {
+  const {
+    title,
+    author,
+    isbn,
+    publisher,
+    category,
+    wholesalePrice,
+    suggestedPrice,
+    amazonPrice,
+    roi,
+    verified,
+    imageUrl,
+  } = book;
   return (
     <Card className="group hover:shadow-xl transition-all duration-300 border-border overflow-hidden">
       <CardHeader className="p-0">
@@ -90,14 +82,18 @@ const BookCard = ({
         <Button 
           variant="outline" 
           className="w-full group/btn"
-          onClick={() => {
-            alert(`Viewing details for: ${title}\nISBN: ${isbn}\nWholesale: $${wholesalePrice}\nSmart Price: $${suggestedPrice}\nROI: ${roi}%`);
-          }}
+          onClick={() => setDialogOpen(true)}
         >
           <Eye className="w-4 h-4 mr-2" />
           View Details
         </Button>
       </CardFooter>
+      
+      <BookDetailsDialog 
+        book={book}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </Card>
   );
 };
