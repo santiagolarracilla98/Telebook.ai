@@ -56,11 +56,11 @@ const Index = () => {
 
   const fetchBooks = async () => {
     try {
-      // Trigger book categorization (only updates books without categories)
+      // Trigger book categorization
       await supabase.functions.invoke('categorize-books');
       
-      // Then trigger the book cover update
-      await supabase.functions.invoke('update-book-covers');
+      // Fetch book covers from Amazon via Keepa API
+      await supabase.functions.invoke('fetch-book-covers');
 
       const { data, error } = await supabase
         .from('books')
