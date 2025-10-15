@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      books: {
+        Row: {
+          author: string
+          available_stock: number
+          created_at: string | null
+          id: string
+          rrp: number
+          title: string
+          uk_asin: string | null
+          updated_at: string | null
+          us_asin: string | null
+          wholesale_price: number
+        }
+        Insert: {
+          author: string
+          available_stock?: number
+          created_at?: string | null
+          id?: string
+          rrp: number
+          title: string
+          uk_asin?: string | null
+          updated_at?: string | null
+          us_asin?: string | null
+          wholesale_price: number
+        }
+        Update: {
+          author?: string
+          available_stock?: number
+          created_at?: string | null
+          id?: string
+          rrp?: number
+          title?: string
+          uk_asin?: string | null
+          updated_at?: string | null
+          us_asin?: string | null
+          wholesale_price?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
