@@ -68,6 +68,7 @@ const Index = () => {
         amazonPrice: book.rrp,
         roi: Math.round(((book.rrp * 0.85 - book.wholesale_price) / book.wholesale_price) * 100),
         verified: true,
+        imageUrl: book.image_url || undefined,
       }));
 
       setBooks(transformedBooks);

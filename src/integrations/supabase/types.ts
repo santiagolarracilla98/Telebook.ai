@@ -20,6 +20,7 @@ export type Database = {
           available_stock: number
           created_at: string | null
           id: string
+          image_url: string | null
           rrp: number
           title: string
           uk_asin: string | null
@@ -32,6 +33,7 @@ export type Database = {
           available_stock?: number
           created_at?: string | null
           id?: string
+          image_url?: string | null
           rrp: number
           title: string
           uk_asin?: string | null
@@ -44,6 +46,7 @@ export type Database = {
           available_stock?: number
           created_at?: string | null
           id?: string
+          image_url?: string | null
           rrp?: number
           title?: string
           uk_asin?: string | null
