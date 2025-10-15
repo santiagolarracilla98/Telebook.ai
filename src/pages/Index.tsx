@@ -56,7 +56,10 @@ const Index = () => {
 
   const fetchBooks = async () => {
     try {
-      // First, trigger the book cover update function (only updates books without images)
+      // Trigger book categorization (only updates books without categories)
+      await supabase.functions.invoke('categorize-books');
+      
+      // Then trigger the book cover update
       await supabase.functions.invoke('update-book-covers');
 
       const { data, error } = await supabase
@@ -78,7 +81,7 @@ const Index = () => {
         rrp: book.rrp,
         wholesale_price: book.wholesale_price,
         publisher: 'Various',
-        category: 'Books',
+        category: book.category || 'Fiction',
         wholesalePrice: book.wholesale_price,
         suggestedPrice: book.rrp * 0.85,
         amazonPrice: book.rrp,

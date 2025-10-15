@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           author: string
           available_stock: number
+          category: string | null
           created_at: string | null
           id: string
           image_url: string | null
@@ -31,6 +32,7 @@ export type Database = {
         Insert: {
           author: string
           available_stock?: number
+          category?: string | null
           created_at?: string | null
           id?: string
           image_url?: string | null
@@ -44,6 +46,7 @@ export type Database = {
         Update: {
           author?: string
           available_stock?: number
+          category?: string | null
           created_at?: string | null
           id?: string
           image_url?: string | null

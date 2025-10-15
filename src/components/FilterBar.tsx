@@ -49,12 +49,15 @@ const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplac
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="fiction">Fiction</SelectItem>
-            <SelectItem value="non-fiction">Non-Fiction</SelectItem>
-            <SelectItem value="business">Business</SelectItem>
+            <SelectItem value="manga & comics">Manga & Comics</SelectItem>
             <SelectItem value="self-help">Self-Help</SelectItem>
+            <SelectItem value="business">Business</SelectItem>
+            <SelectItem value="romance">Romance</SelectItem>
+            <SelectItem value="young adult">Young Adult</SelectItem>
+            <SelectItem value="children's books">Children's Books</SelectItem>
+            <SelectItem value="science fiction">Science Fiction</SelectItem>
             <SelectItem value="technology">Technology</SelectItem>
-            <SelectItem value="children">Children's Books</SelectItem>
+            <SelectItem value="fiction">Fiction</SelectItem>
           </SelectContent>
         </Select>
         
