@@ -7,7 +7,7 @@ import BookDetailsDialog from "./BookDetailsDialog";
 import type { Book } from "@/data/mockBooks";
 
 interface BookCardProps extends Book {
-  marketplace?: 'usa' | 'uk';
+  marketplace?: 'usa' | 'uk' | 'both';
 }
 
 const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {

@@ -37,6 +37,7 @@ const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplac
           <SelectContent>
             <SelectItem value="usa">🇺🇸 USA</SelectItem>
             <SelectItem value="uk">🇬🇧 UK</SelectItem>
+            <SelectItem value="both">🌍 Both</SelectItem>
           </SelectContent>
         </Select>
         
@@ -77,7 +78,7 @@ const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplac
           onClick={() => {
             onCategoryChange?.('all');
             onPublisherChange?.('all');
-            onMarketplaceChange?.('usa');
+            onMarketplaceChange?.('both');
             onSearch?.('');
           }}
         >

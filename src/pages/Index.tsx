@@ -7,7 +7,7 @@ import { mockBooks } from "@/data/mockBooks";
 
 const Index = () => {
   const [books] = useState(mockBooks);
-  const [marketplace, setMarketplace] = useState<'usa' | 'uk'>('usa');
+  const [marketplace, setMarketplace] = useState<'usa' | 'uk' | 'both'>('usa');
 
   return (
     <div className="min-h-screen bg-background">
@@ -15,7 +15,7 @@ const Index = () => {
       <Hero />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" id="inventory">
-        <FilterBar onMarketplaceChange={(value) => setMarketplace(value as 'usa' | 'uk')} />
+        <FilterBar onMarketplaceChange={(value) => setMarketplace(value as 'usa' | 'uk' | 'both')} />
         
         <div className="mt-12">
           <div className="flex items-center justify-between mb-6">
