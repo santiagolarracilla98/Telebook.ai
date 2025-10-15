@@ -8,10 +8,11 @@ interface FilterBarProps {
   onCategoryChange?: (category: string) => void;
   onPublisherChange?: (publisher: string) => void;
   onMarketplaceChange?: (marketplace: string) => void;
+  onApplyFilters?: () => void;
   filteredBooks?: number;
 }
 
-const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplaceChange, filteredBooks }: FilterBarProps) => {
+const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplaceChange, onApplyFilters, filteredBooks }: FilterBarProps) => {
   return (
     <div className="bg-card rounded-2xl shadow-md border border-border p-6 space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -88,8 +89,9 @@ const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplac
         <Button 
           size="sm" 
           className="ml-auto"
+          onClick={onApplyFilters}
         >
-          {filteredBooks !== undefined ? `Showing ${filteredBooks} books` : 'Apply Filters'}
+          Show Books
         </Button>
       </div>
     </div>

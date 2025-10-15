@@ -34,6 +34,11 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPublisher, setSelectedPublisher] = useState<string>('all');
+  
+  // Temporary filter values (not yet applied)
+  const [tempSearchQuery, setTempSearchQuery] = useState('');
+  const [tempCategory, setTempCategory] = useState<string>('all');
+  const [tempPublisher, setTempPublisher] = useState<string>('all');
 
   useEffect(() => {
     fetchBooks();
@@ -42,6 +47,12 @@ const Index = () => {
   useEffect(() => {
     filterBooks();
   }, [books, searchQuery, selectedCategory, selectedPublisher]);
+
+  const applyFilters = () => {
+    setSearchQuery(tempSearchQuery);
+    setSelectedCategory(tempCategory);
+    setSelectedPublisher(tempPublisher);
+  };
 
   const fetchBooks = async () => {
     try {
@@ -132,9 +143,10 @@ const Index = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" id="inventory">
         <FilterBar 
           onMarketplaceChange={(value) => setMarketplace(value as 'usa' | 'uk' | 'both')}
-          onSearch={setSearchQuery}
-          onCategoryChange={setSelectedCategory}
-          onPublisherChange={setSelectedPublisher}
+          onSearch={setTempSearchQuery}
+          onCategoryChange={setTempCategory}
+          onPublisherChange={setTempPublisher}
+          onApplyFilters={applyFilters}
           filteredBooks={filteredBooks.length}
         />
         
