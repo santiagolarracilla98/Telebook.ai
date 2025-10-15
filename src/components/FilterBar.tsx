@@ -60,8 +60,26 @@ const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange }: FilterBarP
       </div>
       
       <div className="flex gap-2 pt-2">
-        <Button variant="outline" size="sm">Reset Filters</Button>
-        <Button size="sm" className="ml-auto">Apply Filters</Button>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => {
+            onCategoryChange?.('all');
+            onPublisherChange?.('all');
+            onSearch?.('');
+          }}
+        >
+          Reset Filters
+        </Button>
+        <Button 
+          size="sm" 
+          className="ml-auto"
+          onClick={() => {
+            console.log('Filters applied');
+          }}
+        >
+          Apply Filters
+        </Button>
       </div>
     </div>
   );

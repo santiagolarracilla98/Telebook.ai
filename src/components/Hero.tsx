@@ -26,11 +26,25 @@ const Hero = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button size="lg" variant="secondary" className="group">
+            <Button 
+              size="lg" 
+              variant="secondary" 
+              className="group"
+              onClick={() => {
+                document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
               Explore Inventory
               <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button size="lg" variant="outline" className="bg-background/10 backdrop-blur-sm border-primary-foreground/30 text-primary-foreground hover:bg-background/20">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="bg-background/10 backdrop-blur-sm border-primary-foreground/30 text-primary-foreground hover:bg-background/20"
+              onClick={() => {
+                document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
               View Pricing Engine
             </Button>
           </div>

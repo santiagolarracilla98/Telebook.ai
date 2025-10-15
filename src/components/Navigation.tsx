@@ -14,23 +14,48 @@ const Navigation = () => {
           </div>
           
           <div className="hidden md:flex items-center gap-6">
-            <Button variant="ghost" className="gap-2">
+            <Button 
+              variant="ghost" 
+              className="gap-2"
+              onClick={() => {
+                document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
               <LayoutDashboard className="w-4 h-4" />
               Inventory
             </Button>
-            <Button variant="ghost" className="gap-2">
+            <Button 
+              variant="ghost" 
+              className="gap-2"
+              onClick={() => {
+                document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
               <Calculator className="w-4 h-4" />
               Price Engine
             </Button>
-            <Button variant="ghost" className="gap-2">
+            <Button 
+              variant="ghost" 
+              className="gap-2"
+              onClick={() => {
+                document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
               <Users className="w-4 h-4" />
               Suppliers
             </Button>
           </div>
           
           <div className="flex items-center gap-3">
-            <Button variant="outline">Sign In</Button>
-            <Button>Get Started</Button>
+            <Button 
+              variant="outline"
+              onClick={() => alert('Sign in functionality coming soon!')}
+            >
+              Sign In
+            </Button>
+            <Button onClick={() => alert('Get started functionality coming soon!')}>
+              Get Started
+            </Button>
           </div>
         </div>
       </div>

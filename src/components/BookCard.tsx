@@ -87,7 +87,13 @@ const BookCard = ({
       </CardContent>
       
       <CardFooter className="p-4 pt-0">
-        <Button variant="outline" className="w-full group/btn">
+        <Button 
+          variant="outline" 
+          className="w-full group/btn"
+          onClick={() => {
+            alert(`Viewing details for: ${title}\nISBN: ${isbn}\nWholesale: $${wholesalePrice}\nSmart Price: $${suggestedPrice}\nROI: ${roi}%`);
+          }}
+        >
           <Eye className="w-4 h-4 mr-2" />
           View Details
         </Button>
