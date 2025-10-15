@@ -50,26 +50,56 @@ const Index = () => {
 
       if (error) throw error;
 
-      // Transform database books to match BookCard interface
-      const transformedBooks = data.map(book => ({
-        id: book.id,
-        title: book.title,
-        author: book.author,
-        isbn: book.us_asin || book.uk_asin || '',
-        uk_asin: book.uk_asin,
-        us_asin: book.us_asin,
-        available_stock: book.available_stock,
-        rrp: book.rrp,
-        wholesale_price: book.wholesale_price,
-        publisher: 'Various',
-        category: 'Books',
-        wholesalePrice: book.wholesale_price,
-        suggestedPrice: book.rrp * 0.85,
-        amazonPrice: book.rrp,
-        roi: Math.round(((book.rrp * 0.85 - book.wholesale_price) / book.wholesale_price) * 100),
-        verified: true,
-        imageUrl: book.image_url || undefined,
-      }));
+      // Transform database books and fetch cover images
+      const transformedBooks = await Promise.all(
+        data.map(async (book) => {
+          let imageUrl = book.image_url;
+          
+          // If no image URL, try to fetch one
+          if (!imageUrl) {
+            try {
+              const { data: coverData } = await supabase.functions.invoke('fetch-book-covers', {
+                body: { 
+                  isbn: book.uk_asin || book.us_asin,
+                  asin: book.us_asin || book.uk_asin
+                }
+              });
+              
+              if (coverData?.imageUrl) {
+                imageUrl = coverData.imageUrl;
+                
+                // Update the database with the found image URL
+                await supabase
+                  .from('books')
+                  .update({ image_url: imageUrl })
+                  .eq('id', book.id);
+              }
+            } catch (err) {
+              console.error('Error fetching cover for book:', book.title, err);
+            }
+          }
+          
+          return {
+            id: book.id,
+            title: book.title,
+            author: book.author,
+            isbn: book.us_asin || book.uk_asin || '',
+            uk_asin: book.uk_asin,
+            us_asin: book.us_asin,
+            available_stock: book.available_stock,
+            rrp: book.rrp,
+            wholesale_price: book.wholesale_price,
+            publisher: 'Various',
+            category: 'Books',
+            wholesalePrice: book.wholesale_price,
+            suggestedPrice: book.rrp * 0.85,
+            amazonPrice: book.rrp,
+            roi: Math.round(((book.rrp * 0.85 - book.wholesale_price) / book.wholesale_price) * 100),
+            verified: true,
+            imageUrl,
+          };
+        })
+      );
 
       setBooks(transformedBooks);
       setFilteredBooks(transformedBooks);
