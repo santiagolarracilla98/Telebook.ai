@@ -32,6 +32,8 @@ const Index = () => {
   const [marketplace, setMarketplace] = useState<'usa' | 'uk' | 'both'>('usa');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedPublisher, setSelectedPublisher] = useState<string>('all');
 
   useEffect(() => {
     fetchBooks();
@@ -39,7 +41,7 @@ const Index = () => {
 
   useEffect(() => {
     filterBooks();
-  }, [books, searchQuery]);
+  }, [books, searchQuery, selectedCategory, selectedPublisher]);
 
   const fetchBooks = async () => {
     try {
@@ -86,6 +88,7 @@ const Index = () => {
   const filterBooks = () => {
     let filtered = [...books];
 
+    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -93,6 +96,20 @@ const Index = () => {
           book.title.toLowerCase().includes(query) ||
           book.author.toLowerCase().includes(query) ||
           book.isbn.toLowerCase().includes(query)
+      );
+    }
+
+    // Filter by category
+    if (selectedCategory && selectedCategory !== 'all') {
+      filtered = filtered.filter(
+        book => book.category.toLowerCase() === selectedCategory.toLowerCase()
+      );
+    }
+
+    // Filter by publisher
+    if (selectedPublisher && selectedPublisher !== 'all') {
+      filtered = filtered.filter(
+        book => book.publisher.toLowerCase().includes(selectedPublisher.toLowerCase())
       );
     }
 
@@ -116,6 +133,9 @@ const Index = () => {
         <FilterBar 
           onMarketplaceChange={(value) => setMarketplace(value as 'usa' | 'uk' | 'both')}
           onSearch={setSearchQuery}
+          onCategoryChange={setSelectedCategory}
+          onPublisherChange={setSelectedPublisher}
+          filteredBooks={filteredBooks.length}
         />
         
         <div className="mt-12">
