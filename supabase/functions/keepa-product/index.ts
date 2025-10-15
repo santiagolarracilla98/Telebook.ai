@@ -44,7 +44,8 @@ serve(async (req) => {
     
     console.log(`Fetching Keepa data for ISBN: ${cleanIsbn} (${marketplace.toUpperCase()} marketplace, domain: ${domain})`);
     
-    const keepaUrl = `https://api.keepa.com/product?key=${KEEPA_API_KEY}&domain=${domain}&asin=${cleanIsbn}&stats=180&rating=1`;
+    // Try multiple search strategies: first by ASIN, then by code (for ISBN-13)
+    const keepaUrl = `https://api.keepa.com/product?key=${KEEPA_API_KEY}&domain=${domain}&code=${cleanIsbn}&stats=180&rating=1`;
     
     const response = await fetch(keepaUrl);
     

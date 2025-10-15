@@ -10,7 +10,7 @@ const Navigation = () => {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
               <BookOpen className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">BookWholesale</span>
+            <span className="text-xl font-bold text-foreground">Telebook</span>
           </div>
           
           <div className="hidden md:flex items-center gap-6">
