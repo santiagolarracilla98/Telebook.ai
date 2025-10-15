@@ -23,20 +23,20 @@ serve(async (req) => {
       throw new Error('KEEPA_API_KEY not configured');
     }
 
-    console.log('Fetching books without images...');
+    console.log('Fetching books that need images...');
     
-    // Get books that don't have images yet
+    // Get books that don't have images OR have OpenLibrary images (which often don't work)
     const { data: books, error: fetchError } = await supabaseClient
       .from('books')
       .select('id, uk_asin, us_asin, image_url, title')
-      .is('image_url', null);
+      .or('image_url.is.null,image_url.like.%openlibrary%');
 
     if (fetchError) {
       console.error('Error fetching books:', fetchError);
       throw fetchError;
     }
 
-    console.log(`Found ${books?.length || 0} books without images`);
+    console.log(`Found ${books?.length || 0} books that need images`);
 
     let updated = 0;
     let failed = 0;
@@ -78,18 +78,34 @@ serve(async (req) => {
         const product = data.products[0];
         let imageUrl = null;
 
-        // Try to get image from Keepa's imagesCSV field
+        // Try multiple image sources in order of preference
         if (product.imagesCSV) {
           const images = product.imagesCSV.split(',');
-          if (images.length > 0) {
-            // Keepa provides image IDs, construct the full URL
+          if (images.length > 0 && images[0].trim()) {
             imageUrl = `https://images-na.ssl-images-amazon.com/images/I/${images[0]}`;
           }
         }
         
-        // Fallback to standard Amazon image URL format
+        // Fallback 1: Standard Amazon image URL using ASIN
         if (!imageUrl) {
           imageUrl = `https://images-na.ssl-images-amazon.com/images/P/${cleanAsin}.jpg`;
+        }
+        
+        // Verify image exists by making a HEAD request
+        try {
+          const imgCheck = await fetch(imageUrl, { method: 'HEAD' });
+          if (!imgCheck.ok) {
+            // Fallback 2: Try alternative Amazon image format
+            imageUrl = `https://m.media-amazon.com/images/I/${cleanAsin}.jpg`;
+            const imgCheck2 = await fetch(imageUrl, { method: 'HEAD' });
+            if (!imgCheck2.ok) {
+              // Fallback 3: Use placeholder
+              imageUrl = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop';
+            }
+          }
+        } catch (e) {
+          console.error(`Error checking image for ${cleanAsin}:`, e);
+          imageUrl = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop';
         }
 
         console.log(`Updating ${book.title} with image: ${imageUrl}`);
