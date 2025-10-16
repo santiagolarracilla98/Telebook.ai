@@ -92,6 +92,13 @@ const HostAuth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
+      <Button 
+        variant="ghost" 
+        className="absolute top-4 left-4"
+        onClick={() => navigate('/')}
+      >
+        ← Back to Home
+      </Button>
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
@@ -101,7 +108,9 @@ const HostAuth = () => {
           </div>
           <div className="text-center">
             <CardTitle className="text-2xl">Host Portal</CardTitle>
-            <CardDescription>Sign in to manage your book inventory</CardDescription>
+            <CardDescription>
+              Create an account or sign in to manage your book inventory
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent>

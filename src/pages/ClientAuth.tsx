@@ -66,6 +66,13 @@ const ClientAuth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-secondary/5">
+      <Button 
+        variant="ghost" 
+        className="absolute top-4 left-4"
+        onClick={() => navigate('/')}
+      >
+        ← Back to Home
+      </Button>
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
@@ -75,7 +82,9 @@ const ClientAuth = () => {
           </div>
           <div className="text-center">
             <CardTitle className="text-2xl">Client Portal</CardTitle>
-            <CardDescription>Browse and purchase books</CardDescription>
+            <CardDescription>
+              Create an account or sign in to browse books
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
