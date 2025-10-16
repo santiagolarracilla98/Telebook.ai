@@ -38,11 +38,25 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   const fetchSimilarBooks = async () => {
     setLoadingSimilar(true);
     try {
-      const { data, error } = await supabase
+      // Build query - only exclude by id if it's a valid UUID
+      let query = supabase
         .from('books')
         .select('*')
-        .eq('category', book.category)
-        .neq('id', book.id)
+        .eq('category', book.category);
+      
+      // Only add id filter if book.id looks like a UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (book.id && uuidRegex.test(book.id)) {
+        query = query.neq('id', book.id);
+      } else {
+        // Exclude by ISBN if id is not a UUID
+        if (book.isbn) {
+          query = query.neq('us_asin', book.isbn).neq('uk_asin', book.isbn);
+        }
+      }
+      
+      const { data, error } = await query
+        .not('amazon_price', 'is', null)
         .order('amazon_price', { ascending: false })
         .limit(5);
 
