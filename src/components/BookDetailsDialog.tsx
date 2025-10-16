@@ -38,6 +38,14 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   const fetchSimilarBooks = async () => {
     setLoadingSimilar(true);
     try {
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setSimilarBooks([]);
+        setLoadingSimilar(false);
+        return;
+      }
+
       // Build query - exclude current book by title and author to avoid UUID issues
       const { data, error } = await supabase
         .from('books')
@@ -503,7 +511,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
               </>
             ) : (
               <div className="text-center py-12 text-muted-foreground">
-                No similar books found in this category
+                {book.category ? `No similar books found in ${book.category}` : 'Sign in to see similar books'}
               </div>
             )}
           </TabsContent>
