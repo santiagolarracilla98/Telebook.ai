@@ -63,12 +63,12 @@ const Suppliers = () => {
             {[...suppliers, ...suppliers, ...suppliers].map((supplier, index) => (
               <div
                 key={`${supplier.name}-${index}`}
-                className="flex items-center justify-center min-w-[200px] h-24 grayscale hover:grayscale-0 transition-all duration-300"
+                className="flex items-center justify-center min-w-[200px] h-24 px-6 rounded-lg bg-background border border-border grayscale hover:grayscale-0 hover:shadow-md transition-all duration-300"
               >
                 <img
                   src={supplier.logo}
                   alt={supplier.name}
-                  className="max-h-16 max-w-[180px] object-contain"
+                  className="max-h-16 max-w-[180px] object-contain mix-blend-multiply dark:mix-blend-normal dark:invert"
                 />
               </div>
             ))}
