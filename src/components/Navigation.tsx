@@ -40,22 +40,32 @@ const Navigation = () => {
 
   const handleLogout = async () => {
     try {
-      // Force local logout even if server fails
-      await supabase.auth.signOut({ scope: 'local' });
+      // Set flag to prevent immediate re-login
+      sessionStorage.setItem('logout-in-progress', 'true');
       
-      // Clear local state immediately
+      // Clear local state first
       setUser(null);
       setIsHost(false);
       
-      // If on homepage, reload to show logged-out state
+      // Force local logout and wait for it to complete
+      await supabase.auth.signOut({ scope: 'local' });
+      
+      // Small delay to ensure localStorage is cleared
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Clear the flag
+      sessionStorage.removeItem('logout-in-progress');
+      
+      // Now reload or redirect
       if (window.location.pathname === '/') {
         window.location.reload();
       } else {
         window.location.href = '/';
       }
     } catch (error) {
-      // Even if error, still logout locally and reload
       console.error('Logout error:', error);
+      // Still clear everything on error
+      sessionStorage.removeItem('logout-in-progress');
       setUser(null);
       setIsHost(false);
       window.location.reload();
