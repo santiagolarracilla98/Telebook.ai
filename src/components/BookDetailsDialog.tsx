@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -7,8 +8,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShieldCheck, TrendingUp, Package, DollarSign, BarChart3, Loader2 } from "lucide-react";
+import { ShieldCheck, TrendingUp, Package, DollarSign, BarChart3, Loader2, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Book } from "@/data/mockBooks";
 import SimilarBookCard from "./SimilarBookCard";
@@ -21,12 +23,14 @@ interface BookDetailsDialogProps {
 }
 
 const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: BookDetailsDialogProps) => {
+  const navigate = useNavigate();
   const [keepaData, setKeepaData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [similarBooks, setSimilarBooks] = useState<Book[]>([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [selectedSimilarBook, setSelectedSimilarBook] = useState<Book | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     if (open && book.isbn) {
@@ -40,6 +44,8 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     try {
       // Check if user is authenticated
       const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+      
       if (!session) {
         setSimilarBooks([]);
         setLoadingSimilar(false);
@@ -488,6 +494,28 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
+            ) : !isAuthenticated ? (
+              <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <LogIn className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Discover Similar Books</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Sign in to explore personalized book recommendations and unlock the full experience
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate('/auth');
+                  }}
+                  className="gap-2"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Sign in for full experience
+                </Button>
+              </div>
             ) : similarBooks.length > 0 ? (
               <>
                 <div className="flex items-center gap-2 mb-4">
@@ -511,7 +539,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
               </>
             ) : (
               <div className="text-center py-12 text-muted-foreground">
-                {book.category ? `No similar books found in ${book.category}` : 'Sign in to see similar books'}
+                No similar books found in {book.category}
               </div>
             )}
           </TabsContent>
