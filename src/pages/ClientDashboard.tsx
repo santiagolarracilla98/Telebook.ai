@@ -6,7 +6,7 @@ import { BookOpen, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import Hero from "@/components/Hero";
 import FilterBar from "@/components/FilterBar";
-import BookDetailsDialog from "@/components/BookDetailsDialog";
+import BookCard from "@/components/BookCard";
 
 interface Book {
   id: string;
@@ -41,7 +41,6 @@ const ClientDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedPublisher, setSelectedPublisher] = useState<string>("");
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [marketplace, setMarketplace] = useState<'usa' | 'uk' | 'both'>('usa');
 
   useEffect(() => {
@@ -134,10 +133,6 @@ const ClientDashboard = () => {
     navigate('/');
   };
 
-  const handleBookClick = (book: Book) => {
-    setSelectedBook(book);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -179,55 +174,10 @@ const ClientDashboard = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
           {filteredBooks.map((book) => (
-            <div 
-              key={book.id} 
-              className="group hover:shadow-xl transition-all duration-300 border border-border rounded-lg overflow-hidden cursor-pointer"
-              onClick={() => handleBookClick(book)}
-            >
-              <div className="relative h-48 bg-muted overflow-hidden">
-                {book.imageUrl ? (
-                  <img src={book.imageUrl} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                ) : (
-                  <div className="flex items-center justify-center h-full bg-gradient-to-br from-primary/10 to-secondary/10">
-                    <span className="text-4xl font-bold text-muted-foreground/30">📚</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="p-4 space-y-3">
-                <div>
-                  <h3 className="font-semibold text-foreground line-clamp-2 mb-1">{book.title}</h3>
-                  <p className="text-sm text-muted-foreground">{book.author}</p>
-                </div>
-                
-                <div className="flex gap-2 flex-wrap">
-                  <span className="text-xs px-2 py-1 bg-secondary/20 rounded-full">{book.category}</span>
-                </div>
-                
-                <div className="pt-2 border-t border-border space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">RRP</span>
-                    <span className="font-semibold text-foreground">£{book.rrp.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">Stock</span>
-                    <span className="font-medium text-foreground">{book.available_stock}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <BookCard key={book.id} {...book} marketplace={marketplace} />
           ))}
         </div>
       </div>
-
-      {selectedBook && (
-        <BookDetailsDialog
-          book={selectedBook}
-          open={!!selectedBook}
-          onOpenChange={(open) => !open && setSelectedBook(null)}
-          marketplace={marketplace}
-        />
-      )}
     </div>
   );
 };
