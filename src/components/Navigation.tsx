@@ -28,7 +28,7 @@ const Navigation = () => {
               variant="ghost" 
               className="gap-2"
               onClick={() => {
-                document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('pricing-engine')?.scrollIntoView({ behavior: 'smooth' });
               }}
             >
               <Calculator className="w-4 h-4" />
