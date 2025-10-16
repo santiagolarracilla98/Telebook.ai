@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ONIXMessage release="3.0">
+  <Product>
+    <ProductIdentifier>
+      <ProductIDType>15</ProductIDType>
+      <IDValue>9780000000002</IDValue>
+    </ProductIdentifier>
+    <PublishingDetail>
+      <Imprint><ImprintName>Sample Imprint</ImprintName></Imprint>
+      <Publisher><PublishingRole>01</PublishingRole><PublisherName>Sample Publisher</PublisherName></Publisher>
+    </PublishingDetail>
+    <ProductSupply>
+      <SupplyDetail>
+        <Price>
+          <PriceType>02</PriceType>
+          <PriceAmount>12.99</PriceAmount>
+          <CurrencyCode>GBP</CurrencyCode>
+          <Territory><RegionsIncluded>GB</RegionsIncluded></Territory>
+          <PriceEffectiveFrom>2025-01-01</PriceEffectiveFrom>
+        </Price>
+        <Price>
+          <PriceType>01</PriceType>
+          <PriceAmount>14.99</PriceAmount>
+          <CurrencyCode>USD</CurrencyCode>
+          <Territory><RegionsIncluded>US</RegionsIncluded></Territory>
+          <PriceEffectiveFrom>2025-01-01</PriceEffectiveFrom>
+        </Price>
+      </SupplyDetail>
+    </ProductSupply>
+  </Product>
+</ONIXMessage>

@@ -1,151 +1,125 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// deno-lint-ignore-file no-explicit-any
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { parseOnix, pickBestRRP } from "../_shared/onixParser.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+type Input = { isbns?: string[]; territory?: "GB" | "US" };
+
+const BOWKER_API_KEY = Deno.env.get("BOWKER_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const BOWKER_ENDPOINT = "https://api.bowker.com/book/v1/metadata?isbn="; // replace when you have the real endpoint
+
+async function fetchBowkerPrice(isbn13: string) {
+  if (!BOWKER_API_KEY) return null;
+  try {
+    const res = await fetch(`${BOWKER_ENDPOINT}${isbn13}`, {
+      headers: { Authorization: `Bearer ${BOWKER_API_KEY}` },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const prices = (json?.prices ?? []) as any[];
+    if (!prices.length) return null;
+    const gb = prices.find(p => p.territory === "GB" && (p.priceType === "02" || p.priceType === "01"));
+    const us = prices.find(p => p.territory === "US" && (p.priceType === "02" || p.priceType === "01"));
+    const pick = gb ?? us ?? prices[0];
+    return {
+      isbn13,
+      territory: pick.territory ?? "GB",
+      price_amount: Number(pick.amount),
+      currency: pick.currency ?? "GBP",
+      price_type: pick.priceType ?? null,
+      raw: json,
+      source: "bowker",
+    };
+  } catch { return null; }
+}
+
+async function fetchOnixFallback() {
+  try {
+    const xml = await Deno.readTextFile("./supabase/functions/onix/sample.xml");
+    return parseOnix(xml);
+  } catch { return []; }
+}
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: req.headers.get("Authorization")! } },
+  });
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { isbns, territory }: Input = await req.json().catch(() => ({}));
 
-    const bowkerKey = Deno.env.get('BOWKER_API_KEY');
-    const nielsenKey = Deno.env.get('NIELSEN_API_KEY');
-
-    console.log('Fetching publisher prices...');
-
-    // Get all books without publisher_rrp
-    const { data: books, error: booksError } = await supabase
-      .from('books')
-      .select('id, us_asin, uk_asin, title')
-      .is('publisher_rrp', null);
-
-    if (booksError) throw booksError;
-
-    console.log(`Found ${books?.length || 0} books needing publisher prices`);
-
-    const results = [];
-
-    for (const book of books || []) {
-      const isbn = book.us_asin || book.uk_asin;
-      if (!isbn) continue;
-
-      let priceData = null;
-
-      // Try Bowker API first (if key available)
-      if (bowkerKey && !priceData) {
-        try {
-          const bowkerResponse = await fetch(
-            `https://api.bowker.com/v2/books/${isbn}`,
-            { headers: { 'Authorization': `Bearer ${bowkerKey}` } }
-          );
-          if (bowkerResponse.ok) {
-            const data = await bowkerResponse.json();
-            if (data.price) {
-              priceData = {
-                price_amount: parseFloat(data.price),
-                currency: data.currency || 'USD',
-                territory: data.territory || 'US',
-                source: 'bowker'
-              };
-            }
-          }
-        } catch (error) {
-          console.log(`Bowker API error for ${isbn}:`, error);
-        }
+    // collect target isbns: books missing publisher_rrp
+    let target = isbns;
+    if (!target || target.length === 0) {
+      const { data } = await supabase
+        .from("books")
+        .select("us_asin, uk_asin, isbn, publisher_rrp")
+        .limit(500);
+      const uniq = new Set<string>();
+      for (const row of data ?? []) {
+        if (row.publisher_rrp) continue;
+        const guess = row.isbn || row.us_asin || row.uk_asin;
+        if (guess) uniq.add(String(guess));
       }
-
-      // Try Nielsen API (if key available)
-      if (nielsenKey && !priceData) {
-        try {
-          const nielsenResponse = await fetch(
-            `https://api.nielsen.com/books/${isbn}`,
-            { headers: { 'Authorization': `Bearer ${nielsenKey}` } }
-          );
-          if (nielsenResponse.ok) {
-            const data = await nielsenResponse.json();
-            if (data.price) {
-              priceData = {
-                price_amount: parseFloat(data.price),
-                currency: data.currency || 'GBP',
-                territory: data.territory || 'UK',
-                source: 'nielsen'
-              };
-            }
-          }
-        } catch (error) {
-          console.log(`Nielsen API error for ${isbn}:`, error);
-        }
-      }
-
-      // Fallback to mock data (simulating ONIX data)
-      if (!priceData) {
-        priceData = {
-          price_amount: Math.random() * (25 - 8) + 8, // Random price between $8-$25
-          currency: book.us_asin ? 'USD' : 'GBP',
-          territory: book.us_asin ? 'US' : 'UK',
-          source: 'onix_mock'
-        };
-      }
-
-      // Save to publisher_prices table
-      const { error: priceInsertError } = await supabase
-        .from('publisher_prices')
-        .insert({
-          isbn: isbn,
-          territory: priceData.territory,
-          price_amount: priceData.price_amount,
-          currency: priceData.currency,
-          price_type: 'wholesale',
-          source: priceData.source,
-          raw: priceData
-        });
-
-      if (priceInsertError) {
-        console.error('Error inserting publisher price:', priceInsertError);
-      }
-
-      // Update books table
-      const { error: bookUpdateError } = await supabase
-        .from('books')
-        .update({
-          publisher_rrp: priceData.price_amount,
-          currency: priceData.currency
-        })
-        .eq('id', book.id);
-
-      if (bookUpdateError) {
-        console.error('Error updating book:', bookUpdateError);
-      } else {
-        results.push({
-          isbn,
-          title: book.title,
-          price: priceData.price_amount,
-          currency: priceData.currency,
-          source: priceData.source
-        });
-      }
+      target = Array.from(uniq);
     }
 
-    console.log(`Successfully processed ${results.length} publisher prices`);
+    const logs: any[] = [];
+    const updates: any[] = [];
 
-    return new Response(
-      JSON.stringify({ success: true, processed: results.length, results }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  } catch (error) {
-    console.error('Error in fetch-publisher-prices:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    for (const raw of target) {
+      const isbn13 = String(raw).replace(/[^0-9Xx]/g, "");
+
+      let picked: any = await fetchBowkerPrice(isbn13);
+
+      if (!picked) {
+        const onix = await fetchOnixFallback();
+        const relevant = onix.filter(p => p.isbn13 === isbn13);
+        const best = pickBestRRP(relevant, { territory });
+        if (best) {
+          picked = {
+            isbn13,
+            territory: best.territory ?? (territory ?? "GB"),
+            price_amount: best.priceAmount,
+            currency: best.currencyCode ?? "GBP",
+            price_type: best.priceType ?? null,
+            raw: best,
+            source: "onix",
+          };
+        }
+      }
+      if (!picked) continue;
+
+      logs.push({
+        isbn: isbn13,
+        territory: picked.territory,
+        price_amount: picked.price_amount,
+        currency: picked.currency,
+        price_type: picked.price_type,
+        source: picked.source,
+        raw: picked.raw,
+      });
+
+      updates.push({ isbn13, currency: picked.currency, publisher_rrp: picked.price_amount });
+    }
+
+    if (logs.length) await supabase.from("publisher_prices").insert(logs);
+
+    for (const u of updates) {
+      await supabase
+        .from("books")
+        .update({ publisher_rrp: u.publisher_rrp, currency: u.currency })
+        .or(`isbn.eq.${u.isbn13},us_asin.eq.${u.isbn13},uk_asin.eq.${u.isbn13}`);
+    }
+
+    return new Response(JSON.stringify({ updated: updates.length, attempted: target.length }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
+  } catch (e) {
+    console.error(e);
+    return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
   }
 });
