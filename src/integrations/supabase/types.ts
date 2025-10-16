@@ -16,12 +16,19 @@ export type Database = {
     Tables: {
       books: {
         Row: {
+          amazon_fee: number | null
+          amazon_price: number | null
           author: string
           available_stock: number
           category: string | null
           created_at: string | null
+          currency: string | null
+          dataset_id: string | null
           id: string
           image_url: string | null
+          market_flag: string | null
+          publisher_rrp: number | null
+          roi_target_price: number | null
           rrp: number
           title: string
           uk_asin: string | null
@@ -30,12 +37,19 @@ export type Database = {
           wholesale_price: number
         }
         Insert: {
+          amazon_fee?: number | null
+          amazon_price?: number | null
           author: string
           available_stock?: number
           category?: string | null
           created_at?: string | null
+          currency?: string | null
+          dataset_id?: string | null
           id?: string
           image_url?: string | null
+          market_flag?: string | null
+          publisher_rrp?: number | null
+          roi_target_price?: number | null
           rrp: number
           title: string
           uk_asin?: string | null
@@ -44,18 +58,123 @@ export type Database = {
           wholesale_price: number
         }
         Update: {
+          amazon_fee?: number | null
+          amazon_price?: number | null
           author?: string
           available_stock?: number
           category?: string | null
           created_at?: string | null
+          currency?: string | null
+          dataset_id?: string | null
           id?: string
           image_url?: string | null
+          market_flag?: string | null
+          publisher_rrp?: number | null
+          roi_target_price?: number | null
           rrp?: number
           title?: string
           uk_asin?: string | null
           updated_at?: string | null
           us_asin?: string | null
           wholesale_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "books_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      datasets: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          source: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          source: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          source?: string
+        }
+        Relationships: []
+      }
+      fee_schedules: {
+        Row: {
+          category: string
+          closing_fee: number | null
+          created_at: string | null
+          fba_base: number | null
+          id: string
+          referral_pct: number
+          territory: string
+        }
+        Insert: {
+          category: string
+          closing_fee?: number | null
+          created_at?: string | null
+          fba_base?: number | null
+          id?: string
+          referral_pct: number
+          territory: string
+        }
+        Update: {
+          category?: string
+          closing_fee?: number | null
+          created_at?: string | null
+          fba_base?: number | null
+          id?: string
+          referral_pct?: number
+          territory?: string
+        }
+        Relationships: []
+      }
+      publisher_prices: {
+        Row: {
+          created_at: string | null
+          currency: string
+          id: string
+          isbn: string
+          price_amount: number
+          price_type: string | null
+          raw: Json | null
+          source: string
+          territory: string
+        }
+        Insert: {
+          created_at?: string | null
+          currency: string
+          id?: string
+          isbn: string
+          price_amount: number
+          price_type?: string | null
+          raw?: Json | null
+          source: string
+          territory: string
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string
+          id?: string
+          isbn?: string
+          price_amount?: number
+          price_type?: string | null
+          raw?: Json | null
+          source?: string
+          territory?: string
         }
         Relationships: []
       }

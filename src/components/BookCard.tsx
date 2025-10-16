@@ -25,7 +25,27 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
     roi,
     verified,
     imageUrl,
+    publisher_rrp,
+    roi_target_price,
+    market_flag,
   } = book;
+
+  const getMarketBadge = () => {
+    if (!market_flag) return null;
+    
+    const badges = {
+      below_market: { label: 'Below Market', variant: 'destructive' as const },
+      at_market: { label: 'At Market', variant: 'secondary' as const },
+      above_market: { label: 'Above Market', variant: 'default' as const },
+    };
+    
+    const badge = badges[market_flag as keyof typeof badges];
+    return badge ? (
+      <Badge variant={badge.variant} className="text-xs">
+        {badge.label}
+      </Badge>
+    ) : null;
+  };
   return (
     <Card className="group hover:shadow-xl transition-all duration-300 border-border overflow-hidden">
       <CardHeader className="p-0">
@@ -55,9 +75,16 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
         <div className="flex gap-2 flex-wrap">
           <Badge variant="outline" className="text-xs">{category}</Badge>
           <Badge variant="outline" className="text-xs">{publisher}</Badge>
+          {getMarketBadge()}
         </div>
         
         <div className="pt-2 border-t border-border space-y-2">
+          {publisher_rrp && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">Publisher RRP</span>
+              <span className="font-medium text-foreground">${publisher_rrp.toFixed(2)}</span>
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground">Wholesale</span>
             <span className="font-semibold text-foreground">${wholesalePrice.toFixed(2)}</span>
@@ -66,10 +93,12 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
             <span className="text-xs text-muted-foreground">Amazon Price</span>
             <span className="font-medium text-foreground">${amazonPrice.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">Smart Price</span>
-            <span className="font-semibold text-primary">${suggestedPrice.toFixed(2)}</span>
-          </div>
+          {roi_target_price && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">Target (20% ROI)</span>
+              <span className="font-semibold text-primary">${roi_target_price.toFixed(2)}</span>
+            </div>
+          )}
           <div className="flex justify-between items-center pt-2 border-t border-border">
             <span className="text-sm font-medium flex items-center gap-1">
               <TrendingUp className="w-4 h-4 text-success" />

@@ -28,6 +28,11 @@ interface Book {
   roi: number;
   verified: boolean;
   imageUrl?: string;
+  publisher_rrp?: number;
+  amazon_price?: number;
+  roi_target_price?: number;
+  market_flag?: string;
+  currency?: string;
 }
 
 const Index = () => {
@@ -93,6 +98,20 @@ const Index = () => {
       
       // Fetch book covers from Amazon via Keepa API
       await supabase.functions.invoke('fetch-book-covers');
+      
+      // Fetch publisher prices (from APIs or mock)
+      console.log('Fetching publisher prices...');
+      await supabase.functions.invoke('fetch-publisher-prices');
+      
+      // Fetch Amazon prices (from Keepa or calculated)
+      console.log('Fetching Amazon prices...');
+      await supabase.functions.invoke('fetch-amazon-prices');
+      
+      // Calculate unit economics
+      console.log('Calculating unit economics...');
+      await supabase.functions.invoke('calc-unit-econ', {
+        body: { roiTarget: 0.20 }
+      });
 
       const { data, error } = await supabase
         .from('books')
@@ -102,25 +121,38 @@ const Index = () => {
       if (error) throw error;
 
       // Transform database books to match BookCard interface
-      const transformedBooks = data.map(book => ({
-        id: book.id,
-        title: book.title,
-        author: book.author,
-        isbn: book.us_asin || book.uk_asin || '',
-        uk_asin: book.uk_asin,
-        us_asin: book.us_asin,
-        available_stock: book.available_stock,
-        rrp: book.rrp,
-        wholesale_price: book.wholesale_price,
-        publisher: 'Various',
-        category: book.category || 'Fiction',
-        wholesalePrice: book.wholesale_price,
-        suggestedPrice: book.rrp * 0.85,
-        amazonPrice: book.rrp,
-        roi: Math.round(((book.rrp * 0.85 - book.wholesale_price) / book.wholesale_price) * 100),
-        verified: true,
-        imageUrl: book.image_url || undefined,
-      }));
+      const transformedBooks = data.map(book => {
+        const publisherPrice = book.publisher_rrp || book.wholesale_price;
+        const amazonPrice = book.amazon_price || book.rrp;
+        const targetPrice = book.roi_target_price || (publisherPrice * 1.2);
+        const margin = amazonPrice - (amazonPrice * 0.15) - publisherPrice;
+        const calculatedRoi = publisherPrice > 0 ? Math.round((margin / publisherPrice) * 100) : 0;
+        
+        return {
+          id: book.id,
+          title: book.title,
+          author: book.author,
+          isbn: book.us_asin || book.uk_asin || '',
+          uk_asin: book.uk_asin,
+          us_asin: book.us_asin,
+          available_stock: book.available_stock,
+          rrp: book.rrp,
+          wholesale_price: book.wholesale_price,
+          publisher: 'Various',
+          category: book.category || 'Fiction',
+          wholesalePrice: book.wholesale_price,
+          suggestedPrice: targetPrice,
+          amazonPrice: amazonPrice,
+          roi: calculatedRoi,
+          verified: true,
+          imageUrl: book.image_url || undefined,
+          publisher_rrp: book.publisher_rrp,
+          amazon_price: book.amazon_price,
+          roi_target_price: book.roi_target_price,
+          market_flag: book.market_flag,
+          currency: book.currency,
+        };
+      });
 
       setBooks(transformedBooks);
       setFilteredBooks(transformedBooks);

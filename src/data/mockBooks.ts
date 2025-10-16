@@ -26,6 +26,11 @@ export interface Book {
   roi: number;
   verified: boolean;
   imageUrl?: string;
+  publisher_rrp?: number;
+  amazon_price?: number;
+  roi_target_price?: number;
+  market_flag?: string;
+  currency?: string;
 }
 
 export const mockBooks: Book[] = [
