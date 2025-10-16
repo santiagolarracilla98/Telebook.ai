@@ -2,23 +2,35 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
 import { BookOpen, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import Hero from "@/components/Hero";
 import FilterBar from "@/components/FilterBar";
+import BookDetailsDialog from "@/components/BookDetailsDialog";
 
 interface Book {
   id: string;
   title: string;
   author: string;
+  isbn: string;
+  uk_asin?: string | null;
+  us_asin?: string | null;
+  available_stock: number;
   rrp: number;
   wholesale_price: number;
-  available_stock: number;
+  publisher: string;
   category: string;
-  image_url: string | null;
-  uk_asin: string | null;
-  us_asin: string | null;
+  wholesalePrice: number;
+  suggestedPrice: number;
+  amazonPrice: number;
+  roi: number;
+  verified: boolean;
+  imageUrl?: string;
+  publisher_rrp?: number;
+  amazon_price?: number;
+  roi_target_price?: number;
+  market_flag?: string;
+  currency?: string;
 }
 
 const ClientDashboard = () => {
@@ -30,7 +42,7 @@ const ClientDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedPublisher, setSelectedPublisher] = useState<string>("");
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [marketplace, setMarketplace] = useState<'usa' | 'uk' | 'both'>('usa');
 
   useEffect(() => {
     checkAuth();
@@ -56,7 +68,42 @@ const ClientDashboard = () => {
         .order('title');
 
       if (error) throw error;
-      setBooks(data || []);
+      
+      // Transform database books to match BookCard interface
+      const transformedBooks = (data || []).map(book => {
+        const publisherPrice = book.publisher_rrp || book.wholesale_price;
+        const amazonPrice = book.amazon_price || book.rrp;
+        const targetPrice = book.roi_target_price || (publisherPrice * 1.2);
+        const margin = amazonPrice - (amazonPrice * 0.15) - publisherPrice;
+        const calculatedRoi = publisherPrice > 0 ? Math.round((margin / publisherPrice) * 100) : 0;
+        
+        return {
+          id: book.id,
+          title: book.title,
+          author: book.author,
+          isbn: book.us_asin || book.uk_asin || '',
+          uk_asin: book.uk_asin,
+          us_asin: book.us_asin,
+          available_stock: book.available_stock,
+          rrp: book.rrp,
+          wholesale_price: book.wholesale_price,
+          publisher: 'Various',
+          category: book.category || 'Fiction',
+          wholesalePrice: book.wholesale_price,
+          suggestedPrice: targetPrice,
+          amazonPrice: amazonPrice,
+          roi: calculatedRoi,
+          verified: true,
+          imageUrl: book.image_url || undefined,
+          publisher_rrp: book.publisher_rrp,
+          amazon_price: book.amazon_price,
+          roi_target_price: book.roi_target_price,
+          market_flag: book.market_flag,
+          currency: book.currency,
+        };
+      });
+      
+      setBooks(transformedBooks);
     } catch (error: any) {
       toast.error("Failed to fetch books");
     } finally {
@@ -89,7 +136,6 @@ const ClientDashboard = () => {
 
   const handleBookClick = (book: Book) => {
     setSelectedBook(book);
-    setShowDetailsDialog(true);
   };
 
   if (loading) {
@@ -124,6 +170,7 @@ const ClientDashboard = () => {
       
       <div id="inventory" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <FilterBar
+        onMarketplaceChange={(value) => setMarketplace(value as 'usa' | 'uk' | 'both')}
         onSearch={setSearchQuery}
         onCategoryChange={setSelectedCategory}
         onPublisherChange={setSelectedPublisher}
@@ -138,8 +185,8 @@ const ClientDashboard = () => {
               onClick={() => handleBookClick(book)}
             >
               <div className="relative h-48 bg-muted overflow-hidden">
-                {book.image_url ? (
-                  <img src={book.image_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                {book.imageUrl ? (
+                  <img src={book.imageUrl} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <div className="flex items-center justify-center h-full bg-gradient-to-br from-primary/10 to-secondary/10">
                     <span className="text-4xl font-bold text-muted-foreground/30">📚</span>
@@ -174,37 +221,12 @@ const ClientDashboard = () => {
       </div>
 
       {selectedBook && (
-        <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50">
-            <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-card p-6 rounded-lg shadow-lg border">
-              <h2 className="text-2xl font-bold mb-4">{selectedBook.title}</h2>
-              <p className="text-muted-foreground mb-4">by {selectedBook.author}</p>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Category</h4>
-                  <p className="text-base">{selectedBook.category}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">RRP</h4>
-                  <p className="text-base font-bold">£{selectedBook.rrp.toFixed(2)}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Wholesale Price</h4>
-                  <p className="text-base">£{selectedBook.wholesale_price.toFixed(2)}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Available Stock</h4>
-                  <p className="text-base">{selectedBook.available_stock}</p>
-                </div>
-              </div>
-              
-              <div className="mt-6">
-                <Button onClick={() => setShowDetailsDialog(false)}>Close</Button>
-              </div>
-            </div>
-          </div>
-        </Dialog>
+        <BookDetailsDialog
+          book={selectedBook}
+          open={!!selectedBook}
+          onOpenChange={(open) => !open && setSelectedBook(null)}
+          marketplace={marketplace}
+        />
       )}
     </div>
   );
