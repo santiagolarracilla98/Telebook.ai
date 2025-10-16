@@ -65,14 +65,8 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchBooks();
-    } else {
-      // Show mock data for non-authenticated users
-      setBooks(mockBooks);
-      setFilteredBooks(mockBooks);
-      setLoading(false);
-    }
+    // Always fetch real books from database, regardless of auth status
+    fetchBooks();
   }, [user]);
 
   useEffect(() => {
@@ -86,13 +80,6 @@ const Index = () => {
   };
 
   const fetchBooks = async () => {
-    if (!user) {
-      setBooks(mockBooks);
-      setFilteredBooks(mockBooks);
-      setLoading(false);
-      return;
-    }
-
     try {
       // Trigger book categorization
       await supabase.functions.invoke('categorize-books');
@@ -225,16 +212,18 @@ const Index = () => {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-foreground">
-                {user ? 'Available Inventory' : 'Example Inventory'}
+                Available Inventory
               </h2>
               <p className="text-muted-foreground mt-1">
-                  {user ? (
-                    `${filteredBooks.length} books available`
-                  ) : (
-                    <>
-                      Sample books for demonstration • <a href="/auth" className="text-primary hover:underline">Sign in to view real inventory</a>
-                    </>
-                  )}
+                {filteredBooks.length} books available
+                {!user && (
+                  <>
+                    {' • '}
+                    <a href="/auth" className="text-primary hover:underline">
+                      Sign in for advanced analytics
+                    </a>
+                  </>
+                )}
               </p>
             </div>
           </div>
