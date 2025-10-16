@@ -101,19 +101,19 @@ const Index = () => {
         body: { roiTarget: 0.20 }
       });
 
-      // Fetch books from active datasets only
+      // Fetch books from active datasets (or books without datasets)
       const { data: booksData, error: booksError } = await supabase
         .from('books')
         .select(`
           *,
-          dataset:datasets!inner(
+          dataset:datasets(
             id,
             name,
             source,
             is_active
           )
         `)
-        .eq('datasets.is_active', true)
+        .or('datasets.is_active.eq.true,dataset_id.is.null')
         .order('title');
 
       if (booksError) throw booksError;
