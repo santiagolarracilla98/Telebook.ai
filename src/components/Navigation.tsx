@@ -49,12 +49,12 @@ const Navigation = () => {
           <div className="flex items-center gap-3">
             <Button 
               variant="outline"
-              onClick={() => alert('Sign in functionality coming soon!')}
+              onClick={() => window.location.href = '/host-auth'}
             >
-              Sign In
+              Sign in as Host
             </Button>
-            <Button onClick={() => alert('Get started functionality coming soon!')}>
-              Get Started
+            <Button onClick={() => window.location.href = '/client-auth'}>
+              Sign in as Client
             </Button>
           </div>
         </div>
