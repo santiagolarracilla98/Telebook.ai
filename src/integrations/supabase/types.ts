@@ -24,9 +24,16 @@ export type Database = {
           created_at: string | null
           currency: string | null
           dataset_id: string | null
+          description: string | null
+          google_books_id: string | null
           id: string
           image_url: string | null
+          info_link: string | null
           market_flag: string | null
+          page_count: number | null
+          preview_link: string | null
+          published_date: string | null
+          publisher: string | null
           publisher_rrp: number | null
           roi_target_price: number | null
           rrp: number
@@ -45,9 +52,16 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           dataset_id?: string | null
+          description?: string | null
+          google_books_id?: string | null
           id?: string
           image_url?: string | null
+          info_link?: string | null
           market_flag?: string | null
+          page_count?: number | null
+          preview_link?: string | null
+          published_date?: string | null
+          publisher?: string | null
           publisher_rrp?: number | null
           roi_target_price?: number | null
           rrp: number
@@ -66,9 +80,16 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           dataset_id?: string | null
+          description?: string | null
+          google_books_id?: string | null
           id?: string
           image_url?: string | null
+          info_link?: string | null
           market_flag?: string | null
+          page_count?: number | null
+          preview_link?: string | null
+          published_date?: string | null
+          publisher?: string | null
           publisher_rrp?: number | null
           roi_target_price?: number | null
           rrp?: number
@@ -90,25 +111,37 @@ export type Database = {
       }
       datasets: {
         Row: {
+          book_count: number | null
           created_at: string | null
           created_by: string | null
           id: string
+          is_active: boolean | null
+          last_synced_at: string | null
+          metadata: Json | null
           name: string
-          source: string
+          source: Database["public"]["Enums"]["dataset_source_type"] | null
         }
         Insert: {
+          book_count?: number | null
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          metadata?: Json | null
           name: string
-          source: string
+          source?: Database["public"]["Enums"]["dataset_source_type"] | null
         }
         Update: {
+          book_count?: number | null
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          metadata?: Json | null
           name?: string
-          source?: string
+          source?: Database["public"]["Enums"]["dataset_source_type"] | null
         }
         Relationships: []
       }
@@ -214,6 +247,12 @@ export type Database = {
     }
     Enums: {
       app_role: "host" | "client"
+      dataset_source_type:
+        | "manual_upload"
+        | "google_books"
+        | "bowker_api"
+        | "onix_feed"
+        | "keepa_import"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -342,6 +381,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["host", "client"],
+      dataset_source_type: [
+        "manual_upload",
+        "google_books",
+        "bowker_api",
+        "onix_feed",
+        "keepa_import",
+      ],
     },
   },
 } as const
