@@ -39,8 +39,27 @@ const Navigation = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/';
+    try {
+      // Force local logout even if server fails
+      await supabase.auth.signOut({ scope: 'local' });
+      
+      // Clear local state immediately
+      setUser(null);
+      setIsHost(false);
+      
+      // If on homepage, reload to show logged-out state
+      if (window.location.pathname === '/') {
+        window.location.reload();
+      } else {
+        window.location.href = '/';
+      }
+    } catch (error) {
+      // Even if error, still logout locally and reload
+      console.error('Logout error:', error);
+      setUser(null);
+      setIsHost(false);
+      window.location.reload();
+    }
   };
   return (
     <nav className="bg-card border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-card/95">
