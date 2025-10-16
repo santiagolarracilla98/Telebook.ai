@@ -1,3 +1,13 @@
+import bookPsychologyMoney from "@/assets/book-psychology-money.jpg";
+import bookAtomicHabits from "@/assets/book-atomic-habits.jpg";
+import bookMidnightLibrary from "@/assets/book-midnight-library.jpg";
+import bookProjectHailMary from "@/assets/book-project-hail-mary.jpg";
+import bookThinkingFastSlow from "@/assets/book-thinking-fast-slow.jpg";
+import bookLeanStartup from "@/assets/book-lean-startup.jpg";
+import bookEducated from "@/assets/book-educated.jpg";
+import bookCleanCode from "@/assets/book-clean-code.jpg";
+import bookVeryHungryCaterpillar from "@/assets/book-very-hungry-caterpillar.jpg";
+
 export interface Book {
   id: string;
   title: string;
@@ -36,6 +46,7 @@ export const mockBooks: Book[] = [
     amazonPrice: 18.99,
     roi: 42,
     verified: true,
+    imageUrl: bookPsychologyMoney,
   },
   {
     id: "2",
@@ -54,6 +65,7 @@ export const mockBooks: Book[] = [
     amazonPrice: 21.99,
     roi: 38,
     verified: true,
+    imageUrl: bookAtomicHabits,
   },
   {
     id: "3",
@@ -72,6 +84,7 @@ export const mockBooks: Book[] = [
     amazonPrice: 19.99,
     roi: 35,
     verified: true,
+    imageUrl: bookMidnightLibrary,
   },
   {
     id: "4",
@@ -90,6 +103,7 @@ export const mockBooks: Book[] = [
     amazonPrice: 23.99,
     roi: 40,
     verified: true,
+    imageUrl: bookProjectHailMary,
   },
   {
     id: "5",
@@ -108,6 +122,7 @@ export const mockBooks: Book[] = [
     amazonPrice: 18.50,
     roi: 36,
     verified: true,
+    imageUrl: bookThinkingFastSlow,
   },
   {
     id: "6",
@@ -126,6 +141,7 @@ export const mockBooks: Book[] = [
     amazonPrice: 20.99,
     roi: 44,
     verified: true,
+    imageUrl: bookLeanStartup,
   },
   {
     id: "7",
@@ -144,6 +160,7 @@ export const mockBooks: Book[] = [
     amazonPrice: 21.50,
     roi: 38,
     verified: true,
+    imageUrl: bookEducated,
   },
   {
     id: "8",
@@ -162,6 +179,7 @@ export const mockBooks: Book[] = [
     amazonPrice: 37.99,
     roi: 42,
     verified: true,
+    imageUrl: bookCleanCode,
   },
   {
     id: "9",
@@ -180,5 +198,6 @@ export const mockBooks: Book[] = [
     amazonPrice: 12.99,
     roi: 45,
     verified: true,
+    imageUrl: bookVeryHungryCaterpillar,
   },
 ];
