@@ -101,15 +101,25 @@ const Index = () => {
         body: { roiTarget: 0.20 }
       });
 
-      const { data, error } = await supabase
+      // Fetch books from active datasets only
+      const { data: booksData, error: booksError } = await supabase
         .from('books')
-        .select('*')
+        .select(`
+          *,
+          dataset:datasets!inner(
+            id,
+            name,
+            source,
+            is_active
+          )
+        `)
+        .eq('datasets.is_active', true)
         .order('title');
 
-      if (error) throw error;
+      if (booksError) throw booksError;
 
       // Transform database books to match BookCard interface
-      const transformedBooks = data.map(book => {
+      const transformedBooks: Book[] = (booksData || []).map(book => {
         const publisherPrice = book.publisher_rrp || book.wholesale_price;
         const amazonPrice = book.amazon_price || book.rrp;
         const targetPrice = book.roi_target_price || (publisherPrice * 1.2);

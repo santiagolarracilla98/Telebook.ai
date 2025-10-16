@@ -33,9 +33,13 @@ import type { User } from "@supabase/supabase-js";
 interface Dataset {
   id: string;
   name: string;
-  source: string;
+  source: 'manual_upload' | 'google_books' | 'bowker_api' | 'onix_feed' | 'keepa_import';
   created_at: string;
   created_by: string;
+  is_active: boolean;
+  book_count: number;
+  metadata?: any;
+  last_synced_at?: string;
 }
 
 interface Book {
@@ -61,6 +65,10 @@ const HostDashboardNew = () => {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [books, setBooks] = useState<Book[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [googleQuery, setGoogleQuery] = useState('');
+  const [googleMaxResults, setGoogleMaxResults] = useState(40);
+  const [googleDatasetName, setGoogleDatasetName] = useState('');
   const [stats, setStats] = useState({
     totalBooks: 0,
     totalStock: 0,
@@ -114,10 +122,82 @@ const HostDashboardNew = () => {
     const { data, error } = await supabase
       .from('datasets')
       .select('*')
+      .order('is_active', { ascending: false })
       .order('created_at', { ascending: false });
 
     if (!error && data) {
       setDatasets(data);
+    }
+  };
+
+  const toggleDatasetActive = async (datasetId: string, currentState: boolean) => {
+    const { error } = await supabase
+      .from('datasets')
+      .update({ is_active: !currentState })
+      .eq('id', datasetId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update dataset status.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Dataset Updated",
+        description: `Dataset ${!currentState ? 'activated' : 'deactivated'} successfully.`,
+      });
+      await Promise.all([fetchDatasets(), fetchBooks(), fetchStats()]);
+    }
+  };
+
+  const handleImportGoogleBooks = async () => {
+    if (!googleQuery.trim()) {
+      toast({
+        title: "Query Required",
+        description: "Please enter a search query.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setImporting(true);
+    try {
+      toast({
+        title: "Importing from Google Books",
+        description: "Searching and importing books...",
+      });
+
+      const { data, error } = await supabase.functions.invoke('import-google-books', {
+        body: {
+          query: googleQuery,
+          maxResults: googleMaxResults,
+          territory: 'GB',
+          datasetName: googleDatasetName || `Google Books - ${googleQuery}`
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Import Complete",
+        description: `Imported ${data.books_imported} books. Skipped ${data.books_skipped} duplicates.`,
+      });
+
+      // Reset form
+      setGoogleQuery('');
+      setGoogleDatasetName('');
+      
+      await Promise.all([fetchDatasets(), fetchBooks(), fetchStats()]);
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({
+        title: "Import Failed",
+        description: error.message || "There was an error importing books.",
+        variant: "destructive"
+      });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -371,42 +451,159 @@ const HostDashboardNew = () => {
           </TabsContent>
 
           {/* Datasets Tab */}
-          <TabsContent value="datasets">
+          <TabsContent value="datasets" className="space-y-6">
+            {/* Active Datasets */}
             <Card>
               <CardHeader>
-                <CardTitle>Datasets</CardTitle>
-                <CardDescription>View all uploaded and API-imported datasets</CardDescription>
+                <CardTitle>Active Datasets</CardTitle>
+                <CardDescription>Datasets visible to clients</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {datasets.length === 0 ? (
+                <div className="space-y-3">
+                  {datasets.filter(d => d.is_active).length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">
-                      No datasets yet. Upload your first dataset or sync with publisher APIs.
+                      No active datasets. Import books or activate existing datasets below.
                     </p>
                   ) : (
-                    <div className="space-y-2">
-                      {datasets.map((dataset) => (
-                        <div key={dataset.id} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div>
+                    datasets.filter(d => d.is_active).map((dataset) => (
+                      <div key={dataset.id} className="flex items-center justify-between p-4 border rounded-lg bg-card">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-medium">{dataset.name}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              Source: {dataset.source} • Created: {new Date(dataset.created_at).toLocaleDateString()}
-                            </p>
+                            <Badge variant={dataset.source === 'google_books' ? 'default' : 'outline'}>
+                              {dataset.source.replace('_', ' ')}
+                            </Badge>
+                            <Badge variant="secondary">{dataset.book_count} books</Badge>
                           </div>
-                          <Badge variant={dataset.source === 'upload' ? 'outline' : 'default'}>
-                            {dataset.source}
-                          </Badge>
+                          <p className="text-sm text-muted-foreground">
+                            Created: {new Date(dataset.created_at).toLocaleDateString()}
+                            {dataset.last_synced_at && ` • Last synced: ${new Date(dataset.last_synced_at).toLocaleDateString()}`}
+                          </p>
                         </div>
-                      ))}
-                    </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => toggleDatasetActive(dataset.id, dataset.is_active)}
+                        >
+                          Deactivate
+                        </Button>
+                      </div>
+                    ))
                   )}
                 </div>
               </CardContent>
             </Card>
+
+            {/* Inactive Datasets */}
+            {datasets.filter(d => !d.is_active).length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Inactive Datasets</CardTitle>
+                  <CardDescription>Hidden from clients</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {datasets.filter(d => !d.is_active).map((dataset) => (
+                      <div key={dataset.id} className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+                        <div className="flex-1 opacity-60">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium">{dataset.name}</h4>
+                            <Badge variant="outline">{dataset.source.replace('_', ' ')}</Badge>
+                            <Badge variant="secondary">{dataset.book_count} books</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Created: {new Date(dataset.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          onClick={() => toggleDatasetActive(dataset.id, dataset.is_active)}
+                        >
+                          Activate
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Sync & Import Tab */}
           <TabsContent value="sync" className="space-y-6">
+            {/* Google Books Import */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Import from Google Books</CardTitle>
+                <CardDescription>
+                  Search and import books from Google Books API
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="google-query">Search Query</Label>
+                  <Input 
+                    id="google-query"
+                    placeholder="e.g., fiction bestsellers 2024, business books"
+                    value={googleQuery}
+                    onChange={(e) => setGoogleQuery(e.target.value)}
+                    className="mt-2"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="max-results">Maximum Results</Label>
+                    <Input 
+                      id="max-results"
+                      type="number"
+                      min="1"
+                      max="40"
+                      value={googleMaxResults}
+                      onChange={(e) => setGoogleMaxResults(Number(e.target.value))}
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dataset-name">Dataset Name (Optional)</Label>
+                    <Input 
+                      id="dataset-name"
+                      placeholder="Auto-generated if empty"
+                      value={googleDatasetName}
+                      onChange={(e) => setGoogleDatasetName(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={handleImportGoogleBooks}
+                  disabled={importing || !googleQuery.trim()}
+                  className="w-full"
+                >
+                  {importing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Database className="w-4 h-4 mr-2" />
+                      Import Books
+                    </>
+                  )}
+                </Button>
+                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                  <p className="font-medium mb-1">ℹ️ How it works:</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>Creates a separate dataset you can toggle on/off</li>
+                    <li>Imports book metadata (title, author, description, etc.)</li>
+                    <li>Pricing fields default to zero (set manually or sync later)</li>
+                    <li>Duplicate ISBNs are automatically skipped</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Publisher API Sync</CardTitle>
