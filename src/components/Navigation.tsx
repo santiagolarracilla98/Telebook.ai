@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { BookOpen, LayoutDashboard, Calculator, Users } from "lucide-react";
+import { BookOpen, LayoutDashboard, Calculator, Users, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -36,6 +36,11 @@ const Navigation = () => {
       .single();
     
     setIsHost(data?.role === 'host');
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/';
   };
   return (
     <nav className="bg-card border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-card/95">
@@ -90,7 +95,16 @@ const Navigation = () => {
                 Host Dashboard
               </Button>
             )}
-            {!user && (
+            {user ? (
+              <Button 
+                variant="outline" 
+                onClick={handleLogout}
+                className="gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Log out
+              </Button>
+            ) : (
               <Button onClick={() => window.location.href = '/auth'}>
                 Sign/Log in
               </Button>
