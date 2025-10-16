@@ -5,14 +5,16 @@ import FilterBar from "@/components/FilterBar";
 import BookCard from "@/components/BookCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { mockBooks } from "@/data/mockBooks";
+import type { User } from "@supabase/supabase-js";
 
 interface Book {
   id: string;
   title: string;
   author: string;
   isbn: string;
-  uk_asin: string | null;
-  us_asin: string | null;
+  uk_asin?: string | null;
+  us_asin?: string | null;
   available_stock: number;
   rrp: number;
   wholesale_price: number;
@@ -34,6 +36,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPublisher, setSelectedPublisher] = useState<string>('all');
+  const [user, setUser] = useState<User | null>(null);
   
   // Temporary filter values (not yet applied)
   const [tempSearchQuery, setTempSearchQuery] = useState('');
@@ -41,8 +44,28 @@ const Index = () => {
   const [tempPublisher, setTempPublisher] = useState<string>('all');
 
   useEffect(() => {
-    fetchBooks();
+    // Check authentication status
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchBooks();
+    } else {
+      // Show mock data for non-authenticated users
+      setBooks(mockBooks);
+      setFilteredBooks(mockBooks);
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     filterBooks();
@@ -55,6 +78,13 @@ const Index = () => {
   };
 
   const fetchBooks = async () => {
+    if (!user) {
+      setBooks(mockBooks);
+      setFilteredBooks(mockBooks);
+      setLoading(false);
+      return;
+    }
+
     try {
       // Trigger book categorization
       await supabase.functions.invoke('categorize-books');
