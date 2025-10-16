@@ -4,6 +4,7 @@ import Hero from "@/components/Hero";
 import FilterBar from "@/components/FilterBar";
 import BookCard from "@/components/BookCard";
 import { PricingEngineCalculator } from "@/components/PricingEngineCalculator";
+import Suppliers from "@/components/Suppliers";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { mockBooks } from "@/data/mockBooks";
@@ -209,6 +210,8 @@ const Index = () => {
             ))}
           </div>
         </div>
+        
+        <Suppliers />
       </main>
     </div>
   );

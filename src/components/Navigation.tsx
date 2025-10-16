@@ -38,7 +38,7 @@ const Navigation = () => {
               variant="ghost" 
               className="gap-2"
               onClick={() => {
-                document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('suppliers')?.scrollIntoView({ behavior: 'smooth' });
               }}
             >
               <Users className="w-4 h-4" />
