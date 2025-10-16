@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShieldCheck, TrendingUp, Package, DollarSign, BarChart3, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Book } from "@/data/mockBooks";
+import SimilarBookCard from "./SimilarBookCard";
 
 interface BookDetailsDialogProps {
   book: Book;
@@ -23,12 +24,63 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   const [keepaData, setKeepaData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [similarBooks, setSimilarBooks] = useState<Book[]>([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
+  const [selectedSimilarBook, setSelectedSimilarBook] = useState<Book | null>(null);
 
   useEffect(() => {
     if (open && book.isbn) {
       fetchKeepaData();
+      fetchSimilarBooks();
     }
   }, [open, book.isbn, marketplace]);
+
+  const fetchSimilarBooks = async () => {
+    setLoadingSimilar(true);
+    try {
+      const { data, error } = await supabase
+        .from('books')
+        .select('*')
+        .eq('category', book.category)
+        .neq('id', book.id)
+        .order('amazon_price', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      // Transform to Book interface
+      const transformed = data?.map(b => ({
+        id: b.id,
+        title: b.title,
+        author: b.author,
+        isbn: b.us_asin || b.uk_asin || '',
+        uk_asin: b.uk_asin,
+        us_asin: b.us_asin,
+        available_stock: b.available_stock,
+        rrp: b.rrp,
+        wholesale_price: b.wholesale_price,
+        publisher: 'Various',
+        category: b.category || 'Fiction',
+        wholesalePrice: b.wholesale_price,
+        suggestedPrice: b.roi_target_price || (b.wholesale_price * 1.2),
+        amazonPrice: b.amazon_price || b.rrp,
+        roi: b.wholesale_price > 0 ? Math.round(((b.amazon_price || b.rrp) - (b.wholesale_price * 1.15)) / b.wholesale_price * 100) : 0,
+        verified: true,
+        imageUrl: b.image_url || undefined,
+        publisher_rrp: b.publisher_rrp,
+        amazon_price: b.amazon_price,
+        roi_target_price: b.roi_target_price,
+        market_flag: b.market_flag,
+        currency: b.currency,
+      })) || [];
+
+      setSimilarBooks(transformed);
+    } catch (error) {
+      console.error('Error fetching similar books:', error);
+    } finally {
+      setLoadingSimilar(false);
+    }
+  };
 
   const fetchKeepaData = async () => {
     setLoading(true);
@@ -104,10 +156,11 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
         </DialogHeader>
 
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="pricing">Pricing Analysis</TabsTrigger>
             <TabsTrigger value="amazon">Amazon Live Data</TabsTrigger>
+            <TabsTrigger value="similar">Similar Books</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="space-y-4 mt-4">
@@ -417,7 +470,49 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
               </div>
             )}
           </TabsContent>
+
+          <TabsContent value="similar" className="space-y-4 mt-4">
+            {loadingSimilar ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : similarBooks.length > 0 ? (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <Package className="w-5 h-5 text-primary" />
+                  <h3 className="font-semibold text-lg">Books in {book.category}</h3>
+                </div>
+                <div className="grid gap-3">
+                  {similarBooks.map((similar) => (
+                    <SimilarBookCard
+                      key={similar.id}
+                      title={similar.title}
+                      author={similar.author}
+                      roi={similar.roi}
+                      suggestedPrice={similar.suggestedPrice}
+                      imageUrl={similar.imageUrl}
+                      market_flag={similar.market_flag}
+                      onClick={() => setSelectedSimilarBook(similar)}
+                    />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                No similar books found in this category
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
+
+        {selectedSimilarBook && (
+          <BookDetailsDialog
+            book={selectedSimilarBook}
+            open={!!selectedSimilarBook}
+            onOpenChange={(open) => !open && setSelectedSimilarBook(null)}
+            marketplace={marketplace}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

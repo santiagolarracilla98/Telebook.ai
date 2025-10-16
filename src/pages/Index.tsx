@@ -5,6 +5,7 @@ import FilterBar from "@/components/FilterBar";
 import BookCard from "@/components/BookCard";
 import { PricingEngineCalculator } from "@/components/PricingEngineCalculator";
 import Suppliers from "@/components/Suppliers";
+import GenreAnalytics from "@/components/GenreAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { mockBooks } from "@/data/mockBooks";
@@ -217,8 +218,10 @@ const Index = () => {
           onApplyFilters={applyFilters}
           filteredBooks={filteredBooks.length}
         />
+
+        {user && <GenreAnalytics />}
         
-        <div className="mt-12">
+        <div className="mt-8">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-foreground">
