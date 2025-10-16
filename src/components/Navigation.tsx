@@ -51,10 +51,10 @@ const Navigation = () => {
               variant="outline"
               onClick={() => window.location.href = '/host-auth'}
             >
-              Sign in as Host
+              Sign/Log in as Host
             </Button>
             <Button onClick={() => window.location.href = '/client-auth'}>
-              Sign in as Client
+              Sign/Log in as Client
             </Button>
           </div>
         </div>

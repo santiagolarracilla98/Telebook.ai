@@ -186,8 +186,18 @@ const Index = () => {
         <div className="mt-12">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Available Inventory</h2>
-              <p className="text-muted-foreground mt-1">{filteredBooks.length} books available</p>
+              <h2 className="text-2xl font-bold text-foreground">
+                {user ? 'Available Inventory' : 'Example Inventory'}
+              </h2>
+              <p className="text-muted-foreground mt-1">
+                {user ? (
+                  `${filteredBooks.length} books available`
+                ) : (
+                  <>
+                    Sample books for demonstration • <a href="/host-auth" className="text-primary hover:underline">Sign in to view real inventory</a>
+                  </>
+                )}
+              </p>
             </div>
           </div>
           
