@@ -5,8 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import HostAuth from "./pages/HostAuth";
-import ClientAuth from "./pages/ClientAuth";
+import Auth from "./pages/Auth";
 import HostDashboard from "./pages/HostDashboard";
 import HostDashboardNew from "./pages/HostDashboardNew";
 import ClientDashboard from "./pages/ClientDashboard";
@@ -21,8 +20,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/host-auth" element={<HostAuth />} />
-          <Route path="/client-auth" element={<ClientAuth />} />
+          <Route path="/auth" element={<Auth />} />
           <Route path="/host-dashboard" element={<HostDashboard />} />
           <Route path="/host" element={<HostDashboardNew />} />
           <Route path="/client-dashboard" element={<ClientDashboard />} />

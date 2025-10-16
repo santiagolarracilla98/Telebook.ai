@@ -91,17 +91,9 @@ const Navigation = () => {
               </Button>
             )}
             {!user && (
-              <>
-                <Button 
-                  variant="outline"
-                  onClick={() => window.location.href = '/host-auth'}
-                >
-                  Sign/Log in as Host
-                </Button>
-                <Button onClick={() => window.location.href = '/client-auth'}>
-                  Sign/Log in as Client
-                </Button>
-              </>
+              <Button onClick={() => window.location.href = '/auth'}>
+                Sign/Log in
+              </Button>
             )}
           </div>
         </div>

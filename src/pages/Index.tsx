@@ -228,13 +228,13 @@ const Index = () => {
                 {user ? 'Available Inventory' : 'Example Inventory'}
               </h2>
               <p className="text-muted-foreground mt-1">
-                {user ? (
-                  `${filteredBooks.length} books available`
-                ) : (
-                  <>
-                    Sample books for demonstration • <a href="/host-auth" className="text-primary hover:underline">Sign in to view real inventory</a>
-                  </>
-                )}
+                  {user ? (
+                    `${filteredBooks.length} books available`
+                  ) : (
+                    <>
+                      Sample books for demonstration • <a href="/auth" className="text-primary hover:underline">Sign in to view real inventory</a>
+                    </>
+                  )}
               </p>
             </div>
           </div>

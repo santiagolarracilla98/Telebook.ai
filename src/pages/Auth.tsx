@@ -8,10 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen } from "lucide-react";
 import { toast } from "sonner";
 
-const HostAuth = () => {
-  const [email, setEmail] = useState("host@telebook.com");
+const Auth = () => {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isHostMode, setIsHostMode] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,10 +29,12 @@ const HostAuth = () => {
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
     
     if (data?.role === 'host') {
       navigate('/host-dashboard');
+    } else {
+      navigate('/client-dashboard');
     }
   };
 
@@ -48,19 +51,24 @@ const HostAuth = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Check if user has host role
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .single();
+        if (isHostMode) {
+          // Check if user has host role
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', data.user.id)
+            .maybeSingle();
 
-        if (roleData?.role === 'host') {
-          toast.success("Welcome back, Host!");
-          navigate('/host-dashboard');
+          if (roleData?.role === 'host') {
+            toast.success("Welcome back, Host!");
+            navigate('/host-dashboard');
+          } else {
+            toast.error("Access denied. Host credentials required.");
+            await supabase.auth.signOut();
+          }
         } else {
-          toast.error("Access denied. Host credentials required.");
-          await supabase.auth.signOut();
+          toast.success("Welcome to Telebook!");
+          navigate('/client-dashboard');
         }
       }
     } catch (error: any) {
@@ -77,12 +85,13 @@ const HostAuth = () => {
         email,
         password,
         options: {
-          data: { role: 'host' }
+          emailRedirectTo: `${window.location.origin}/`,
+          data: { role: isHostMode ? 'host' : 'client' }
         }
       });
 
       if (error) throw error;
-      toast.success("Host account created! Please sign in.");
+      toast.success("Account created! Please sign in.");
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
     } finally {
@@ -91,7 +100,7 @@ const HostAuth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-secondary/5">
       <Button 
         variant="ghost" 
         className="absolute top-4 left-4"
@@ -102,14 +111,18 @@ const HostAuth = () => {
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+            <div className={`w-16 h-16 rounded-2xl ${isHostMode ? 'bg-gradient-to-br from-primary to-secondary' : 'bg-gradient-to-br from-secondary to-primary'} flex items-center justify-center`}>
               <BookOpen className="w-10 h-10 text-primary-foreground" />
             </div>
           </div>
           <div className="text-center">
-            <CardTitle className="text-2xl">Host Portal</CardTitle>
+            <CardTitle className="text-2xl">
+              {isHostMode ? 'Host Portal' : 'Client Portal'}
+            </CardTitle>
             <CardDescription>
-              Create an account or sign in to manage your book inventory
+              {isHostMode 
+                ? 'Manage your book inventory' 
+                : 'Browse and discover books'}
             </CardDescription>
           </div>
         </CardHeader>
@@ -122,7 +135,7 @@ const HostAuth = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="host@telebook.com"
+                placeholder={isHostMode ? "host@telebook.com" : "client@telebook.com"}
                 required
               />
             </div>
@@ -145,6 +158,15 @@ const HostAuth = () => {
                 Sign Up
               </Button>
             </div>
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => setIsHostMode(!isHostMode)}
+                className="text-sm text-primary hover:underline"
+              >
+                {isHostMode ? '← Back to client login' : 'Log in as host →'}
+              </button>
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -152,4 +174,4 @@ const HostAuth = () => {
   );
 };
 
-export default HostAuth;
+export default Auth;

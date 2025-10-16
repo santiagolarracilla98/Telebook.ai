@@ -56,7 +56,7 @@ const ClientDashboard = () => {
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      navigate('/client-auth');
+      navigate('/auth');
     }
   };
 
