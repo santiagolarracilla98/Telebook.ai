@@ -9,6 +9,7 @@ import { Calculator, TrendingUp, Info } from "lucide-react";
 import { toast } from "sonner";
 import { ROIResults } from "./ROIResults";
 import { ROIExplanationDialog } from "./ROIExplanationDialog";
+import { ROIPaywall } from "./ROIPaywall";
 
 export const ROICalculator = () => {
   const [bookInput, setBookInput] = useState("");
@@ -18,6 +19,11 @@ export const ROICalculator = () => {
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationResult, setCalculationResult] = useState<any>(null);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [calculationCount, setCalculationCount] = useState<number>(() => {
+    const stored = localStorage.getItem('roi_calculation_count');
+    return stored ? parseInt(stored, 10) : 0;
+  });
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const getVolumeDiscount = (qty: number): number => {
     if (qty >= 500) return 0.25; // 25% discount
@@ -78,7 +84,7 @@ export const ROICalculator = () => {
         ? "Competitive" 
         : "Market Rate";
 
-      setCalculationResult({
+      const result = {
         bookTitle: book.title,
         bookAuthor: book.author,
         ourAcquisitionCost: ourAcquisitionCost.toFixed(2),
@@ -92,6 +98,22 @@ export const ROICalculator = () => {
         amazonFee: amazonFee.toFixed(2),
         fulfillmentMethod,
         quantity
+      };
+      
+      setCalculationResult(result);
+      
+      // Increment calculation count
+      const newCount = calculationCount + 1;
+      setCalculationCount(newCount);
+      localStorage.setItem('roi_calculation_count', newCount.toString());
+      
+      // Show paywall if limit exceeded
+      if (newCount > 3) {
+        setShowPaywall(true);
+      }
+      
+      toast.success("ROI Calculated Successfully", {
+        description: `Your potential ROI is ${potentialROI.toFixed(1)}%`,
       });
 
     } catch (error) {
@@ -223,7 +245,11 @@ export const ROICalculator = () => {
         </CardContent>
       </Card>
 
-      {calculationResult && <ROIResults result={calculationResult} />}
+      {showPaywall && calculationResult ? (
+        <ROIPaywall lastROI={calculationResult.potentialROI} />
+      ) : (
+        calculationResult && <ROIResults result={calculationResult} />
+      )}
       
       <ROIExplanationDialog 
         open={showExplanation} 
