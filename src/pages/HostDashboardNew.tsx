@@ -80,11 +80,27 @@ const HostDashboardNew = () => {
     checkAuth();
   }, []);
 
+  // Handle session expiry globally
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
+        navigate('/host-auth');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
   const checkAuth = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      setLoading(true);
+      // Refresh session to ensure it's valid
+      const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
       
-      if (!session?.user) {
+      if (sessionError || !session?.user) {
+        console.error("Session validation failed:", sessionError);
         navigate('/host-auth');
         return;
       }
@@ -99,6 +115,7 @@ const HostDashboardNew = () => {
         .single();
 
       if (roleError || roleData?.role !== 'host') {
+        console.error("Error checking role:", roleError);
         toast({
           title: "Access Denied",
           description: "You need host privileges to access this dashboard.",
@@ -152,14 +169,16 @@ const HostDashboardNew = () => {
   };
 
   const handleImportGoogleBooks = async () => {
-    // Check authentication first
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    // Force refresh session to ensure it's valid
+    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+    
+    if (sessionError || !session) {
       toast({
-        title: "Authentication Required",
-        description: "Please sign in to import books.",
+        title: "Session Expired",
+        description: "Please sign in again to import books.",
         variant: "destructive"
       });
+      navigate('/host-auth');
       return;
     }
 
