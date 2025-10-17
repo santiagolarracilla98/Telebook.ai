@@ -108,7 +108,7 @@ export const ROICalculator = () => {
       localStorage.setItem('roi_calculation_count', newCount.toString());
       
       // Show paywall if limit exceeded
-      if (newCount > 3) {
+      if (newCount > 4) {
         setShowPaywall(true);
       }
       
