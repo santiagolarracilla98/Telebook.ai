@@ -199,8 +199,8 @@ Deno.serve(async (req) => {
           currency: territory === 'GB' ? 'GBP' : 'USD',
           available_stock: 0,
           rrp: msrp || 0,
-          wholesale_price: estimatedWholesale,
-          publisher_rrp: msrp,
+          wholesale_price: estimatedWholesale || 0,
+          publisher_rrp: msrp || 0,
         };
 
         booksToInsert.push(bookData);
