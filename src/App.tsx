@@ -21,8 +21,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/host-dashboard" element={<HostDashboard />} />
-          <Route path="/host" element={<HostDashboardNew />} />
+          <Route path="/host-dashboard" element={<HostDashboardNew />} />
           <Route path="/client-dashboard" element={<ClientDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
