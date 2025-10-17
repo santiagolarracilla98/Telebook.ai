@@ -55,8 +55,8 @@ export const ROICalculator = () => {
 
       // Calculate costs and ROI using actual database pricing
       const volumeDiscount = getVolumeDiscount(quantity);
-      const baseCost = book.wholesale_price || book.publisher_rrp || 0;
-      const ourAcquisitionCost = baseCost * (1 - volumeDiscount);
+      // Use wholesale_price directly as final acquisition cost (already includes discounts)
+      const ourAcquisitionCost = book.wholesale_price || book.publisher_rrp || 0;
       
       // Use roi_target_price as the smart/optimal selling price
       const smartPrice = book.roi_target_price || book.amazon_price || book.rrp || 0;
