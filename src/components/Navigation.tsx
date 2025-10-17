@@ -39,37 +39,10 @@ const Navigation = () => {
   };
 
   const handleLogout = async () => {
-    try {
-      // Set flag to prevent immediate re-login
-      sessionStorage.setItem('logout-in-progress', 'true');
-      
-      // Clear local state first
-      setUser(null);
-      setIsHost(false);
-      
-      // Force local logout and wait for it to complete
-      await supabase.auth.signOut({ scope: 'local' });
-      
-      // Small delay to ensure localStorage is cleared
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Clear the flag
-      sessionStorage.removeItem('logout-in-progress');
-      
-      // Now reload or redirect
-      if (window.location.pathname === '/') {
-        window.location.reload();
-      } else {
-        window.location.href = '/';
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Still clear everything on error
-      sessionStorage.removeItem('logout-in-progress');
-      setUser(null);
-      setIsHost(false);
-      window.location.reload();
-    }
+    setUser(null);
+    setIsHost(false);
+    await supabase.auth.signOut({ scope: 'local' });
+    window.location.href = '/auth';
   };
   return (
     <nav className="bg-card border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-card/95">
@@ -116,14 +89,6 @@ const Navigation = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            {isHost && (
-              <Button 
-                variant="default"
-                onClick={() => window.location.href = '/host'}
-              >
-                Host Dashboard
-              </Button>
-            )}
             {user ? (
               <Button 
                 variant="outline" 

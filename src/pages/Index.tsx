@@ -52,33 +52,20 @@ const Index = () => {
   const [tempPublisher, setTempPublisher] = useState<string>('all');
 
   useEffect(() => {
-    // Check if logout is in progress
-    const isLoggingOut = sessionStorage.getItem('logout-in-progress');
-    if (isLoggingOut) {
-      return; // Don't initialize auth during logout
-    }
-    
-    // Check authentication status
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Only update if not logging out
-      if (!sessionStorage.getItem('logout-in-progress')) {
-        setUser(session?.user ?? null);
-      }
+      setUser(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    // Only fetch if not in the middle of logout
-    if (!sessionStorage.getItem('logout-in-progress')) {
-      fetchBooks();
-    }
-  }, []); // Remove 'user' dependency to prevent refetch on auth changes
+    fetchBooks();
+  }, []);
 
   useEffect(() => {
     filterBooks();
