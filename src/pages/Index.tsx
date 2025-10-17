@@ -8,6 +8,7 @@ import Suppliers from "@/components/Suppliers";
 import GenreAnalytics from "@/components/GenreAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { mockBooks } from "@/data/mockBooks";
 import type { User } from "@supabase/supabase-js";
 
@@ -45,6 +46,8 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPublisher, setSelectedPublisher] = useState<string>('all');
   const [user, setUser] = useState<User | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const booksPerPage = 15;
   
   // Temporary filter values (not yet applied)
   const [tempSearchQuery, setTempSearchQuery] = useState('');
@@ -69,6 +72,7 @@ const Index = () => {
 
   useEffect(() => {
     filterBooks();
+    setCurrentPage(1); // Reset to page 1 when filters change
   }, [books, searchQuery, selectedCategory, selectedPublisher]);
 
   const applyFilters = () => {
@@ -222,7 +226,12 @@ const Index = () => {
                 Available Inventory
               </h2>
               <p className="text-muted-foreground mt-1">
-                {filteredBooks.length} books available
+                {filteredBooks.length > 0 && (
+                  <>
+                    Showing {((currentPage - 1) * booksPerPage) + 1}-{Math.min(currentPage * booksPerPage, filteredBooks.length)} of {filteredBooks.length} books
+                  </>
+                )}
+                {filteredBooks.length === 0 && "No books available"}
                 {!user && (
                   <>
                     {' • '}
@@ -236,10 +245,45 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredBooks.map((book) => (
-              <BookCard key={book.id} {...book} marketplace={marketplace} />
-            ))}
+            {filteredBooks
+              .slice((currentPage - 1) * booksPerPage, currentPage * booksPerPage)
+              .map((book) => (
+                <BookCard key={book.id} {...book} marketplace={marketplace} />
+              ))}
           </div>
+
+          {filteredBooks.length > booksPerPage && (
+            <div className="flex justify-center items-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              
+              {Array.from({ length: Math.ceil(filteredBooks.length / booksPerPage) }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredBooks.length / booksPerPage), prev + 1))}
+                disabled={currentPage === Math.ceil(filteredBooks.length / booksPerPage)}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </div>
         
         <Suppliers />

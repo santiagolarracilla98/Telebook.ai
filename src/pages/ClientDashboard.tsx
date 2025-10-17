@@ -43,6 +43,8 @@ const ClientDashboard = () => {
   const [selectedPublisher, setSelectedPublisher] = useState<string>("");
   const [marketplace, setMarketplace] = useState<'usa' | 'uk' | 'both'>('usa');
   const [showOnlyWithPricing, setShowOnlyWithPricing] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const booksPerPage = 15;
 
   useEffect(() => {
     checkAuth();
@@ -64,6 +66,7 @@ const ClientDashboard = () => {
 
   useEffect(() => {
     filterBooks();
+    setCurrentPage(1); // Reset to page 1 when filters change
   }, [books, searchQuery, selectedCategory, selectedPublisher, marketplace, showOnlyWithPricing]);
 
   const checkAuth = async () => {
@@ -217,11 +220,52 @@ const ClientDashboard = () => {
         filteredBooks={filteredBooks.length}
       />
 
+        {filteredBooks.length > 0 && (
+          <div className="mt-6 text-sm text-muted-foreground">
+            Showing {((currentPage - 1) * booksPerPage) + 1}-{Math.min(currentPage * booksPerPage, filteredBooks.length)} of {filteredBooks.length} books
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
-          {filteredBooks.map((book) => (
-            <BookCard key={book.id} {...book} marketplace={marketplace} />
-          ))}
+          {filteredBooks
+            .slice((currentPage - 1) * booksPerPage, currentPage * booksPerPage)
+            .map((book) => (
+              <BookCard key={book.id} {...book} marketplace={marketplace} />
+            ))}
         </div>
+
+        {filteredBooks.length > booksPerPage && (
+          <div className="flex justify-center items-center gap-2 mt-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            
+            {Array.from({ length: Math.ceil(filteredBooks.length / booksPerPage) }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </Button>
+            ))}
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredBooks.length / booksPerPage), prev + 1))}
+              disabled={currentPage === Math.ceil(filteredBooks.length / booksPerPage)}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
