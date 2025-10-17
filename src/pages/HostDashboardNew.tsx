@@ -152,6 +152,17 @@ const HostDashboardNew = () => {
   };
 
   const handleImportGoogleBooks = async () => {
+    // Check authentication first
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to import books.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!googleQuery.trim()) {
       toast({
         title: "Query Required",
@@ -174,6 +185,9 @@ const HostDashboardNew = () => {
           maxResults: googleMaxResults,
           territory: 'GB',
           datasetName: googleDatasetName || `Google Books - ${googleQuery}`
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 

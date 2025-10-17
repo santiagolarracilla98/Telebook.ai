@@ -28,7 +28,8 @@ Deno.serve(async (req) => {
     // Get user from auth header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      console.error("No authorization header provided");
+      throw new Error("Authentication required. Please sign in and try again.");
     }
 
     const token = authHeader.replace("Bearer ", "");
@@ -38,7 +39,8 @@ Deno.serve(async (req) => {
     } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
-      throw new Error("Unauthorized");
+      console.error("User authentication failed:", userError);
+      throw new Error("Invalid or expired session. Please sign in again.");
     }
 
     // Create a new dataset for this import
