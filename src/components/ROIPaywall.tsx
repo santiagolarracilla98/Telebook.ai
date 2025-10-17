@@ -1,12 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Lock, TrendingUp, Zap, Database } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface ROIPaywallProps {
   lastROI: string;
 }
 
 export const ROIPaywall = ({ lastROI }: ROIPaywallProps) => {
+  const navigate = useNavigate();
+  
   return (
     <div className="w-full max-w-4xl mx-auto py-12 px-4">
       <Card className="border-2 border-primary shadow-2xl">
@@ -68,7 +71,11 @@ export const ROIPaywall = ({ lastROI }: ROIPaywallProps) => {
               Book Maven AI Subscribers run over 1,000 deep-dive calculations every month
             </p>
             <div className="flex justify-center">
-              <Button size="lg" className="text-lg px-12 h-14 shadow-lg">
+              <Button 
+                size="lg" 
+                className="text-lg px-12 h-14 shadow-lg"
+                onClick={() => navigate('/auth')}
+              >
                 Get Unlimited Searches & Full Catalog Access
               </Button>
             </div>
