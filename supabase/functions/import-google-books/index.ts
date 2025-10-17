@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
       }
       
       // Extract pricing information - try multiple sources
-      let retailPrice = 0;
+      let retailPrice = null;
       let publisherRrp = null;
       let wholesalePrice = null;
       

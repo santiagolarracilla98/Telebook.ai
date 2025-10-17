@@ -36,12 +36,12 @@ export type Database = {
           publisher: string | null
           publisher_rrp: number | null
           roi_target_price: number | null
-          rrp: number
+          rrp: number | null
           title: string
           uk_asin: string | null
           updated_at: string | null
           us_asin: string | null
-          wholesale_price: number
+          wholesale_price: number | null
         }
         Insert: {
           amazon_fee?: number | null
@@ -64,12 +64,12 @@ export type Database = {
           publisher?: string | null
           publisher_rrp?: number | null
           roi_target_price?: number | null
-          rrp: number
+          rrp?: number | null
           title: string
           uk_asin?: string | null
           updated_at?: string | null
           us_asin?: string | null
-          wholesale_price: number
+          wholesale_price?: number | null
         }
         Update: {
           amazon_fee?: number | null
@@ -92,12 +92,12 @@ export type Database = {
           publisher?: string | null
           publisher_rrp?: number | null
           roi_target_price?: number | null
-          rrp?: number
+          rrp?: number | null
           title?: string
           uk_asin?: string | null
           updated_at?: string | null
           us_asin?: string | null
-          wholesale_price?: number
+          wholesale_price?: number | null
         }
         Relationships: [
           {
