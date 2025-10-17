@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, DollarSign, Tag, Award } from "lucide-react";
+import { SensitivityAnalysis } from "./SensitivityAnalysis";
 
 interface ROIResultsProps {
   result: {
@@ -135,6 +136,8 @@ export const ROIResults = ({ result }: ROIResultsProps) => {
           </div>
         </CardContent>
       </Card>
+
+      <SensitivityAnalysis result={result} />
     </div>
   );
 };
