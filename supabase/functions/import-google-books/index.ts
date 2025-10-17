@@ -33,19 +33,23 @@ function normalizePublishedDate(dateStr: string | undefined): string | null {
   return null;
 }
 
+const FUNCTION_VERSION = "v2.0-date-fix-deployed";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log(`🚀 import-google-books ${FUNCTION_VERSION} - Request received`);
+    
     const { query, maxResults = 40, territory = "GB", datasetName } = await req.json();
 
     if (!query) {
       throw new Error("Search query is required");
     }
 
-    console.log(`Importing books from Google Books API: ${query}`);
+    console.log(`📚 Importing books from Google Books API: ${query}`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -197,11 +201,12 @@ Deno.serve(async (req) => {
       })
       .eq("id", dataset.id);
 
-    console.log(`Import complete: ${totalInserted} books imported`);
+    console.log(`✅ Import complete: ${totalInserted} books imported (${FUNCTION_VERSION})`);
 
     return new Response(
       JSON.stringify({
         success: true,
+        version: FUNCTION_VERSION,
         dataset_id: dataset.id,
         dataset_name: finalDatasetName,
         books_imported: totalInserted,
