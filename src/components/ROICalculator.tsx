@@ -1,14 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Calculator, TrendingUp, Package, Info } from "lucide-react";
+import { Calculator, TrendingUp, Info } from "lucide-react";
 import { toast } from "sonner";
 import { ROIResults } from "./ROIResults";
-import { ROIPaywall } from "./ROIPaywall";
 import { ROIExplanationDialog } from "./ROIExplanationDialog";
 
 export const ROICalculator = () => {
@@ -18,23 +17,7 @@ export const ROICalculator = () => {
   const [currentCost, setCurrentCost] = useState("");
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationResult, setCalculationResult] = useState<any>(null);
-  const [searchesUsed, setSearchesUsed] = useState(0);
-  const [showPaywall, setShowPaywall] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
-
-  useEffect(() => {
-    const today = new Date().toDateString();
-    const lastSearch = localStorage.getItem("roiCalcDate");
-    const count = parseInt(localStorage.getItem("roiCalcCount") || "0");
-
-    if (lastSearch !== today) {
-      localStorage.setItem("roiCalcDate", today);
-      localStorage.setItem("roiCalcCount", "0");
-      setSearchesUsed(0);
-    } else {
-      setSearchesUsed(count);
-    }
-  }, []);
 
   const getVolumeDiscount = (qty: number): number => {
     if (qty >= 500) return 0.25; // 25% discount
@@ -45,11 +28,6 @@ export const ROICalculator = () => {
   };
 
   const calculateROI = async () => {
-    if (searchesUsed >= 1) {
-      setShowPaywall(true);
-      return;
-    }
-
     if (!bookInput.trim()) {
       toast.error("Please enter a book title or ASIN");
       return;
@@ -112,11 +90,6 @@ export const ROICalculator = () => {
         quantity
       });
 
-      // Update search count
-      const newCount = searchesUsed + 1;
-      setSearchesUsed(newCount);
-      localStorage.setItem("roiCalcCount", newCount.toString());
-
     } catch (error) {
       console.error("Calculation error:", error);
       toast.error("Error calculating ROI. Please try again.");
@@ -124,10 +97,6 @@ export const ROICalculator = () => {
       setIsCalculating(false);
     }
   };
-
-  if (showPaywall) {
-    return <ROIPaywall lastROI={calculationResult?.potentialROI || "0"} />;
-  }
 
   return (
     <div className="w-full max-w-6xl mx-auto py-12 px-4">
@@ -149,7 +118,7 @@ export const ROICalculator = () => {
                 Calculate Your Profit Potential
               </CardTitle>
               <CardDescription className="mt-2">
-                {searchesUsed === 0 ? "1 free search available today" : "Free search used - unlock unlimited access"}
+                Enter book details to calculate your profit potential
               </CardDescription>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setShowExplanation(true)}>
