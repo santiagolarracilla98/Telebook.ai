@@ -33,10 +33,18 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    if (open && book.isbn) {
-      fetchKeepaData();
-      fetchSimilarBooks();
-    }
+    const checkAuthAndFetch = async () => {
+      if (open && book.isbn) {
+        // Check authentication first
+        const { data: { session } } = await supabase.auth.getSession();
+        setIsAuthenticated(!!session);
+        
+        fetchKeepaData();
+        fetchSimilarBooks();
+      }
+    };
+    
+    checkAuthAndFetch();
   }, [open, book.isbn, marketplace]);
 
   const fetchSimilarBooks = async () => {
@@ -490,11 +498,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
           </TabsContent>
 
           <TabsContent value="similar" className="space-y-4 mt-4">
-            {loadingSimilar ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : !isAuthenticated ? (
+            {!isAuthenticated ? (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-4">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                   <LogIn className="w-8 h-8 text-primary" />
@@ -515,6 +519,10 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                   <LogIn className="w-4 h-4" />
                   Sign in for full experience
                 </Button>
+              </div>
+            ) : loadingSimilar ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
             ) : similarBooks.length > 0 ? (
               <>

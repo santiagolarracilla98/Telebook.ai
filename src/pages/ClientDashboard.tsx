@@ -50,7 +50,7 @@ const ClientDashboard = () => {
 
   useEffect(() => {
     filterBooks();
-  }, [books, searchQuery, selectedCategory, selectedPublisher]);
+  }, [books, searchQuery, selectedCategory, selectedPublisher, marketplace]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -120,8 +120,23 @@ const ClientDashboard = () => {
       );
     }
 
-    if (selectedCategory) {
-      filtered = filtered.filter(book => book.category === selectedCategory);
+    if (selectedCategory && selectedCategory !== 'all') {
+      filtered = filtered.filter(book => 
+        book.category?.toLowerCase() === selectedCategory.toLowerCase()
+      );
+    }
+
+    if (selectedPublisher && selectedPublisher !== 'all') {
+      filtered = filtered.filter(book =>
+        book.publisher?.toLowerCase().includes(selectedPublisher.toLowerCase())
+      );
+    }
+
+    // Filter by marketplace
+    if (marketplace === 'usa') {
+      filtered = filtered.filter(book => book.us_asin || book.currency === 'USD');
+    } else if (marketplace === 'uk') {
+      filtered = filtered.filter(book => book.uk_asin || book.currency === 'GBP');
     }
 
     setFilteredBooks(filtered);
