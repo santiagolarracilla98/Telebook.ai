@@ -46,7 +46,20 @@ const ClientDashboard = () => {
   useEffect(() => {
     checkAuth();
     fetchBooks();
+    calculatePricing();
   }, []);
+
+  const calculatePricing = async () => {
+    try {
+      await supabase.functions.invoke('calc-unit-econ', {
+        body: { roiTarget: 0.25 }
+      });
+      // Refetch books after calculation to show updated smart prices
+      await fetchBooks();
+    } catch (error) {
+      console.error('Failed to calculate pricing:', error);
+    }
+  };
 
   useEffect(() => {
     filterBooks();

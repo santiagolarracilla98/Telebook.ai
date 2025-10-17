@@ -33,12 +33,11 @@ serve(async (req) => {
       fees[fee.territory] = fee;
     });
 
-    // Get all books with prices
+    // Get all books with at least wholesale_price or publisher_rrp
     const { data: books, error: booksError } = await supabase
       .from('books')
-      .select('id, us_asin, uk_asin, publisher_rrp, amazon_price, currency, category')
-      .not('publisher_rrp', 'is', null)
-      .not('amazon_price', 'is', null);
+      .select('id, us_asin, uk_asin, publisher_rrp, wholesale_price, amazon_price, currency, category')
+      .or('publisher_rrp.not.is.null,wholesale_price.not.is.null');
 
     if (booksError) throw booksError;
 
@@ -55,7 +54,10 @@ serve(async (req) => {
         continue;
       }
 
-      const cost = book.publisher_rrp || 0;
+      const cost = book.publisher_rrp || book.wholesale_price || 0;
+      
+      // Skip books with no cost data
+      if (cost === 0) continue;
       
       // Calculate target price to achieve desired ROI after Amazon fees
       // Formula: target_price = ((1 + roi_target) * cost + fixed_fees) / (1 - referral_pct)

@@ -163,6 +163,9 @@ Deno.serve(async (req) => {
         }
 
         // Map ISBNdb data to our schema
+        const msrp = book.msrp ? parseFloat(book.msrp) : null;
+        const estimatedWholesale = msrp ? msrp * 0.6 : 0; // Estimate wholesale at 60% of MSRP
+        
         const bookData = {
           dataset_id: dataset.id,
           title: book.title || 'Untitled',
@@ -177,9 +180,9 @@ Deno.serve(async (req) => {
           category: book.subjects?.join(', ') || 'General',
           currency: territory === 'GB' ? 'GBP' : 'USD',
           available_stock: 0,
-          rrp: 0,
-          wholesale_price: 0,
-          publisher_rrp: book.msrp ? parseFloat(book.msrp) : null,
+          rrp: msrp || 0,
+          wholesale_price: estimatedWholesale,
+          publisher_rrp: msrp,
         };
 
         booksToInsert.push(bookData);
