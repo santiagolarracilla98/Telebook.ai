@@ -20,10 +20,8 @@ Deno.serve(async (req) => {
     console.log(`Importing books from Google Books API: ${query}`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const googleBooksApiKey = Deno.env.get("GOOGLE_BOOKS_API_KEY");
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get user from auth header
     const authHeader = req.headers.get("Authorization");
@@ -32,11 +30,20 @@ Deno.serve(async (req) => {
       throw new Error("Authentication required. Please sign in and try again.");
     }
 
-    const token = authHeader.replace("Bearer ", "");
+    // Create Supabase client with the user's auth token
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader
+        }
+      }
+    });
+
+    // Verify the user is authenticated
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser(token);
+    } = await supabase.auth.getUser();
 
     if (userError || !user) {
       console.error("User authentication failed:", userError);
