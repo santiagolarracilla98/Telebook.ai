@@ -9,7 +9,8 @@ interface ROIResultsProps {
     bookAuthor: string;
     ourAcquisitionCost: string;
     potentialROI: string;
-    avgSellingPrice: string;
+    smartPrice: string;
+    amazonReferencePrice: string;
     priceRange: string;
     pricingEdge: string;
     volumeDiscount: string;
@@ -64,11 +65,11 @@ export const ROIResults = ({ result }: ROIResultsProps) => {
               <div className="p-4 rounded-lg bg-muted">
                 <div className="flex items-center gap-2 mb-2">
                   <Tag className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-medium text-muted-foreground">Amazon Selling Price Range</span>
+                  <span className="text-sm font-medium text-muted-foreground">Smart Selling Price</span>
                 </div>
-                <p className="text-2xl font-bold">{result.priceRange}</p>
+                <p className="text-2xl font-bold">${result.smartPrice}</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Current Average: ${result.avgSellingPrice}
+                  Amazon Reference RRP: ${result.amazonReferencePrice}
                 </p>
               </div>
             </div>
@@ -108,8 +109,8 @@ export const ROIResults = ({ result }: ROIResultsProps) => {
                   <span className="font-medium">${result.ourAcquisitionCost}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Selling Price</span>
-                  <span className="font-medium">${result.avgSellingPrice}</span>
+                  <span className="text-muted-foreground">Smart Selling Price</span>
+                  <span className="font-medium">${result.smartPrice}</span>
                 </div>
                 <div className="border-t pt-2 flex justify-between font-bold">
                   <span>Net Profit per Unit</span>

@@ -53,18 +53,21 @@ export const ROICalculator = () => {
 
       const book = books[0];
 
-      // Calculate costs and ROI
+      // Calculate costs and ROI using actual database pricing
       const volumeDiscount = getVolumeDiscount(quantity);
-      const baseCost = book.publisher_rrp || book.wholesale_price || 0;
+      const baseCost = book.wholesale_price || book.publisher_rrp || 0;
       const ourAcquisitionCost = baseCost * (1 - volumeDiscount);
+      
+      // Use roi_target_price as the smart/optimal selling price
+      const smartPrice = book.roi_target_price || book.amazon_price || book.rrp || 0;
+      const amazonReferencePrice = book.rrp || smartPrice;
       
       // FBA fees are typically 15% + $3, FBM fees are ~8%
       const amazonFee = fulfillmentMethod === "FBA" 
-        ? (book.amazon_price || book.rrp || 0) * 0.15 + 3
-        : (book.amazon_price || book.rrp || 0) * 0.08;
+        ? smartPrice * 0.15 + 3
+        : smartPrice * 0.08;
       
-      const avgSellingPrice = book.amazon_price || book.rrp || 0;
-      const estimatedNetProfit = avgSellingPrice - amazonFee - ourAcquisitionCost;
+      const estimatedNetProfit = smartPrice - amazonFee - ourAcquisitionCost;
       const potentialROI = (estimatedNetProfit / ourAcquisitionCost) * 100;
 
       // Competitive analysis
@@ -80,8 +83,9 @@ export const ROICalculator = () => {
         bookAuthor: book.author,
         ourAcquisitionCost: ourAcquisitionCost.toFixed(2),
         potentialROI: potentialROI.toFixed(1),
-        avgSellingPrice: avgSellingPrice.toFixed(2),
-        priceRange: `$${(avgSellingPrice * 0.95).toFixed(2)} - $${(avgSellingPrice * 1.05).toFixed(2)}`,
+        smartPrice: smartPrice.toFixed(2),
+        amazonReferencePrice: amazonReferencePrice.toFixed(2),
+        priceRange: `$${(smartPrice * 0.95).toFixed(2)} - $${(smartPrice * 1.05).toFixed(2)}`,
         pricingEdge,
         volumeDiscount: (volumeDiscount * 100).toFixed(0),
         estimatedNetProfit: estimatedNetProfit.toFixed(2),
