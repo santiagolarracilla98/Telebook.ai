@@ -166,10 +166,19 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     }
   };
 
-  const profit = book.suggestedPrice - book.wholesalePrice;
-  const amazonFees = book.suggestedPrice * 0.15; // Approximate 15% Amazon fee
-  const netProfit = profit - amazonFees;
-  const netRoi = ((netProfit / book.wholesalePrice) * 100).toFixed(1);
+  const cost = book.publisher_rrp || book.wholesale_price || book.wholesalePrice || 0;
+  const amazonPrice = book.amazon_price || book.amazonPrice || 0;
+  const amazonFees = book.amazon_fee || (amazonPrice * 0.15);
+  const targetPrice = book.roi_target_price || book.suggestedPrice || 0;
+  
+  // Calculate net profit and ROI at our smart target price (25% target)
+  const targetFees = targetPrice * 0.15; // Approximate Amazon fees
+  const netProfitAtTarget = targetPrice - targetFees - cost;
+  const targetRoi = cost > 0 ? ((netProfitAtTarget / cost) * 100).toFixed(1) : '0.0';
+  
+  // Calculate net profit and ROI at Amazon's current price (for reference)
+  const netProfitAtAmazon = amazonPrice > 0 ? amazonPrice - amazonFees - cost : 0;
+  const amazonRoi = cost > 0 && amazonPrice > 0 ? ((netProfitAtAmazon / cost) * 100).toFixed(1) : '0.0';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -214,25 +223,39 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                 <div className="p-4 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-2 mb-2">
                     <Package className="w-4 h-4 text-muted-foreground" />
-                    <h4 className="text-sm font-medium">Wholesale Price</h4>
+                    <h4 className="text-sm font-medium">Cost (Publisher)</h4>
                   </div>
-                  <p className="text-2xl font-bold">${book.wholesalePrice.toFixed(2)}</p>
+                  <p className="text-2xl font-bold">
+                    {cost > 0 ? `$${cost.toFixed(2)}` : 'NA'}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg bg-primary/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="w-4 h-4 text-primary" />
+                    <h4 className="text-sm font-medium">Smart Price (25% ROI)</h4>
+                  </div>
+                  <p className="text-2xl font-bold text-primary">
+                    {targetPrice > 0 ? `$${targetPrice.toFixed(2)}` : 'Calculating...'}
+                  </p>
                 </div>
 
                 <div className="p-4 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-2 mb-2">
-                    <DollarSign className="w-4 h-4 text-muted-foreground" />
-                    <h4 className="text-sm font-medium">Smart Price</h4>
+                    <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                    <h4 className="text-sm font-medium">Amazon Price (Ref)</h4>
                   </div>
-                  <p className="text-2xl font-bold text-primary">${book.suggestedPrice.toFixed(2)}</p>
+                  <p className="text-2xl font-bold">
+                    {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA'}
+                  </p>
                 </div>
 
                 <div className="p-4 rounded-lg bg-success/10">
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="w-4 h-4 text-success" />
-                    <h4 className="text-sm font-medium">Expected ROI</h4>
+                    <h4 className="text-sm font-medium">Target Net ROI</h4>
                   </div>
-                  <p className="text-2xl font-bold text-success">{book.roi}%</p>
+                  <p className="text-2xl font-bold text-success">{targetRoi}%</p>
                 </div>
 
                 {book.verified && (
@@ -250,46 +273,63 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
               <div className="p-4 rounded-lg border border-border space-y-3">
                 <div className="flex items-center gap-2 mb-3">
                   <BarChart3 className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold text-lg">Cost Breakdown</h3>
+                  <h3 className="font-semibold text-lg">Pricing Analysis</h3>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">Wholesale Cost</span>
-                    <span className="font-semibold">${book.wholesalePrice.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Cost (Publisher)</span>
+                    <span className="font-semibold">
+                      {cost > 0 ? `$${cost.toFixed(2)}` : 'NA'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">Smart Price (Your Price)</span>
-                    <span className="font-semibold text-primary">${book.suggestedPrice.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Smart Price (25% ROI Target)</span>
+                    <span className="font-semibold text-primary">
+                      {targetPrice > 0 ? `$${targetPrice.toFixed(2)}` : 'Calculating...'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">Amazon Current Price</span>
-                    <span className="font-semibold">${book.amazonPrice.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Amazon Current Price (Reference)</span>
+                    <span className="font-semibold">
+                      {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">Gross Profit</span>
-                    <span className="font-semibold text-success">${profit.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">Est. Amazon Fees (15%)</span>
-                    <span className="font-semibold text-warning">-${amazonFees.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Est. Amazon Fees at Smart Price</span>
+                    <span className="font-semibold text-warning">
+                      {targetPrice > 0 ? `-$${targetFees.toFixed(2)}` : 'NA'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-3 bg-success/10 px-3 rounded-lg mt-2">
-                    <span className="font-semibold">Net Profit</span>
-                    <span className="font-bold text-success text-lg">${netProfit.toFixed(2)}</span>
+                    <span className="font-semibold">Net Profit (at Smart Price)</span>
+                    <span className="font-bold text-success text-lg">
+                      {netProfitAtTarget > 0 ? `$${netProfitAtTarget.toFixed(2)}` : 'NA'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-3 bg-primary/10 px-3 rounded-lg">
-                    <span className="font-semibold">Net ROI</span>
-                    <span className="font-bold text-primary text-lg">{netRoi}%</span>
+                    <span className="font-semibold">Target Net ROI (After Fees)</span>
+                    <span className="font-bold text-primary text-lg">{targetRoi}%</span>
                   </div>
+                  {amazonPrice > 0 && (
+                    <div className="flex justify-between items-center py-3 bg-muted/50 px-3 rounded-lg mt-2">
+                      <span className="font-medium text-sm">Current Amazon ROI (Reference)</span>
+                      <span className="font-semibold">{amazonRoi}%</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="p-4 rounded-lg bg-muted/50">
-                <h4 className="font-medium mb-2">Price Positioning</h4>
+                <h4 className="font-medium mb-2">💡 Strategy</h4>
                 <p className="text-sm text-muted-foreground">
-                  Your Smart Price is ${(book.amazonPrice - book.suggestedPrice).toFixed(2)} below Amazon's current price,
-                  giving you a competitive edge while maintaining a strong {netRoi}% net ROI.
+                  Your Smart Price is optimized for <strong>25% net ROI after Amazon fees</strong>.
+                  {amazonPrice > 0 && targetPrice < amazonPrice && (
+                    <> It's ${(amazonPrice - targetPrice).toFixed(2)} below Amazon's current price, giving you a competitive edge.</>
+                  )}
+                  {amazonPrice > 0 && targetPrice > amazonPrice && (
+                    <> Amazon's price is currently lower, but your target maintains healthy margins.</>
+                  )}
                 </p>
               </div>
             </div>

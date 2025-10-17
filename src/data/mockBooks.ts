@@ -28,6 +28,7 @@ export interface Book {
   imageUrl?: string;
   publisher_rrp?: number;
   amazon_price?: number;
+  amazon_fee?: number;
   roi_target_price?: number;
   market_flag?: string;
   currency?: string;

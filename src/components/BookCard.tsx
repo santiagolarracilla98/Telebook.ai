@@ -79,34 +79,30 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
         </div>
         
         <div className="pt-2 border-t border-border space-y-2">
-          {publisher_rrp && (
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">Publisher RRP</span>
-              <span className="font-medium text-foreground">${publisher_rrp.toFixed(2)}</span>
-            </div>
-          )}
           <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">Wholesale</span>
+            <span className="text-xs text-muted-foreground">Cost</span>
             <span className="font-semibold text-foreground">
               {wholesalePrice > 0 ? `$${wholesalePrice.toFixed(2)}` : 'NA'}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">Amazon Price</span>
-            <span className="font-medium text-foreground">${amazonPrice.toFixed(2)}</span>
+            <span className="text-xs text-muted-foreground">Amazon Price (Ref)</span>
+            <span className="font-medium text-foreground">
+              {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA'}
+            </span>
           </div>
-          {roi_target_price && (
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">Target (20% ROI)</span>
-              <span className="font-semibold text-primary">${roi_target_price.toFixed(2)}</span>
-            </div>
-          )}
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-muted-foreground">Smart Price (25% ROI)</span>
+            <span className="font-semibold text-primary">
+              {roi_target_price && roi_target_price > 0 ? `$${roi_target_price.toFixed(2)}` : 'Calculating...'}
+            </span>
+          </div>
           <div className="flex justify-between items-center pt-2 border-t border-border">
             <span className="text-sm font-medium flex items-center gap-1">
               <TrendingUp className="w-4 h-4 text-success" />
-              ROI
+              Net ROI
             </span>
-            <span className={`font-bold ${roi > 30 ? 'text-success' : roi > 15 ? 'text-warning' : 'text-muted-foreground'}`}>
+            <span className={`font-bold ${roi >= 20 ? 'text-success' : roi >= 10 ? 'text-warning' : 'text-muted-foreground'}`}>
               {roi}%
             </span>
           </div>

@@ -70,11 +70,14 @@ const ClientDashboard = () => {
       
       // Transform database books to match BookCard interface
       const transformedBooks = (data || []).map(book => {
-        const publisherPrice = book.publisher_rrp || book.wholesale_price;
-        const amazonPrice = book.amazon_price || book.rrp;
-        const targetPrice = book.roi_target_price || (publisherPrice * 1.2);
-        const margin = amazonPrice - (amazonPrice * 0.15) - publisherPrice;
-        const calculatedRoi = publisherPrice > 0 ? Math.round((margin / publisherPrice) * 100) : 0;
+        const cost = book.publisher_rrp || book.wholesale_price || 0;
+        const amazonPrice = book.amazon_price || book.rrp || 0;
+        const targetPrice = book.roi_target_price || (cost > 0 ? cost * 1.25 : 0);
+        const amazonFee = book.amazon_fee || (amazonPrice * 0.15);
+        
+        // Calculate net ROI after Amazon fees
+        const netProfit = amazonPrice - amazonFee - cost;
+        const netRoi = cost > 0 ? Math.round((netProfit / cost) * 100) : 0;
         
         return {
           id: book.id,
@@ -86,16 +89,17 @@ const ClientDashboard = () => {
           available_stock: book.available_stock,
           rrp: book.rrp,
           wholesale_price: book.wholesale_price,
-          publisher: 'Various',
+          publisher: book.publisher || 'Various',
           category: book.category || 'Fiction',
-          wholesalePrice: book.wholesale_price,
+          wholesalePrice: cost,
           suggestedPrice: targetPrice,
           amazonPrice: amazonPrice,
-          roi: calculatedRoi,
+          roi: netRoi,
           verified: true,
           imageUrl: book.image_url || undefined,
           publisher_rrp: book.publisher_rrp,
           amazon_price: book.amazon_price,
+          amazon_fee: book.amazon_fee,
           roi_target_price: book.roi_target_price,
           market_flag: book.market_flag,
           currency: book.currency,

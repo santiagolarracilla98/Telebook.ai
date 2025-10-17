@@ -16,7 +16,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { roiTarget = 0.20 } = await req.json();
+    const { roiTarget = 0.25 } = await req.json(); // Default to 25% ROI target
 
     console.log(`Calculating unit economics with ${roiTarget * 100}% ROI target...`);
 
@@ -55,38 +55,44 @@ serve(async (req) => {
         continue;
       }
 
-      // Calculate Amazon fee
-      const referralFee = book.amazon_price * feeSchedule.referral_pct;
-      const totalFee = referralFee + feeSchedule.closing_fee + feeSchedule.fba_base;
-
-      // Calculate margin and ROI
-      const margin = book.amazon_price - totalFee - book.publisher_rrp;
-      const roi = book.publisher_rrp > 0 ? margin / book.publisher_rrp : 0;
-
-      // Calculate target price for desired ROI
-      // P * (1 - referral_pct) = (1 + roiTarget) * publisher_rrp + closing_fee + fba_base
-      // P = ((1 + roiTarget) * publisher_rrp + closing_fee + fba_base) / (1 - referral_pct)
+      const cost = book.publisher_rrp || 0;
+      
+      // Calculate target price to achieve desired ROI after Amazon fees
+      // Formula: target_price = ((1 + roi_target) * cost + fixed_fees) / (1 - referral_pct)
       const roiTargetPrice = 
-        ((1 + roiTarget) * book.publisher_rrp + feeSchedule.closing_fee + feeSchedule.fba_base) / 
+        ((1 + roiTarget) * cost + feeSchedule.closing_fee + feeSchedule.fba_base) / 
         (1 - feeSchedule.referral_pct);
 
-      // Determine market flag
+      // Calculate Amazon fees at current price (for reference)
+      let amazonFee = 0;
+      let currentRoi = 0;
       let marketFlag = 'at_market';
-      const priceDiff = Math.abs(book.amazon_price - roiTargetPrice);
-      
-      if (priceDiff < 0.5) {
-        marketFlag = 'at_market';
-      } else if (book.amazon_price < roiTargetPrice) {
-        marketFlag = 'below_market';
-      } else {
-        marketFlag = 'above_market';
+
+      if (book.amazon_price) {
+        const referralFee = book.amazon_price * feeSchedule.referral_pct;
+        amazonFee = referralFee + feeSchedule.closing_fee + feeSchedule.fba_base;
+        
+        // Calculate actual ROI at current Amazon price
+        const netProfit = book.amazon_price - amazonFee - cost;
+        currentRoi = cost > 0 ? netProfit / cost : 0;
+
+        // Determine market flag based on current price vs target
+        const priceDiff = Math.abs(book.amazon_price - roiTargetPrice);
+        
+        if (priceDiff < 0.5) {
+          marketFlag = 'at_market';
+        } else if (book.amazon_price < roiTargetPrice) {
+          marketFlag = 'below_market';
+        } else {
+          marketFlag = 'above_market';
+        }
       }
 
-      // Update book
+      // Update book with calculated values
       const { error: updateError } = await supabase
         .from('books')
         .update({
-          amazon_fee: totalFee,
+          amazon_fee: amazonFee,
           roi_target_price: roiTargetPrice,
           market_flag: marketFlag
         })
@@ -97,12 +103,12 @@ serve(async (req) => {
       } else {
         results.push({
           id: book.id,
+          cost: cost,
           amazon_price: book.amazon_price,
-          publisher_rrp: book.publisher_rrp,
-          amazon_fee: totalFee,
-          margin: margin,
-          roi: roi,
+          amazon_fee: amazonFee,
           roi_target_price: roiTargetPrice,
+          current_roi: Math.round(currentRoi * 100),
+          target_roi: Math.round(roiTarget * 100),
           market_flag: marketFlag
         });
       }
