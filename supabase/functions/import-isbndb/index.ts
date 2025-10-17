@@ -151,13 +151,23 @@ Deno.serve(async (req) => {
         }
 
         // Check if book already exists by ISBN13 or title+author combo
+        const author = book.authors?.join(', ') || book.publisher || 'Unknown Author';
+        
         const { data: existingBooks } = await supabase
           .from('books')
           .select('id')
-          .or(`uk_asin.eq.${isbn13},us_asin.eq.${isbn13},title.eq.${book.title?.replace(/'/g, "''")}`)
+          .or(`uk_asin.eq.${isbn13},us_asin.eq.${isbn13}`)
           .limit(1);
 
-        if (existingBooks && existingBooks.length > 0) {
+        // Also check for title+author duplicate
+        const { data: existingByTitleAuthor } = await supabase
+          .from('books')
+          .select('id')
+          .eq('title', book.title)
+          .eq('author', author)
+          .limit(1);
+
+        if ((existingBooks && existingBooks.length > 0) || (existingByTitleAuthor && existingByTitleAuthor.length > 0)) {
           console.log(`Book already exists: ${book.title}`);
           continue;
         }
