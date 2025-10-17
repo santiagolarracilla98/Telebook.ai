@@ -1,0 +1,261 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { Calculator, TrendingUp, Package, Info } from "lucide-react";
+import { toast } from "sonner";
+import { ROIResults } from "./ROIResults";
+import { ROIPaywall } from "./ROIPaywall";
+import { ROIExplanationDialog } from "./ROIExplanationDialog";
+
+export const ROICalculator = () => {
+  const [bookInput, setBookInput] = useState("");
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<"FBA" | "FBM">("FBA");
+  const [quantity, setQuantity] = useState(100);
+  const [currentCost, setCurrentCost] = useState("");
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [calculationResult, setCalculationResult] = useState<any>(null);
+  const [searchesUsed, setSearchesUsed] = useState(0);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
+
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const lastSearch = localStorage.getItem("roiCalcDate");
+    const count = parseInt(localStorage.getItem("roiCalcCount") || "0");
+
+    if (lastSearch !== today) {
+      localStorage.setItem("roiCalcDate", today);
+      localStorage.setItem("roiCalcCount", "0");
+      setSearchesUsed(0);
+    } else {
+      setSearchesUsed(count);
+    }
+  }, []);
+
+  const getVolumeDiscount = (qty: number): number => {
+    if (qty >= 500) return 0.25; // 25% discount
+    if (qty >= 250) return 0.20; // 20% discount
+    if (qty >= 100) return 0.15; // 15% discount
+    if (qty >= 50) return 0.10; // 10% discount
+    return 0.05; // 5% base discount
+  };
+
+  const calculateROI = async () => {
+    if (searchesUsed >= 1) {
+      setShowPaywall(true);
+      return;
+    }
+
+    if (!bookInput.trim()) {
+      toast.error("Please enter a book title or ASIN");
+      return;
+    }
+
+    setIsCalculating(true);
+
+    try {
+      // Search for the book in database
+      const { data: books, error } = await supabase
+        .from("books")
+        .select("*")
+        .or(`title.ilike.%${bookInput}%,uk_asin.eq.${bookInput},us_asin.eq.${bookInput}`)
+        .limit(1);
+
+      if (error) throw error;
+
+      if (!books || books.length === 0) {
+        toast.error("Book not found in our catalog. Try a different title or ASIN.");
+        setIsCalculating(false);
+        return;
+      }
+
+      const book = books[0];
+
+      // Calculate costs and ROI
+      const volumeDiscount = getVolumeDiscount(quantity);
+      const baseCost = book.publisher_rrp || book.wholesale_price || 0;
+      const ourAcquisitionCost = baseCost * (1 - volumeDiscount);
+      
+      // FBA fees are typically 15% + $3, FBM fees are ~8%
+      const amazonFee = fulfillmentMethod === "FBA" 
+        ? (book.amazon_price || book.rrp || 0) * 0.15 + 3
+        : (book.amazon_price || book.rrp || 0) * 0.08;
+      
+      const avgSellingPrice = book.amazon_price || book.rrp || 0;
+      const estimatedNetProfit = avgSellingPrice - amazonFee - ourAcquisitionCost;
+      const potentialROI = (estimatedNetProfit / ourAcquisitionCost) * 100;
+
+      // Competitive analysis
+      const userCost = parseFloat(currentCost) || ourAcquisitionCost * 1.3;
+      const pricingEdge = userCost > ourAcquisitionCost * 1.2 
+        ? "Major Edge" 
+        : userCost > ourAcquisitionCost * 1.1 
+        ? "Competitive" 
+        : "Market Rate";
+
+      setCalculationResult({
+        bookTitle: book.title,
+        bookAuthor: book.author,
+        ourAcquisitionCost: ourAcquisitionCost.toFixed(2),
+        potentialROI: potentialROI.toFixed(1),
+        avgSellingPrice: avgSellingPrice.toFixed(2),
+        priceRange: `$${(avgSellingPrice * 0.95).toFixed(2)} - $${(avgSellingPrice * 1.05).toFixed(2)}`,
+        pricingEdge,
+        volumeDiscount: (volumeDiscount * 100).toFixed(0),
+        estimatedNetProfit: estimatedNetProfit.toFixed(2),
+        amazonFee: amazonFee.toFixed(2),
+        fulfillmentMethod,
+        quantity
+      });
+
+      // Update search count
+      const newCount = searchesUsed + 1;
+      setSearchesUsed(newCount);
+      localStorage.setItem("roiCalcCount", newCount.toString());
+
+    } catch (error) {
+      console.error("Calculation error:", error);
+      toast.error("Error calculating ROI. Please try again.");
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  if (showPaywall) {
+    return <ROIPaywall lastROI={calculationResult?.potentialROI || "0"} />;
+  }
+
+  return (
+    <div className="w-full max-w-6xl mx-auto py-12 px-4">
+      <div className="text-center mb-8">
+        <h2 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          The ROI Calculator: Find Your Next Star Book
+        </h2>
+        <p className="text-lg text-muted-foreground">
+          Leverage our proprietary pricing to instantly discover your maximum profit potential
+        </p>
+      </div>
+
+      <Card className="shadow-lg border-primary/20">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="h-6 w-6 text-primary" />
+                Calculate Your Profit Potential
+              </CardTitle>
+              <CardDescription className="mt-2">
+                {searchesUsed === 0 ? "1 free search available today" : "Free search used - unlock unlimited access"}
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setShowExplanation(true)}>
+              <Info className="h-5 w-5" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="bookInput">Book Title or ASIN *</Label>
+              <Input
+                id="bookInput"
+                placeholder="Enter title or ASIN"
+                value={bookInput}
+                onChange={(e) => setBookInput(e.target.value)}
+                className="text-base"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Fulfillment Method *</Label>
+              <div className="flex gap-4 p-3 bg-muted rounded-md">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="fulfillment"
+                    checked={fulfillmentMethod === "FBA"}
+                    onChange={() => setFulfillmentMethod("FBA")}
+                    className="w-4 h-4"
+                  />
+                  <span className="font-medium">FBA (Amazon)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="fulfillment"
+                    checked={fulfillmentMethod === "FBM"}
+                    onChange={() => setFulfillmentMethod("FBM")}
+                    className="w-4 h-4"
+                  />
+                  <span className="font-medium">FBM (Merchant)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="quantity">
+              Target Purchase Quantity: {quantity} units
+            </Label>
+            <Slider
+              id="quantity"
+              min={10}
+              max={1000}
+              step={10}
+              value={[quantity]}
+              onValueChange={(value) => setQuantity(value[0])}
+              className="py-4"
+            />
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>10 units</span>
+              <span>500 units</span>
+              <span>1000 units</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="currentCost">Current Supplier Acquisition Cost (Optional)</Label>
+            <Input
+              id="currentCost"
+              type="number"
+              placeholder="What is your current cost price?"
+              value={currentCost}
+              onChange={(e) => setCurrentCost(e.target.value)}
+              className="text-base"
+            />
+            <p className="text-sm text-muted-foreground">
+              Enter your current cost to see how much you could save
+            </p>
+          </div>
+
+          <Button 
+            onClick={calculateROI} 
+            disabled={isCalculating}
+            className="w-full text-lg h-12"
+            size="lg"
+          >
+            {isCalculating ? (
+              "Calculating..."
+            ) : (
+              <>
+                <TrendingUp className="mr-2 h-5 w-5" />
+                Calculate Maximum ROI
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {calculationResult && <ROIResults result={calculationResult} />}
+      
+      <ROIExplanationDialog 
+        open={showExplanation} 
+        onOpenChange={setShowExplanation}
+      />
+    </div>
+  );
+};

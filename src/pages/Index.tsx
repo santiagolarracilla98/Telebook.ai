@@ -3,7 +3,7 @@ import Navigation from "@/components/Navigation";
 import Hero from "@/components/Hero";
 import FilterBar from "@/components/FilterBar";
 import BookCard from "@/components/BookCard";
-import { PricingEngineCalculator } from "@/components/PricingEngineCalculator";
+import { ROICalculator } from "@/components/ROICalculator";
 import Suppliers from "@/components/Suppliers";
 import GenreAnalytics from "@/components/GenreAnalytics";
 import { supabase } from "@/integrations/supabase/client";
@@ -214,7 +214,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       <Hero />
-      <PricingEngineCalculator />
+      <ROICalculator />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" id="inventory">
         <FilterBar 
