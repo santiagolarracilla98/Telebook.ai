@@ -78,9 +78,18 @@ const ClientDashboard = () => {
 
   const fetchBooks = async () => {
     try {
+      // Fetch books from active datasets only - same as Index page
       const { data, error } = await supabase
         .from('books')
-        .select('*')
+        .select(`
+          *,
+          dataset:datasets!inner(
+            id,
+            name,
+            is_active
+          )
+        `)
+        .eq('dataset.is_active', true)
         .order('title');
 
       if (error) throw error;
