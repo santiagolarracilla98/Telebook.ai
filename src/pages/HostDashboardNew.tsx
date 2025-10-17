@@ -26,9 +26,11 @@ import {
   Package,
   DollarSign,
   LogOut,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+import { DeleteDatasetDialog } from "@/components/DeleteDatasetDialog";
 
 interface Dataset {
   id: string;
@@ -75,6 +77,8 @@ const HostDashboardNew = () => {
     inventoryValue: 0,
     avgRoi: 0
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [datasetToDelete, setDatasetToDelete] = useState<Dataset | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -166,6 +170,47 @@ const HostDashboardNew = () => {
       });
       await Promise.all([fetchDatasets(), fetchBooks(), fetchStats()]);
     }
+  };
+
+  const handleDeleteDataset = async () => {
+    if (!datasetToDelete) return;
+
+    try {
+      // First delete all books in the dataset
+      const { error: booksError } = await supabase
+        .from('books')
+        .delete()
+        .eq('dataset_id', datasetToDelete.id);
+
+      if (booksError) throw booksError;
+
+      // Then delete the dataset
+      const { error: datasetError } = await supabase
+        .from('datasets')
+        .delete()
+        .eq('id', datasetToDelete.id);
+
+      if (datasetError) throw datasetError;
+
+      toast({
+        title: "Dataset Deleted",
+        description: `Successfully deleted "${datasetToDelete.name}" and all associated books.`,
+      });
+
+      await Promise.all([fetchDatasets(), fetchBooks(), fetchStats()]);
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Delete Failed",
+        description: "There was an error deleting the dataset.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const openDeleteDialog = (dataset: Dataset) => {
+    setDatasetToDelete(dataset);
+    setDeleteDialogOpen(true);
   };
 
   const handleImportGoogleBooks = async () => {
@@ -513,13 +558,22 @@ const HostDashboardNew = () => {
                             {dataset.last_synced_at && ` • Last synced: ${new Date(dataset.last_synced_at).toLocaleDateString()}`}
                           </p>
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => toggleDatasetActive(dataset.id, dataset.is_active)}
-                        >
-                          Deactivate
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => toggleDatasetActive(dataset.id, dataset.is_active)}
+                          >
+                            Deactivate
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => openDeleteDialog(dataset)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))
                   )}
@@ -707,6 +761,13 @@ const HostDashboardNew = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      <DeleteDatasetDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        datasetName={datasetToDelete?.name || ''}
+        onConfirmDelete={handleDeleteDataset}
+      />
     </div>
   );
 };
