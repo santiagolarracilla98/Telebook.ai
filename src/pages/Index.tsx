@@ -143,8 +143,6 @@ const Index = () => {
           imageUrl: book.image_url || undefined,
           publisher_rrp: book.publisher_rrp,
           amazon_price: book.amazon_price,
-          console.log(`Processing book: ${volumeInfo.title}, original date: ${volumeInfo.publishedDate}`);
-          published_date: normalizePublishedDate(volumeInfo.publishedDate),
           roi_target_price: book.roi_target_price,
           market_flag: book.market_flag,
           currency: book.currency,
