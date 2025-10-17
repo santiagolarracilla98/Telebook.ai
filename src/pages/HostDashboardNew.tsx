@@ -35,7 +35,7 @@ import { DeleteDatasetDialog } from "@/components/DeleteDatasetDialog";
 interface Dataset {
   id: string;
   name: string;
-  source: 'manual_upload' | 'google_books' | 'bowker_api' | 'onix_feed' | 'keepa_import';
+  source: 'manual_upload' | 'google_books' | 'bowker_api' | 'onix_feed' | 'keepa_import' | 'isbndb';
   created_at: string;
   created_by: string;
   is_active: boolean;

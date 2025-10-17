@@ -253,6 +253,7 @@ export type Database = {
         | "bowker_api"
         | "onix_feed"
         | "keepa_import"
+        | "isbndb"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -387,6 +388,7 @@ export const Constants = {
         "bowker_api",
         "onix_feed",
         "keepa_import",
+        "isbndb",
       ],
     },
   },
