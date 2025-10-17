@@ -4,6 +4,34 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+// Helper function to normalize date formats from Google Books
+function normalizePublishedDate(dateStr: string | undefined): string | null {
+  if (!dateStr) return null;
+
+  // If already in YYYY-MM-DD format, return as is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+
+  // If only year (YYYY), append -01-01
+  if (/^\d{4}$/.test(dateStr)) {
+    return `${dateStr}-01-01`;
+  }
+
+  // If year-month (YYYY-MM), append -01
+  if (/^\d{4}-\d{2}$/.test(dateStr)) {
+    return `${dateStr}-01`;
+  }
+
+  // If any other format, try to extract year and default to Jan 1
+  const yearMatch = dateStr.match(/\d{4}/);
+  if (yearMatch) {
+    return `${yearMatch[0]}-01-01`;
+  }
+
+  // If no valid date found, return null
+  return null;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -20,34 +48,25 @@ Deno.serve(async (req) => {
     console.log(`Importing books from Google Books API: ${query}`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const googleBooksApiKey = Deno.env.get("GOOGLE_BOOKS_API_KEY");
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get user from auth header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      console.error("No authorization header provided");
-      throw new Error("Authentication required. Please sign in and try again.");
+      throw new Error("No authorization header");
     }
 
-    // Create Supabase client with the user's auth token
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: authHeader
-        }
-      }
-    });
-
-    // Verify the user is authenticated
+    const token = authHeader.replace("Bearer ", "");
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
-      console.error("User authentication failed:", userError);
-      throw new Error("Invalid or expired session. Please sign in again.");
+      throw new Error("Unauthorized");
     }
 
     // Create a new dataset for this import
@@ -110,20 +129,11 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Check if book already exists with this Google Books ID or title/author combo
-      const { data: existing } = await supabase
-        .from("books")
-        .select("id")
-        .or(
-          `google_books_id.eq.${vol.id},and(title.eq.${volumeInfo.title},author.eq.${volumeInfo.authors?.[0] || "Unknown Author"})`,
-        )
-        .maybeSingle();
+      // Check if book already exists with this ISBN or Google Books ID
+      const { data: existing } = await supabase.from("books").select("id").eq("google_books_id", vol.id);
 
       if (existing) {
-        skippedBooks.push({
-          title: volumeInfo.title,
-          reason: "Already exists (by ID or title/author)",
-        });
+        skippedBooks.push({ title: volumeInfo.title, reason: "Already exists" });
         continue;
       }
 
@@ -133,7 +143,7 @@ Deno.serve(async (req) => {
         dataset_id: dataset.id,
         description: volumeInfo.description,
         publisher: volumeInfo.publisher,
-        published_date: volumeInfo.publishedDate,
+        published_date: normalizePublishedDate(volumeInfo.publishedDate),
         page_count: volumeInfo.pageCount,
         category: volumeInfo.categories?.[0] || "General",
         image_url: volumeInfo.imageLinks?.thumbnail?.replace("http://", "https://"),
