@@ -71,6 +71,9 @@ const HostDashboardNew = () => {
   const [googleQuery, setGoogleQuery] = useState('');
   const [googleMaxResults, setGoogleMaxResults] = useState(40);
   const [googleDatasetName, setGoogleDatasetName] = useState('');
+  const [isbndbQuery, setIsbndbQuery] = useState('');
+  const [isbndbPageSize, setIsbndbPageSize] = useState(20);
+  const [isbndbDatasetName, setIsbndbDatasetName] = useState('');
   const [stats, setStats] = useState({
     totalBooks: 0,
     totalStock: 0,
@@ -259,14 +262,78 @@ const HostDashboardNew = () => {
 
       toast({
         title: "Import Complete",
-        description: `Imported ${data.books_imported} books. Skipped ${data.books_skipped} duplicates.`,
+        description: `Imported ${data.books_imported} books from Google Books API`,
       });
 
-      // Reset form
       setGoogleQuery('');
       setGoogleDatasetName('');
-      
       await Promise.all([fetchDatasets(), fetchBooks(), fetchStats()]);
+      
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({
+        title: "Import Failed",
+        description: error.message || "There was an error importing books.",
+        variant: "destructive"
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleImportISBNdb = async () => {
+    // Force refresh session to ensure it's valid
+    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+    
+    if (sessionError || !session) {
+      toast({
+        title: "Session Expired",
+        description: "Please sign in again to import books.",
+        variant: "destructive"
+      });
+      navigate('/host-auth');
+      return;
+    }
+
+    if (!isbndbQuery.trim()) {
+      toast({
+        title: "Query Required",
+        description: "Please enter a search query.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setImporting(true);
+    try {
+      toast({
+        title: "Importing from ISBNdb",
+        description: "Searching and importing books...",
+      });
+
+      const { data, error } = await supabase.functions.invoke('import-isbndb', {
+        body: {
+          query: isbndbQuery,
+          pageSize: isbndbPageSize,
+          territory: 'GB',
+          datasetName: isbndbDatasetName || `ISBNdb - ${isbndbQuery}`
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Import Complete",
+        description: `Imported ${data.books_imported} books from ISBNdb API`,
+      });
+
+      setIsbndbQuery('');
+      setIsbndbDatasetName('');
+      await Promise.all([fetchDatasets(), fetchBooks(), fetchStats()]);
+      
     } catch (error) {
       console.error('Import error:', error);
       toast({
@@ -686,6 +753,77 @@ const HostDashboardNew = () => {
                     <li>Imports book metadata (title, author, description, etc.)</li>
                     <li>Pricing fields default to zero (set manually or sync later)</li>
                     <li>Duplicate ISBNs are automatically skipped</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>ISBNdb Import</CardTitle>
+                <CardDescription>
+                  Search and import books from ISBNdb with detailed metadata
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="isbndb-query">Search Query</Label>
+                  <Input 
+                    id="isbndb-query"
+                    placeholder="e.g., harry potter, stephen king, isbn:9780123456789"
+                    value={isbndbQuery}
+                    onChange={(e) => setIsbndbQuery(e.target.value)}
+                    className="mt-2"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="isbndb-page-size">Books Per Import</Label>
+                    <Input 
+                      id="isbndb-page-size"
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={isbndbPageSize}
+                      onChange={(e) => setIsbndbPageSize(Number(e.target.value))}
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="isbndb-dataset-name">Dataset Name (Optional)</Label>
+                    <Input 
+                      id="isbndb-dataset-name"
+                      placeholder="Auto-generated if empty"
+                      value={isbndbDatasetName}
+                      onChange={(e) => setIsbndbDatasetName(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={handleImportISBNdb}
+                  disabled={importing || !isbndbQuery.trim()}
+                  className="w-full"
+                >
+                  {importing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Database className="w-4 h-4 mr-2" />
+                      Import from ISBNdb
+                    </>
+                  )}
+                </Button>
+                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                  <p className="font-medium mb-1">ℹ️ ISBNdb Features:</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>Rich metadata including publisher MSRP</li>
+                    <li>Multiple search types: title, author, ISBN, subject</li>
+                    <li>High-quality cover images when available</li>
+                    <li>Publisher information and detailed descriptions</li>
                   </ul>
                 </div>
               </CardContent>
