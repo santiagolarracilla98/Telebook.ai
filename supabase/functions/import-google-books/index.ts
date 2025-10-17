@@ -137,13 +137,16 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      const normalizedDate = normalizePublishedDate(volumeInfo.publishedDate);
+      console.log(`📅 Book: "${volumeInfo.title}" | Original: "${volumeInfo.publishedDate}" → Normalized: "${normalizedDate}"`);
+      
       booksToInsert.push({
         title: volumeInfo.title || "Unknown Title",
         author: volumeInfo.authors?.[0] || "Unknown Author",
         dataset_id: dataset.id,
         description: volumeInfo.description,
         publisher: volumeInfo.publisher,
-        published_date: normalizePublishedDate(volumeInfo.publishedDate),
+        published_date: normalizedDate,
         page_count: volumeInfo.pageCount,
         category: volumeInfo.categories?.[0] || "General",
         image_url: volumeInfo.imageLinks?.thumbnail?.replace("http://", "https://"),
