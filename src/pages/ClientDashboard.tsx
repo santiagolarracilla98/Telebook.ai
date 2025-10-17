@@ -42,6 +42,7 @@ const ClientDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedPublisher, setSelectedPublisher] = useState<string>("");
   const [marketplace, setMarketplace] = useState<'usa' | 'uk' | 'both'>('usa');
+  const [showOnlyWithPricing, setShowOnlyWithPricing] = useState<boolean>(true);
 
   useEffect(() => {
     checkAuth();
@@ -63,7 +64,7 @@ const ClientDashboard = () => {
 
   useEffect(() => {
     filterBooks();
-  }, [books, searchQuery, selectedCategory, selectedPublisher, marketplace]);
+  }, [books, searchQuery, selectedCategory, selectedPublisher, marketplace, showOnlyWithPricing]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -156,6 +157,16 @@ const ClientDashboard = () => {
       filtered = filtered.filter(book => book.uk_asin || book.currency === 'GBP');
     }
 
+    // Filter by pricing availability
+    if (showOnlyWithPricing) {
+      filtered = filtered.filter(book => {
+        const hasCost = (book.publisher_rrp && book.publisher_rrp > 0) || 
+                       (book.wholesale_price && book.wholesale_price > 0) ||
+                       (book.wholesalePrice && book.wholesalePrice > 0);
+        return hasCost;
+      });
+    }
+
     setFilteredBooks(filtered);
   };
 
@@ -201,6 +212,8 @@ const ClientDashboard = () => {
         onSearch={setSearchQuery}
         onCategoryChange={setSelectedCategory}
         onPublisherChange={setSelectedPublisher}
+        onPricingFilterChange={setShowOnlyWithPricing}
+        showOnlyWithPricing={showOnlyWithPricing}
         filteredBooks={filteredBooks.length}
       />
 

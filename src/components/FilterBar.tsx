@@ -1,6 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Search, Filter } from "lucide-react";
 
 interface FilterBarProps {
@@ -8,11 +10,13 @@ interface FilterBarProps {
   onCategoryChange?: (category: string) => void;
   onPublisherChange?: (publisher: string) => void;
   onMarketplaceChange?: (marketplace: string) => void;
+  onPricingFilterChange?: (showOnlyWithPricing: boolean) => void;
   onApplyFilters?: () => void;
   filteredBooks?: number;
+  showOnlyWithPricing?: boolean;
 }
 
-const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplaceChange, onApplyFilters, filteredBooks }: FilterBarProps) => {
+const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplaceChange, onPricingFilterChange, onApplyFilters, filteredBooks, showOnlyWithPricing = true }: FilterBarProps) => {
   return (
     <div className="bg-card rounded-2xl shadow-md border border-border p-6 space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -76,7 +80,21 @@ const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplac
         </Select>
       </div>
       
-      <div className="flex gap-2 pt-2">
+      <div className="flex items-center space-x-2 pt-2 pb-2">
+        <Checkbox 
+          id="pricing-filter" 
+          checked={showOnlyWithPricing}
+          onCheckedChange={(checked) => onPricingFilterChange?.(checked as boolean)}
+        />
+        <Label 
+          htmlFor="pricing-filter" 
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+        >
+          Show only books with cost data
+        </Label>
+      </div>
+      
+      <div className="flex gap-2">
         <Button 
           variant="outline" 
           size="sm"

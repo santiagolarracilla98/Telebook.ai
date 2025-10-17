@@ -162,9 +162,27 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Map ISBNdb data to our schema
-        const msrp = book.msrp ? parseFloat(book.msrp) : null;
-        const estimatedWholesale = msrp ? msrp * 0.6 : 0; // Estimate wholesale at 60% of MSRP
+        // Map ISBNdb data to our schema - Try multiple price sources
+        let msrp = null;
+        let estimatedWholesale = null;
+        
+        // Try msrp first
+        if (book.msrp) {
+          msrp = parseFloat(book.msrp);
+        }
+        // Try price_amount as backup
+        else if (book.price_amount) {
+          msrp = parseFloat(book.price_amount);
+        }
+        // Try other price fields
+        else if (book.price) {
+          msrp = parseFloat(book.price);
+        }
+        
+        // Calculate wholesale if we have a retail price
+        if (msrp && msrp > 0) {
+          estimatedWholesale = msrp * 0.6; // Estimate wholesale at 60% of MSRP
+        }
         
         const bookData = {
           dataset_id: dataset.id,

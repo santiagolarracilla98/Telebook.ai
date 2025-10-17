@@ -174,6 +174,30 @@ Deno.serve(async (req) => {
         }
       }
       
+      // Extract pricing information - try multiple sources
+      let retailPrice = 0;
+      let publisherRrp = null;
+      let wholesalePrice = null;
+      
+      // Try retailPrice first
+      if (volumeInfo.retailPrice?.amount) {
+        retailPrice = volumeInfo.retailPrice.amount;
+        publisherRrp = retailPrice;
+        wholesalePrice = retailPrice * 0.6; // Estimate wholesale at 60%
+      }
+      // Try saleInfo as backup
+      else if (vol.saleInfo?.listPrice?.amount) {
+        retailPrice = vol.saleInfo.listPrice.amount;
+        publisherRrp = retailPrice;
+        wholesalePrice = retailPrice * 0.6;
+      }
+      // Try retail price from saleInfo
+      else if (vol.saleInfo?.retailPrice?.amount) {
+        retailPrice = vol.saleInfo.retailPrice.amount;
+        publisherRrp = retailPrice;
+        wholesalePrice = retailPrice * 0.6;
+      }
+      
       booksToInsert.push({
         title: volumeInfo.title || "Unknown Title",
         author: volumeInfo.authors?.[0] || "Unknown Author",
@@ -189,9 +213,9 @@ Deno.serve(async (req) => {
         google_books_id: vol.id,
         us_asin: usAsin,
         uk_asin: ukAsin,
-        // Set wholesale_price to null instead of 0 when not available
-        wholesale_price: null,
-        rrp: volumeInfo.retailPrice?.amount || 0,
+        wholesale_price: wholesalePrice,
+        rrp: retailPrice,
+        publisher_rrp: publisherRrp,
         available_stock: 0,
         currency: territory === "GB" ? "GBP" : "USD",
       });
