@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, TrendingUp, Eye } from "lucide-react";
+import { ShieldCheck, TrendingUp, Eye, ShoppingCart } from "lucide-react";
 import BookDetailsDialog from "./BookDetailsDialog";
+import { useCart } from "@/contexts/CartContext";
 import type { Book } from "@/data/mockBooks";
 
 interface BookCardProps extends Book {
@@ -12,6 +13,7 @@ interface BookCardProps extends Book {
 
 const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { addItem } = useCart();
 
   const {
     title,
@@ -109,14 +111,28 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
         </div>
       </CardContent>
       
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-0 flex gap-2">
         <Button 
           variant="outline" 
-          className="w-full group/btn"
+          className="flex-1 group/btn"
           onClick={() => setDialogOpen(true)}
         >
           <Eye className="w-4 h-4 mr-2" />
-          View Details
+          Details
+        </Button>
+        <Button 
+          className="flex-1"
+          onClick={() => addItem({
+            id: book.id,
+            title: book.title,
+            author: book.author,
+            imageUrl: book.imageUrl,
+            price: book.roi_target_price || book.amazonPrice || 0,
+            isbn: book.isbn,
+          })}
+        >
+          <ShoppingCart className="w-4 h-4 mr-2" />
+          Add to Cart
         </Button>
       </CardFooter>
       

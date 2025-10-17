@@ -10,8 +10,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShieldCheck, TrendingUp, Package, DollarSign, BarChart3, Loader2, LogIn } from "lucide-react";
+import { ShieldCheck, TrendingUp, Package, DollarSign, BarChart3, Loader2, LogIn, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCart } from "@/contexts/CartContext";
 import type { Book } from "@/data/mockBooks";
 import SimilarBookCard from "./SimilarBookCard";
 
@@ -24,6 +25,7 @@ interface BookDetailsDialogProps {
 
 const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: BookDetailsDialogProps) => {
   const navigate = useNavigate();
+  const { addItem } = useCart();
   const [keepaData, setKeepaData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -188,10 +190,28 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl">{book.title}</DialogTitle>
-          <DialogDescription className="text-base">
-            by {book.author}
-          </DialogDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <DialogTitle className="text-2xl">{book.title}</DialogTitle>
+              <DialogDescription className="text-base">
+                by {book.author}
+              </DialogDescription>
+            </div>
+            <Button 
+              size="lg"
+              onClick={() => addItem({
+                id: book.id,
+                title: book.title,
+                author: book.author,
+                imageUrl: book.imageUrl,
+                price: targetPrice,
+                isbn: book.isbn,
+              })}
+            >
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              Add to Cart
+            </Button>
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="details" className="w-full">
