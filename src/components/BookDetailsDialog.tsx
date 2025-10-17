@@ -350,12 +350,6 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     <span className="font-semibold">Target Net ROI (After Fees)</span>
                     <span className="font-bold text-primary text-lg">{targetRoi}%</span>
                   </div>
-                  {amazonPrice > 0 && (
-                    <div className="flex justify-between items-center py-3 bg-muted/50 px-3 rounded-lg mt-2">
-                      <span className="font-medium text-sm">Current Amazon ROI (Reference)</span>
-                      <span className="font-semibold">{amazonRoi}%</span>
-                    </div>
-                  )}
                 </div>
               </div>
 

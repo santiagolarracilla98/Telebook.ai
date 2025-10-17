@@ -99,15 +99,6 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
               {roi_target_price && roi_target_price > 0 ? `$${roi_target_price.toFixed(2)}` : 'Calculating...'}
             </span>
           </div>
-          <div className="flex justify-between items-center pt-2 border-t border-border">
-            <span className="text-sm font-medium flex items-center gap-1">
-              <TrendingUp className="w-4 h-4 text-success" />
-              Net ROI
-            </span>
-            <span className={`font-bold ${roi >= 20 ? 'text-success' : roi >= 10 ? 'text-warning' : 'text-muted-foreground'}`}>
-              {roi}%
-            </span>
-          </div>
         </div>
       </CardContent>
       
