@@ -191,6 +191,14 @@ const Index = () => {
       );
     }
 
+    // Always filter to show only books with cost data
+    filtered = filtered.filter(book => {
+      const hasCost = (book.publisher_rrp && book.publisher_rrp > 0) || 
+                     (book.wholesale_price && book.wholesale_price > 0) ||
+                     (book.wholesalePrice && book.wholesalePrice > 0);
+      return hasCost;
+    });
+
     setFilteredBooks(filtered);
   };
 
