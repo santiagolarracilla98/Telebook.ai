@@ -179,6 +179,10 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   // Calculate net profit and ROI at Amazon's current price (for reference)
   const netProfitAtAmazon = amazonPrice > 0 ? amazonPrice - amazonFees - cost : 0;
   const amazonRoi = cost > 0 && amazonPrice > 0 ? ((netProfitAtAmazon / cost) * 100).toFixed(1) : '0.0';
+  
+  // Check if stored price is stale (>7 days old)
+  const lastPriceCheck = (book as any).last_price_check ? new Date((book as any).last_price_check) : null;
+  const isPriceStale = lastPriceCheck ? (Date.now() - lastPriceCheck.getTime()) > 7 * 24 * 60 * 60 * 1000 : true;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -270,6 +274,14 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
 
           <TabsContent value="pricing" className="space-y-4 mt-4">
             <div className="grid gap-4">
+              {isPriceStale && amazonPrice > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    ⚠️ Stored price data is {lastPriceCheck ? `from ${lastPriceCheck.toLocaleDateString()}` : 'outdated'}. Check "Amazon Live Data" tab for current pricing.
+                  </p>
+                </div>
+              )}
+              
               <div className="p-4 rounded-lg border border-border space-y-3">
                 <div className="flex items-center gap-2 mb-3">
                   <BarChart3 className="w-5 h-5 text-primary" />
@@ -290,9 +302,16 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">Amazon Current Price (Reference)</span>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-muted-foreground">Amazon Stored Price</span>
+                      {lastPriceCheck && (
+                        <span className="text-xs text-muted-foreground">
+                          Last checked: {lastPriceCheck.toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
                     <span className="font-semibold">
-                      {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA'}
+                      {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'No data'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-border">

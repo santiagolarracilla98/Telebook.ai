@@ -32,6 +32,7 @@ export interface Book {
   roi_target_price?: number;
   market_flag?: string;
   currency?: string;
+  last_price_check?: string | null;
 }
 
 export const mockBooks: Book[] = [

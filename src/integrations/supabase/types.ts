@@ -29,6 +29,7 @@ export type Database = {
           id: string
           image_url: string | null
           info_link: string | null
+          last_price_check: string | null
           market_flag: string | null
           page_count: number | null
           preview_link: string | null
@@ -57,6 +58,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           info_link?: string | null
+          last_price_check?: string | null
           market_flag?: string | null
           page_count?: number | null
           preview_link?: string | null
@@ -85,6 +87,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           info_link?: string | null
+          last_price_check?: string | null
           market_flag?: string | null
           page_count?: number | null
           preview_link?: string | null

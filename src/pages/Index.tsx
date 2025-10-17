@@ -150,6 +150,7 @@ const Index = () => {
           roi_target_price: book.roi_target_price,
           market_flag: book.market_flag,
           currency: book.currency,
+          last_price_check: book.last_price_check,
         };
       });
 

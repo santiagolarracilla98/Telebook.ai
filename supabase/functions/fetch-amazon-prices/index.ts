@@ -20,11 +20,14 @@ serve(async (req) => {
 
     console.log('🔍 Fetching Amazon prices...');
 
-    // Get all books without amazon_price (including books from Google)
+    // Get all books without amazon_price OR with stale prices (>7 days old)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
     const { data: books, error: booksError } = await supabase
       .from('books')
-      .select('id, us_asin, uk_asin, title, author, publisher_rrp, google_books_id, currency')
-      .is('amazon_price', null)
+      .select('id, us_asin, uk_asin, title, author, publisher_rrp, google_books_id, currency, amazon_price, last_price_check')
+      .or(`amazon_price.is.null,last_price_check.is.null,last_price_check.lt.${sevenDaysAgo.toISOString()}`)
       .limit(50); // Process in batches to avoid timeout
 
     if (booksError) throw booksError;
@@ -113,17 +116,15 @@ serve(async (req) => {
         }
       }
 
-      // Fallback to calculated price (1.3x publisher RRP)
-      if (!amazonPrice && book.publisher_rrp && book.publisher_rrp > 0) {
-        amazonPrice = book.publisher_rrp * 1.3;
-        console.log(`📊 Using calculated price: $${amazonPrice.toFixed(2)} (1.3x RRP)`);
-      }
-
+      // Only store verified Amazon prices (no fallbacks)
       if (amazonPrice) {
-        // Update books table
+        // Update books table with price and timestamp
         const { error: updateError } = await supabase
           .from('books')
-          .update({ amazon_price: amazonPrice })
+          .update({ 
+            amazon_price: amazonPrice,
+            last_price_check: new Date().toISOString()
+          })
           .eq('id', book.id);
 
         if (updateError) {
