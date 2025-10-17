@@ -101,12 +101,20 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Check if book already exists with this ISBN or Google Books ID
-      const { data: existing } = await supabase.from("books").select("id").eq("google_books_id", vol.id).maybeSingle(); // Returns null if not found, or the row if found
+      // Check if book already exists with this Google Books ID or title/author combo
+      const { data: existing } = await supabase
+        .from("books")
+        .select("id")
+        .or(
+          `google_books_id.eq.${vol.id},and(title.eq.${volumeInfo.title},author.eq.${volumeInfo.authors?.[0] || "Unknown Author"})`,
+        )
+        .maybeSingle();
 
       if (existing) {
-        // ✅ Correct - existing is null or an object
-        skippedBooks.push({ title: volumeInfo.title, reason: "Already exists" });
+        skippedBooks.push({
+          title: volumeInfo.title,
+          reason: "Already exists (by ID or title/author)",
+        });
         continue;
       }
 
@@ -130,8 +138,8 @@ Deno.serve(async (req) => {
         currency: territory === "GB" ? "GBP" : "USD",
       });
     }
+
     console.log(`Inserting ${booksToInsert.length} books...`);
-    console.log("First book sample:", JSON.stringify(booksToInsert[0], null, 2));
 
     // Insert books in batches of 100
     const batchSize = 100;
