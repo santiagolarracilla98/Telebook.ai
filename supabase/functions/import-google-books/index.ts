@@ -33,7 +33,7 @@ function normalizePublishedDate(dateStr: string | undefined): string | null {
   return null;
 }
 
-const FUNCTION_VERSION = "v3.0-isbn-optional";
+const FUNCTION_VERSION = "v4.0-amazon-integration";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -157,6 +157,23 @@ Deno.serve(async (req) => {
       const normalizedDate = normalizePublishedDate(volumeInfo.publishedDate);
       console.log(`📅 Book: "${volumeInfo.title}" | Original: "${volumeInfo.publishedDate}" → Normalized: "${normalizedDate}"`);
       
+      // Try to get ASIN from industry identifiers for Amazon lookup
+      let usAsin = null;
+      let ukAsin = null;
+      
+      // Check for ASIN in industryIdentifiers
+      const asinIdentifier = identifiers.find((id: any) => 
+        id.type === "OTHER" && id.identifier?.startsWith("ASIN:")
+      );
+      if (asinIdentifier) {
+        const asin = asinIdentifier.identifier.replace("ASIN:", "");
+        if (territory === "GB") {
+          ukAsin = asin;
+        } else {
+          usAsin = asin;
+        }
+      }
+      
       booksToInsert.push({
         title: volumeInfo.title || "Unknown Title",
         author: volumeInfo.authors?.[0] || "Unknown Author",
@@ -170,9 +187,11 @@ Deno.serve(async (req) => {
         preview_link: volumeInfo.previewLink,
         info_link: volumeInfo.infoLink,
         google_books_id: vol.id,
-        // Default values for required fields
-        wholesale_price: 0,
-        rrp: 0,
+        us_asin: usAsin,
+        uk_asin: ukAsin,
+        // Set wholesale_price to null instead of 0 when not available
+        wholesale_price: null,
+        rrp: volumeInfo.retailPrice?.amount || 0,
         available_stock: 0,
         currency: territory === "GB" ? "GBP" : "USD",
       });
@@ -215,6 +234,17 @@ Deno.serve(async (req) => {
       .eq("id", dataset.id);
 
     console.log(`✅ Import complete: ${totalInserted} books imported (${FUNCTION_VERSION})`);
+
+    // Trigger Amazon price fetching for newly imported books
+    if (totalInserted > 0) {
+      console.log('🔄 Triggering Amazon price fetch...');
+      try {
+        await supabase.functions.invoke('fetch-amazon-prices');
+        console.log('✅ Amazon price fetch triggered');
+      } catch (error) {
+        console.log('⚠️ Failed to trigger Amazon price fetch:', error);
+      }
+    }
 
     return new Response(
       JSON.stringify({

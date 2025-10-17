@@ -154,7 +154,7 @@ const HostDashboard = () => {
                         <TableCell>{book.author}</TableCell>
                         <TableCell>{book.category}</TableCell>
                         <TableCell className="text-right">£{book.rrp.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">£{book.wholesale_price.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{book.wholesale_price > 0 ? `£${book.wholesale_price.toFixed(2)}` : 'NA'}</TableCell>
                         <TableCell className="text-right">{book.available_stock}</TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button variant="outline" size="sm">Edit</Button>

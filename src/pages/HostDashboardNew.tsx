@@ -507,7 +507,7 @@ const HostDashboardNew = () => {
                         <TableCell className="font-medium">{book.title}</TableCell>
                         <TableCell>{book.author}</TableCell>
                         <TableCell>{book.available_stock}</TableCell>
-                        <TableCell>${book.wholesale_price.toFixed(2)}</TableCell>
+                        <TableCell>{book.wholesale_price > 0 ? `$${book.wholesale_price.toFixed(2)}` : 'NA'}</TableCell>
                         <TableCell>${book.amazon_price?.toFixed(2) || 'N/A'}</TableCell>
                         <TableCell>${book.roi_target_price?.toFixed(2) || 'N/A'}</TableCell>
                         <TableCell>

@@ -87,7 +87,9 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
           )}
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground">Wholesale</span>
-            <span className="font-semibold text-foreground">${wholesalePrice.toFixed(2)}</span>
+            <span className="font-semibold text-foreground">
+              {wholesalePrice > 0 ? `$${wholesalePrice.toFixed(2)}` : 'NA'}
+            </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground">Amazon Price</span>
