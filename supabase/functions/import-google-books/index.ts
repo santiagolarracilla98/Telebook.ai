@@ -33,7 +33,7 @@ function normalizePublishedDate(dateStr: string | undefined): string | null {
   return null;
 }
 
-const FUNCTION_VERSION = "v2.0-date-fix-deployed";
+const FUNCTION_VERSION = "v3.0-isbn-optional";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -122,22 +122,35 @@ Deno.serve(async (req) => {
     for (const vol of volumes) {
       const volumeInfo = vol.volumeInfo || {};
 
-      // Get ISBN (prefer ISBN-13, fallback to ISBN-10)
+      // Get ISBN (prefer ISBN-13, fallback to ISBN-10) - Optional, not required
       const identifiers = volumeInfo.industryIdentifiers || [];
       const isbn13 = identifiers.find((id: any) => id.type === "ISBN_13")?.identifier;
       const isbn10 = identifiers.find((id: any) => id.type === "ISBN_10")?.identifier;
       const isbn = isbn13 || isbn10;
 
-      if (!isbn) {
-        skippedBooks.push({ title: volumeInfo.title, reason: "No ISBN" });
+      // Check if book already exists by Google Books ID
+      const { data: existingBooks } = await supabase
+        .from("books")
+        .select("id")
+        .eq("google_books_id", vol.id)
+        .maybeSingle();
+
+      if (existingBooks) {
+        skippedBooks.push({ 
+          title: volumeInfo.title, 
+          reason: "Already exists",
+          googleBooksId: vol.id 
+        });
         continue;
       }
 
-      // Check if book already exists with this ISBN or Google Books ID
-      const { data: existing } = await supabase.from("books").select("id").eq("google_books_id", vol.id);
-
-      if (existing) {
-        skippedBooks.push({ title: volumeInfo.title, reason: "Already exists" });
+      // Skip if no title
+      if (!volumeInfo.title) {
+        skippedBooks.push({ 
+          title: "Unknown", 
+          reason: "No title",
+          googleBooksId: vol.id 
+        });
         continue;
       }
 
