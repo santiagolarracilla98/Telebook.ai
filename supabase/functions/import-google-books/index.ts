@@ -1,77 +1,80 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.75.0";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { query, maxResults = 40, territory = 'GB', datasetName } = await req.json();
+    const { query, maxResults = 40, territory = "GB", datasetName } = await req.json();
 
     if (!query) {
-      throw new Error('Search query is required');
+      throw new Error("Search query is required");
     }
 
     console.log(`Importing books from Google Books API: ${query}`);
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const googleBooksApiKey = Deno.env.get('GOOGLE_BOOKS_API_KEY');
-    
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const googleBooksApiKey = Deno.env.get("GOOGLE_BOOKS_API_KEY");
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get user from auth header
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error('No authorization header');
+      throw new Error("No authorization header");
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
+    const token = authHeader.replace("Bearer ", "");
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(token);
+
     if (userError || !user) {
-      throw new Error('Unauthorized');
+      throw new Error("Unauthorized");
     }
 
     // Create a new dataset for this import
     const finalDatasetName = datasetName || `Google Books - ${query}`;
     const { data: dataset, error: datasetError } = await supabase
-      .from('datasets')
+      .from("datasets")
       .insert({
         name: finalDatasetName,
-        source: 'google_books',
+        source: "google_books",
         is_active: true,
         created_by: user.id,
-        metadata: { 
-          query, 
-          maxResults, 
+        metadata: {
+          query,
+          maxResults,
           territory,
-          importedAt: new Date().toISOString() 
-        }
+          importedAt: new Date().toISOString(),
+        },
       })
       .select()
       .single();
 
     if (datasetError) {
-      console.error('Dataset creation error:', datasetError);
+      console.error("Dataset creation error:", datasetError);
       throw datasetError;
     }
 
     console.log(`Created dataset: ${dataset.id}`);
 
     // Fetch books from Google Books API
-    const apiUrl = googleBooksApiKey 
+    const apiUrl = googleBooksApiKey
       ? `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=${maxResults}&key=${googleBooksApiKey}`
       : `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=${maxResults}`;
 
-    console.log('Fetching from Google Books API...');
+    console.log("Fetching from Google Books API...");
     const response = await fetch(apiUrl);
-    
+
     if (!response.ok) {
       throw new Error(`Google Books API error: ${response.statusText}`);
     }
@@ -86,41 +89,36 @@ Deno.serve(async (req) => {
 
     for (const vol of volumes) {
       const volumeInfo = vol.volumeInfo || {};
-      
+
       // Get ISBN (prefer ISBN-13, fallback to ISBN-10)
       const identifiers = volumeInfo.industryIdentifiers || [];
-      const isbn13 = identifiers.find((id: any) => id.type === 'ISBN_13')?.identifier;
-      const isbn10 = identifiers.find((id: any) => id.type === 'ISBN_10')?.identifier;
+      const isbn13 = identifiers.find((id: any) => id.type === "ISBN_13")?.identifier;
+      const isbn10 = identifiers.find((id: any) => id.type === "ISBN_10")?.identifier;
       const isbn = isbn13 || isbn10;
 
       if (!isbn) {
-        skippedBooks.push({ title: volumeInfo.title, reason: 'No ISBN' });
+        skippedBooks.push({ title: volumeInfo.title, reason: "No ISBN" });
         continue;
       }
 
       // Check if book already exists with this ISBN or Google Books ID
-      const { data: existing } = await supabase
-        .from('books')
-        .select('id')
-        .or(`id.eq.${isbn},google_books_id.eq.${vol.id}`)
-        .single();
+      const { data: existing } = await supabase.from("books").select("id").eq("google_books_id", vol.id);
 
       if (existing) {
-        skippedBooks.push({ title: volumeInfo.title, reason: 'Already exists' });
+        skippedBooks.push({ title: volumeInfo.title, reason: "Already exists" });
         continue;
       }
 
       booksToInsert.push({
-        id: isbn,
-        title: volumeInfo.title || 'Unknown Title',
-        author: volumeInfo.authors?.[0] || 'Unknown Author',
+        title: volumeInfo.title || "Unknown Title",
+        author: volumeInfo.authors?.[0] || "Unknown Author",
         dataset_id: dataset.id,
         description: volumeInfo.description,
         publisher: volumeInfo.publisher,
         published_date: volumeInfo.publishedDate,
         page_count: volumeInfo.pageCount,
-        category: volumeInfo.categories?.[0] || 'General',
-        image_url: volumeInfo.imageLinks?.thumbnail?.replace('http://', 'https://'),
+        category: volumeInfo.categories?.[0] || "General",
+        image_url: volumeInfo.imageLinks?.thumbnail?.replace("http://", "https://"),
         preview_link: volumeInfo.previewLink,
         info_link: volumeInfo.infoLink,
         google_books_id: vol.id,
@@ -128,7 +126,7 @@ Deno.serve(async (req) => {
         wholesale_price: 0,
         rrp: 0,
         available_stock: 0,
-        currency: territory === 'GB' ? 'GBP' : 'USD'
+        currency: territory === "GB" ? "GBP" : "USD",
       });
     }
 
@@ -141,13 +139,10 @@ Deno.serve(async (req) => {
 
     for (let i = 0; i < booksToInsert.length; i += batchSize) {
       const batch = booksToInsert.slice(i, i + batchSize);
-      const { data: inserted, error: insertError } = await supabase
-        .from('books')
-        .insert(batch)
-        .select();
+      const { data: inserted, error: insertError } = await supabase.from("books").insert(batch).select();
 
       if (insertError) {
-        console.error('Insert error:', insertError);
+        console.error("Insert error:", insertError);
         errors.push(insertError);
       } else {
         totalInserted += inserted?.length || 0;
@@ -156,7 +151,7 @@ Deno.serve(async (req) => {
 
     // Update dataset metadata with final count
     await supabase
-      .from('datasets')
+      .from("datasets")
       .update({
         last_synced_at: new Date().toISOString(),
         metadata: {
@@ -166,10 +161,10 @@ Deno.serve(async (req) => {
           importedAt: new Date().toISOString(),
           totalResults: volumes.length,
           imported: totalInserted,
-          skipped: skippedBooks.length
-        }
+          skipped: skippedBooks.length,
+        },
       })
-      .eq('id', dataset.id);
+      .eq("id", dataset.id);
 
     console.log(`Import complete: ${totalInserted} books imported`);
 
@@ -181,28 +176,27 @@ Deno.serve(async (req) => {
         books_imported: totalInserted,
         books_skipped: skippedBooks.length,
         skipped_details: skippedBooks.slice(0, 10), // Return first 10 for review
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
-      }
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      },
     );
-
   } catch (error) {
-    console.error('Import error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error("Import error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     const errorDetails = error instanceof Error ? error.toString() : String(error);
-    
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: errorMessage,
-        details: errorDetails
+        details: errorDetails,
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      },
     );
   }
 });
