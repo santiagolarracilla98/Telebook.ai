@@ -163,13 +163,6 @@ const ClientDashboard = () => {
       );
     }
 
-    // Filter by marketplace
-    if (marketplace === 'usa') {
-      filtered = filtered.filter(book => book.us_asin || book.currency === 'USD');
-    } else if (marketplace === 'uk') {
-      filtered = filtered.filter(book => book.uk_asin || book.currency === 'GBP');
-    }
-
     setFilteredBooks(filtered);
   };
 
