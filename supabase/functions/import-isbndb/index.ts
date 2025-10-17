@@ -224,22 +224,32 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Insert books in batch
+    // Insert books individually to handle duplicates gracefully
     let insertedCount = 0;
     if (booksToInsert.length > 0) {
       console.log(`Inserting ${booksToInsert.length} books...`);
       
-      const { data: insertedBooks, error: insertError } = await supabase
-        .from('books')
-        .insert(booksToInsert)
-        .select('id');
+      for (const book of booksToInsert) {
+        const { error: insertError } = await supabase
+          .from('books')
+          .insert(book);
 
-      if (insertError) {
-        console.error('Insert error:', insertError);
-        throw insertError;
+        if (insertError) {
+          // If it's a duplicate, log and skip
+          if (insertError.code === '23505') {
+            console.log(`Skipping duplicate: ${book.title}`);
+          } else {
+            console.error(`Error inserting ${book.title}:`, insertError);
+            errors.push({
+              title: book.title,
+              error: insertError.message
+            });
+          }
+        } else {
+          insertedCount++;
+        }
       }
-
-      insertedCount = insertedBooks?.length || 0;
+      
       console.log(`✅ Successfully inserted ${insertedCount} books`);
     }
 
