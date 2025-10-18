@@ -171,7 +171,7 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
           </div>
           
           <div className="relative flex justify-between text-sm pt-2">
-            <span className="text-muted-foreground">Min: ${(acquisitionCost * 1.1).toFixed(2)}</span>
+            <span className="text-muted-foreground">Min: ${(acquisitionCost * 1.1).toFixed(2)} (Acquisition cost)</span>
             
             {/* Break-even point positioned at its exact location */}
             <div 
