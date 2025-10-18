@@ -33,6 +33,7 @@ export interface Book {
   market_flag?: string;
   currency?: string;
   last_price_check?: string | null;
+  description?: string;
 }
 
 export const mockBooks: Book[] = [

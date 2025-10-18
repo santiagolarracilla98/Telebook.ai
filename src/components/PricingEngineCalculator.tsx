@@ -1,286 +1,249 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { Calculator, TrendingUp } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { Calculator, TrendingUp, Info } from "lucide-react";
+import { toast } from "sonner";
+import { ROIResults } from "./ROIResults";
+import { ROIExplanationDialog } from "./ROIExplanationDialog";
 
-const genres = [
-  "Fiction",
-  "Non-Fiction",
-  "Business",
-  "Self-Help",
-  "Science Fiction",
-  "Mystery",
-  "Romance",
-  "Children's Books",
-  "Biography",
-  "Technology"
-];
+interface PrefilledBook {
+  title: string;
+  author: string;
+  isbn: string;
+  cost: number;
+  smartPrice: number;
+  amazonPrice: number;
+}
 
-// Mock Amazon data for different genres
-const mockAmazonData = {
-  "Fiction": [
-    { priceRange: "$10-15", count: 320, avgMargin: 35 },
-    { priceRange: "$15-20", count: 480, avgMargin: 38 },
-    { priceRange: "$20-25", count: 290, avgMargin: 42 },
-    { priceRange: "$25-30", count: 150, avgMargin: 40 },
-  ],
-  "Non-Fiction": [
-    { priceRange: "$10-15", count: 250, avgMargin: 32 },
-    { priceRange: "$15-20", count: 420, avgMargin: 36 },
-    { priceRange: "$20-25", count: 380, avgMargin: 40 },
-    { priceRange: "$25-30", count: 200, avgMargin: 43 },
-  ],
-  "Business": [
-    { priceRange: "$15-20", count: 180, avgMargin: 38 },
-    { priceRange: "$20-25", count: 340, avgMargin: 42 },
-    { priceRange: "$25-30", count: 290, avgMargin: 45 },
-    { priceRange: "$30-35", count: 160, avgMargin: 44 },
-  ],
-  "Self-Help": [
-    { priceRange: "$10-15", count: 290, avgMargin: 34 },
-    { priceRange: "$15-20", count: 450, avgMargin: 37 },
-    { priceRange: "$20-25", count: 310, avgMargin: 41 },
-    { priceRange: "$25-30", count: 140, avgMargin: 39 },
-  ],
-  "Science Fiction": [
-    { priceRange: "$12-17", count: 340, avgMargin: 36 },
-    { priceRange: "$17-22", count: 420, avgMargin: 39 },
-    { priceRange: "$22-27", count: 260, avgMargin: 41 },
-    { priceRange: "$27-32", count: 120, avgMargin: 38 },
-  ],
-  "Mystery": [
-    { priceRange: "$10-15", count: 310, avgMargin: 35 },
-    { priceRange: "$15-20", count: 470, avgMargin: 38 },
-    { priceRange: "$20-25", count: 280, avgMargin: 40 },
-    { priceRange: "$25-30", count: 130, avgMargin: 37 },
-  ],
-  "Romance": [
-    { priceRange: "$8-12", count: 380, avgMargin: 33 },
-    { priceRange: "$12-16", count: 520, avgMargin: 36 },
-    { priceRange: "$16-20", count: 290, avgMargin: 38 },
-    { priceRange: "$20-24", count: 140, avgMargin: 35 },
-  ],
-  "Children's Books": [
-    { priceRange: "$8-12", count: 420, avgMargin: 40 },
-    { priceRange: "$12-16", count: 540, avgMargin: 43 },
-    { priceRange: "$16-20", count: 310, avgMargin: 45 },
-    { priceRange: "$20-24", count: 160, avgMargin: 42 },
-  ],
-  "Biography": [
-    { priceRange: "$15-20", count: 260, avgMargin: 37 },
-    { priceRange: "$20-25", count: 390, avgMargin: 40 },
-    { priceRange: "$25-30", count: 310, avgMargin: 43 },
-    { priceRange: "$30-35", count: 170, avgMargin: 41 },
-  ],
-  "Technology": [
-    { priceRange: "$25-35", count: 220, avgMargin: 42 },
-    { priceRange: "$35-45", count: 340, avgMargin: 45 },
-    { priceRange: "$45-55", count: 280, avgMargin: 48 },
-    { priceRange: "$55-65", count: 150, avgMargin: 46 },
-  ],
-};
+interface PricingEngineCalculatorProps {
+  prefilledBook?: PrefilledBook;
+}
 
-export const PricingEngineCalculator = () => {
-  const [genre, setGenre] = useState<string>("Fiction");
-  const [wholesalePrice, setWholesalePrice] = useState<string>("12.00");
-  const [shippingCost, setShippingCost] = useState<string>("2.50");
-  const [handlingFee, setHandlingFee] = useState<string>("1.00");
-  const [targetMargin, setTargetMargin] = useState<string>("40");
+export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculatorProps) => {
+  const [bookInput, setBookInput] = useState(prefilledBook?.title || "");
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<"FBA" | "FBM">("FBA");
+  const [quantity, setQuantity] = useState(100);
+  const [currentCost, setCurrentCost] = useState("");
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [calculationResult, setCalculationResult] = useState<any>(
+    prefilledBook ? {
+      bookTitle: prefilledBook.title,
+      bookAuthor: prefilledBook.author,
+      ourAcquisitionCost: prefilledBook.cost.toFixed(2),
+      potentialROI: (((prefilledBook.smartPrice - (prefilledBook.smartPrice * 0.15 + 3) - prefilledBook.cost) / prefilledBook.cost) * 100).toFixed(1),
+      smartPrice: prefilledBook.smartPrice.toFixed(2),
+      amazonReferencePrice: prefilledBook.amazonPrice.toFixed(2),
+      priceRange: `$${(prefilledBook.smartPrice * 0.95).toFixed(2)} - $${(prefilledBook.smartPrice * 1.05).toFixed(2)}`,
+      pricingEdge: "Competitive",
+      volumeDiscount: "15",
+      estimatedNetProfit: (prefilledBook.smartPrice - (prefilledBook.smartPrice * 0.15 + 3) - prefilledBook.cost).toFixed(2),
+      amazonFee: (prefilledBook.smartPrice * 0.15 + 3).toFixed(2),
+      fulfillmentMethod: "FBA",
+      quantity: 100
+    } : null
+  );
+  const [showExplanation, setShowExplanation] = useState(false);
 
-  const calculatePricing = () => {
-    const wholesale = parseFloat(wholesalePrice) || 0;
-    const shipping = parseFloat(shippingCost) || 0;
-    const handling = parseFloat(handlingFee) || 0;
-    const margin = parseFloat(targetMargin) || 0;
-
-    const totalCost = wholesale + shipping + handling;
-    const retailPrice = totalCost / (1 - margin / 100);
-    const profit = retailPrice - totalCost;
-    const actualMargin = (profit / retailPrice) * 100;
-
-    return {
-      totalCost: totalCost.toFixed(2),
-      retailPrice: retailPrice.toFixed(2),
-      profit: profit.toFixed(2),
-      actualMargin: actualMargin.toFixed(1),
-    };
+  const getVolumeDiscount = (qty: number): number => {
+    if (qty >= 500) return 0.25;
+    if (qty >= 250) return 0.20;
+    if (qty >= 100) return 0.15;
+    if (qty >= 50) return 0.10;
+    return 0.05;
   };
 
-  const pricing = calculatePricing();
-  const amazonData = mockAmazonData[genre as keyof typeof mockAmazonData] || mockAmazonData["Fiction"];
+  const calculateROI = async () => {
+    if (!bookInput.trim()) {
+      toast.error("Please enter a book title or ASIN");
+      return;
+    }
+
+    setIsCalculating(true);
+
+    try {
+      const { data: books, error } = await supabase
+        .from("books")
+        .select("*")
+        .or(`title.ilike.%${bookInput}%,uk_asin.eq.${bookInput},us_asin.eq.${bookInput}`)
+        .limit(1);
+
+      if (error) throw error;
+
+      if (!books || books.length === 0) {
+        toast.error("Book not found in our catalog. Try a different title or ASIN.");
+        setIsCalculating(false);
+        return;
+      }
+
+      const book = books[0];
+      const volumeDiscount = getVolumeDiscount(quantity);
+      const ourAcquisitionCost = book.wholesale_price || book.publisher_rrp || 0;
+      const smartPrice = book.roi_target_price || book.amazon_price || book.rrp || 0;
+      const amazonReferencePrice = book.rrp || smartPrice;
+      const amazonFee = fulfillmentMethod === "FBA" 
+        ? smartPrice * 0.15 + 3
+        : smartPrice * 0.08;
+      const estimatedNetProfit = smartPrice - amazonFee - ourAcquisitionCost;
+      const potentialROI = (estimatedNetProfit / ourAcquisitionCost) * 100;
+      const userCost = parseFloat(currentCost) || ourAcquisitionCost * 1.3;
+      const pricingEdge = userCost > ourAcquisitionCost * 1.2 
+        ? "Major Edge" 
+        : userCost > ourAcquisitionCost * 1.1 
+        ? "Competitive" 
+        : "Market Rate";
+
+      const result = {
+        bookTitle: book.title,
+        bookAuthor: book.author,
+        ourAcquisitionCost: ourAcquisitionCost.toFixed(2),
+        potentialROI: potentialROI.toFixed(1),
+        smartPrice: smartPrice.toFixed(2),
+        amazonReferencePrice: amazonReferencePrice.toFixed(2),
+        priceRange: `$${(smartPrice * 0.95).toFixed(2)} - $${(smartPrice * 1.05).toFixed(2)}`,
+        pricingEdge,
+        volumeDiscount: (volumeDiscount * 100).toFixed(0),
+        estimatedNetProfit: estimatedNetProfit.toFixed(2),
+        amazonFee: amazonFee.toFixed(2),
+        fulfillmentMethod,
+        quantity
+      };
+      
+      setCalculationResult(result);
+      toast.success("ROI Calculated Successfully", {
+        description: `Your potential ROI is ${potentialROI.toFixed(1)}%`,
+      });
+
+    } catch (error) {
+      console.error("Calculation error:", error);
+      toast.error("Error calculating ROI. Please try again.");
+    } finally {
+      setIsCalculating(false);
+    }
+  };
 
   return (
-    <section id="pricing-engine" className="py-16 bg-gradient-to-b from-background to-muted/20">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <Calculator className="h-8 w-8 text-primary" />
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              Pricing Engine Calculator
-            </h2>
+    <div className="w-full space-y-6">
+      <Card className="shadow-lg border-primary/20">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="h-6 w-6 text-primary" />
+                Calculate Your Profit Potential
+              </CardTitle>
+              <CardDescription className="mt-2">
+                {prefilledBook ? "Book data pre-filled - adjust settings and calculate" : "Enter book details to calculate profit"}
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setShowExplanation(true)}>
+              <Info className="h-5 w-5" />
+            </Button>
           </div>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Calculate optimal pricing for your books based on genre, costs, and Amazon market data
-          </p>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
-          {/* Calculator Card */}
-          <Card className="p-6 space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="genre">Book Genre</Label>
-                <Select value={genre} onValueChange={setGenre}>
-                  <SelectTrigger id="genre">
-                    <SelectValue placeholder="Select genre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {genres.map((g) => (
-                      <SelectItem key={g} value={g}>
-                        {g}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="wholesale">Wholesale Price ($)</Label>
-                <Input
-                  id="wholesale"
-                  type="number"
-                  step="0.01"
-                  value={wholesalePrice}
-                  onChange={(e) => setWholesalePrice(e.target.value)}
-                  placeholder="12.00"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="shipping">Shipping Cost ($)</Label>
-                <Input
-                  id="shipping"
-                  type="number"
-                  step="0.01"
-                  value={shippingCost}
-                  onChange={(e) => setShippingCost(e.target.value)}
-                  placeholder="2.50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="handling">Handling Fee ($)</Label>
-                <Input
-                  id="handling"
-                  type="number"
-                  step="0.01"
-                  value={handlingFee}
-                  onChange={(e) => setHandlingFee(e.target.value)}
-                  placeholder="1.00"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="margin">Target Margin (%)</Label>
-                <Input
-                  id="margin"
-                  type="number"
-                  step="1"
-                  value={targetMargin}
-                  onChange={(e) => setTargetMargin(e.target.value)}
-                  placeholder="40"
-                />
-              </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="bookInput">Book Title or ASIN *</Label>
+              <Input
+                id="bookInput"
+                placeholder="Enter title or ASIN"
+                value={bookInput}
+                onChange={(e) => setBookInput(e.target.value)}
+                className="text-base"
+                disabled={!!prefilledBook}
+              />
             </div>
 
-            <div className="pt-4 border-t space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Total Cost:</span>
-                <span className="font-semibold">${pricing.totalCost}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Suggested Retail Price:</span>
-                <span className="font-semibold text-lg text-primary">${pricing.retailPrice}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Profit per Book:</span>
-                <span className="font-semibold text-green-600">${pricing.profit}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Actual Margin:</span>
-                <span className="font-semibold">{pricing.actualMargin}%</span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Market Analysis Card */}
-          <Card className="p-6 space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              <h3 className="text-xl font-semibold">Amazon Market Analysis - {genre}</h3>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <h4 className="text-sm font-medium mb-3 text-muted-foreground">Price Distribution</h4>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={amazonData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="priceRange" className="text-xs" />
-                    <YAxis className="text-xs" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--background))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px'
-                      }}
-                    />
-                    <Bar dataKey="count" fill="hsl(var(--primary))" name="Number of Books" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium mb-3 text-muted-foreground">Average Margins by Price Range</h4>
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={amazonData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="priceRange" className="text-xs" />
-                    <YAxis className="text-xs" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--background))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px'
-                      }}
-                    />
-                    <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="avgMargin" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={2}
-                      name="Avg Margin (%)"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Market Insight:</strong> Based on Amazon data for {genre} books, 
-                  the sweet spot appears to be in the {amazonData[1]?.priceRange || "$15-20"} range 
-                  with an average margin of {amazonData[1]?.avgMargin || 38}%.
-                </p>
+            <div className="space-y-2">
+              <Label>Fulfillment Method *</Label>
+              <div className="flex gap-4 p-3 bg-muted rounded-md">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="fulfillment"
+                    checked={fulfillmentMethod === "FBA"}
+                    onChange={() => setFulfillmentMethod("FBA")}
+                    className="w-4 h-4"
+                  />
+                  <span className="font-medium">FBA (Amazon)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="fulfillment"
+                    checked={fulfillmentMethod === "FBM"}
+                    onChange={() => setFulfillmentMethod("FBM")}
+                    className="w-4 h-4"
+                  />
+                  <span className="font-medium">FBM (Merchant)</span>
+                </label>
               </div>
             </div>
-          </Card>
-        </div>
-      </div>
-    </section>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="quantity">
+              Target Purchase Quantity: {quantity} units
+            </Label>
+            <Slider
+              id="quantity"
+              min={10}
+              max={1000}
+              step={10}
+              value={[quantity]}
+              onValueChange={(value) => setQuantity(value[0])}
+              className="py-4"
+            />
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>10 units</span>
+              <span>500 units</span>
+              <span>1000 units</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="currentCost">Current Supplier Acquisition Cost (Optional)</Label>
+            <Input
+              id="currentCost"
+              type="number"
+              placeholder="What is your current cost price?"
+              value={currentCost}
+              onChange={(e) => setCurrentCost(e.target.value)}
+              className="text-base"
+            />
+            <p className="text-sm text-muted-foreground">
+              Enter your current cost to see how much you could save
+            </p>
+          </div>
+
+          <Button 
+            onClick={calculateROI} 
+            disabled={isCalculating}
+            className="w-full text-lg h-12"
+            size="lg"
+          >
+            {isCalculating ? (
+              "Calculating..."
+            ) : (
+              <>
+                <TrendingUp className="mr-2 h-5 w-5" />
+                Calculate Maximum ROI
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {calculationResult && <ROIResults result={calculationResult} />}
+      
+      <ROIExplanationDialog 
+        open={showExplanation} 
+        onOpenChange={setShowExplanation}
+      />
+    </div>
   );
 };

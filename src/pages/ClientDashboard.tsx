@@ -8,6 +8,7 @@ import Hero from "@/components/Hero";
 import FilterBar from "@/components/FilterBar";
 import BookCard from "@/components/BookCard";
 import { CartButton } from "@/components/Cart";
+import { PricingEngineCalculator } from "@/components/PricingEngineCalculator";
 
 interface Book {
   id: string;
@@ -219,6 +220,10 @@ const ClientDashboard = () => {
       </nav>
 
       <Hero />
+      
+      <div id="pricing-engine" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <PricingEngineCalculator />
+      </div>
       
       <div id="inventory" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <FilterBar

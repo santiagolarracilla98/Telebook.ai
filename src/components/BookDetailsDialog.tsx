@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import type { Book } from "@/data/mockBooks";
 import SimilarBookCard from "./SimilarBookCard";
+import { PricingEngineCalculator } from "./PricingEngineCalculator";
 
 interface BookDetailsDialogProps {
   book: Book;
@@ -241,6 +242,12 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                   <h4 className="text-sm font-medium text-muted-foreground mb-1">Category</h4>
                   <Badge variant="outline">{book.category}</Badge>
                 </div>
+                {book.description && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Description</h4>
+                    <p className="text-sm line-clamp-6">{book.description}</p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -293,79 +300,41 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
           </TabsContent>
 
           <TabsContent value="pricing" className="space-y-4 mt-4">
-            <div className="grid gap-4">
-              {isPriceStale && amazonPrice > 0 && (
-                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
-                    ⚠️ Stored price data is {lastPriceCheck ? `from ${lastPriceCheck.toLocaleDateString()}` : 'outdated'}. Check "Amazon Live Data" tab for current pricing.
+            {!isAuthenticated ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <div className="text-center space-y-2">
+                  <h3 className="text-xl font-semibold">Use the ROI Calculator</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    Sign in to access the ROI Calculator with pre-filled data for this book and analyze your profit potential.
                   </p>
                 </div>
-              )}
-              
-              <div className="p-4 rounded-lg border border-border space-y-3">
-                <div className="flex items-center gap-2 mb-3">
-                  <BarChart3 className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold text-lg">Pricing Analysis</h3>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">Cost (Publisher)</span>
-                    <span className="font-semibold">
-                      {cost > 0 ? `$${cost.toFixed(2)}` : 'NA'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">Smart Price (25% ROI Target)</span>
-                    <span className="font-semibold text-primary">
-                      {targetPrice > 0 ? `$${targetPrice.toFixed(2)}` : 'Calculating...'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-muted-foreground">Amazon Stored Price</span>
-                      {lastPriceCheck && (
-                        <span className="text-xs text-muted-foreground">
-                          Last checked: {lastPriceCheck.toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                    <span className="font-semibold">
-                      {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'No data'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">Est. Amazon Fees at Smart Price</span>
-                    <span className="font-semibold text-warning">
-                      {targetPrice > 0 ? `-$${targetFees.toFixed(2)}` : 'NA'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-3 bg-success/10 px-3 rounded-lg mt-2">
-                    <span className="font-semibold">Net Profit (at Smart Price)</span>
-                    <span className="font-bold text-success text-lg">
-                      {netProfitAtTarget > 0 ? `$${netProfitAtTarget.toFixed(2)}` : 'NA'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-3 bg-primary/10 px-3 rounded-lg">
-                    <span className="font-semibold">Target Net ROI (After Fees)</span>
-                    <span className="font-bold text-primary text-lg">{targetRoi}%</span>
-                  </div>
-                </div>
+                <Button 
+                  size="lg"
+                  onClick={() => navigate('/auth')}
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Sign In to Continue
+                </Button>
               </div>
-
-              <div className="p-4 rounded-lg bg-muted/50">
-                <h4 className="font-medium mb-2">💡 Strategy</h4>
-                <p className="text-sm text-muted-foreground">
-                  Your Smart Price is optimized for <strong>25% net ROI after Amazon fees</strong>.
-                  {amazonPrice > 0 && targetPrice < amazonPrice && (
-                    <> It's ${(amazonPrice - targetPrice).toFixed(2)} below Amazon's current price, giving you a competitive edge.</>
-                  )}
-                  {amazonPrice > 0 && targetPrice > amazonPrice && (
-                    <> Amazon's price is currently lower, but your target maintains healthy margins.</>
-                  )}
-                </p>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                  <p className="text-sm font-medium">
+                    📊 Use the ROI Calculator below with this book's data pre-filled to calculate your exact profit potential.
+                  </p>
+                </div>
+                <PricingEngineCalculator 
+                  prefilledBook={{
+                    title: book.title,
+                    author: book.author,
+                    isbn: book.isbn,
+                    cost: cost,
+                    smartPrice: targetPrice,
+                    amazonPrice: amazonPrice
+                  }}
+                />
               </div>
-            </div>
+            )}
           </TabsContent>
 
           <TabsContent value="amazon" className="space-y-4 mt-4">
