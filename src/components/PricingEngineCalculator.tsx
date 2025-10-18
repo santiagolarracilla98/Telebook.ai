@@ -42,13 +42,23 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
   
   const [calculationResult, setCalculationResult] = useState<any>(
     prefilledBook ? (() => {
-      const smartPrice = Math.max(
-        calculateSmartPrice(prefilledBook.cost, "FBA"),
-        prefilledBook.smartPrice
-      );
+      // Always calculate fresh - ignore outdated database roi_target_price
+      const smartPrice = calculateSmartPrice(prefilledBook.cost, "FBA");
       const amazonFee = smartPrice * 0.15 + 3;
       const netProfit = smartPrice - amazonFee - prefilledBook.cost;
       const roi = (netProfit / prefilledBook.cost) * 100;
+      
+      // Determine competitiveness based on comparison to Amazon
+      let marketCompetitiveness: string;
+      if (smartPrice <= prefilledBook.amazonPrice * 0.95) {
+        marketCompetitiveness = "Highly Competitive - Below Amazon";
+      } else if (smartPrice <= prefilledBook.amazonPrice) {
+        marketCompetitiveness = "Competitive - At Amazon Price";
+      } else if (smartPrice <= prefilledBook.amazonPrice * 1.10) {
+        marketCompetitiveness = "Competitive - Slightly Above Amazon";
+      } else {
+        marketCompetitiveness = "Above Market";
+      }
       
       return {
         bookTitle: prefilledBook.title,
@@ -63,7 +73,8 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
         estimatedNetProfit: netProfit.toFixed(2),
         amazonFee: amazonFee.toFixed(2),
         fulfillmentMethod: "FBA",
-        quantity: 100
+        quantity: 100,
+        marketCompetitiveness
       };
     })() : null
   );
