@@ -102,6 +102,14 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
                 onValueChange={handlePriceChange}
                 className="py-4"
               />
+              
+              {/* Visual marker for Amazon price */}
+              <div 
+                className="absolute top-1/2 transform -translate-y-1/2 w-0.5 h-8 bg-blue-500 pointer-events-none"
+                style={{
+                  left: `${((amazonPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
+                }}
+              />
             </div>
             
             {isAboveAmazon && (
@@ -123,14 +131,32 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
             `}</style>
           </div>
           
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Min: ${(acquisitionCost * 1.1).toFixed(2)}</span>
-            <span className="text-primary font-medium">Smart Price: ${initialPrice.toFixed(2)}</span>
-            <span className={cn(
-              "font-semibold",
-              isAboveAmazon ? "text-red-600" : "text-blue-600"
-            )}>
-              Amazon Current Price: ${amazonPrice.toFixed(2)}
+          <div className="relative flex justify-between text-sm pt-2">
+            <span className="text-muted-foreground">Min: ${(acquisitionCost * 1.1).toFixed(2)}</span>
+            
+            {/* Amazon Current Price positioned at its exact location */}
+            <div 
+              className="absolute transform -translate-x-1/2 flex flex-col items-center"
+              style={{
+                left: `${((amazonPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
+              }}
+            >
+              <span className={cn(
+                "font-semibold whitespace-nowrap text-xs",
+                isAboveAmazon ? "text-red-600" : "text-blue-600"
+              )}>
+                Amazon Current Price
+              </span>
+              <span className={cn(
+                "font-bold",
+                isAboveAmazon ? "text-red-600" : "text-blue-600"
+              )}>
+                ${amazonPrice.toFixed(2)}
+              </span>
+            </div>
+            
+            <span className="text-primary font-medium text-right">
+              Smart Price: ${initialPrice.toFixed(2)}
             </span>
           </div>
         </div>
