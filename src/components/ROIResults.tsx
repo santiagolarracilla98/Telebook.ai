@@ -33,7 +33,7 @@ export const ROIResults = ({ result }: ROIResultsProps) => {
   const { addItem } = useCart();
 
   const handleAddToCart = () => {
-    if (!result.bookId || !result.bookIsbn) {
+    if (!result.bookId) {
       toast.error("Unable to add book to cart. Missing book information.");
       return;
     }
@@ -42,7 +42,7 @@ export const ROIResults = ({ result }: ROIResultsProps) => {
       id: result.bookId,
       title: result.bookTitle,
       author: result.bookAuthor,
-      isbn: result.bookIsbn,
+      isbn: result.bookIsbn || result.bookId, // Use book ID as fallback if ISBN is missing
       price: parseFloat(result.smartPrice),
       imageUrl: result.bookImageUrl,
     });
