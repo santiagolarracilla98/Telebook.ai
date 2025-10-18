@@ -185,6 +185,7 @@ AVAILABLE TOOLS:
     const data = await response.json();
     const choice = data.choices[0];
     let finalContent = choice.message.content;
+    let bookResults = undefined;
 
     // Handle tool calls if present
     if (choice.message.tool_calls && mode === 'client') {
@@ -206,22 +207,21 @@ AVAILABLE TOOLS:
             .limit(5);
 
           if (books && books.length > 0) {
-            finalContent += `\n\n**Found ${books.length} book(s) in our inventory:**\n\n`;
+            finalContent += `\n\n**Found ${books.length} book(s) in our inventory:**`;
             
-            // Return structured data for button rendering
-            const bookData = books.map(book => ({
+            // Store book data separately instead of embedding in text
+            bookResults = books.map(book => ({
               id: book.id,
               title: book.title,
               author: book.author,
               publisher: book.publisher || 'Please check inventory',
               category: book.category || 'Please check inventory',
-              wholesale_price: book.wholesale_price,
-              amazon_price: book.amazon_price,
+              wholesale_price: book.wholesale_price || 0,
+              amazon_price: book.amazon_price || 0,
               available_stock: book.available_stock || 0
             }));
 
-            finalContent += `[BOOK_RESULTS:${JSON.stringify(bookData)}]`;
-            finalContent += `\n\nClick "View Book" to see full details and add to your cart.`;
+            finalContent += `\n\nClick "View Book" below to see full details and add to your cart.`;
           } else {
             finalContent += `\n\nNo books found matching "${args.query}". Please check our inventory using the search bar for more options.`;
           }
@@ -247,6 +247,7 @@ AVAILABLE TOOLS:
 
     return new Response(JSON.stringify({ 
       content: finalContent,
+      books: mode === 'client' && choice.message.tool_calls ? bookResults : undefined,
       mode 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

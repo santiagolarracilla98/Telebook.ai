@@ -96,26 +96,13 @@ export function ChatWidget({ mode }: ChatWidgetProps) {
         throw new Error(data.error);
       }
 
-      // Parse book results if present
-      let content = data.content;
-      let books = undefined;
-      
-      const bookResultMatch = content.match(/\[BOOK_RESULTS:(.*?)\]/);
-      if (bookResultMatch) {
-        try {
-          books = JSON.parse(bookResultMatch[1]);
-          content = content.replace(/\[BOOK_RESULTS:.*?\]/, '').trim();
-        } catch (e) {
-          console.error('Failed to parse book results:', e);
-        }
-      }
-
       const assistantMessage: Message = {
         role: "assistant",
-        content,
-        books,
+        content: data.content,
+        books: data.books,
       };
       
+      console.log('Assistant message:', assistantMessage);
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error("Chat error:", error);
@@ -188,18 +175,18 @@ export function ChatWidget({ mode }: ChatWidgetProps) {
                 >
                   <div
                     className={cn(
-                      "rounded-lg px-4 py-2 max-w-[85%]",
+                      "rounded-lg px-4 py-2",
                       msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                        ? "bg-primary text-primary-foreground max-w-[85%]"
+                        : "bg-muted max-w-[85%]"
                     )}
                   >
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   </div>
                   
-                  {/* Book results with action buttons */}
-                  {msg.books && msg.books.length > 0 && (
-                    <div className="w-full space-y-2 mt-2">
+                  {/* Book results with action buttons - full width */}
+                  {msg.role === "assistant" && msg.books && msg.books.length > 0 && (
+                    <div className="w-full space-y-2">
                       {msg.books.map((book) => {
                         const wholesalePrice = book.wholesale_price || 0;
                         const amazonPrice = book.amazon_price || 0;
@@ -208,7 +195,7 @@ export function ChatWidget({ mode }: ChatWidgetProps) {
                           : null;
                         
                         return (
-                          <div key={book.id} className="bg-background border rounded-lg p-3 space-y-2">
+                          <div key={book.id} className="bg-background border rounded-lg p-3 space-y-2 w-full">
                             <div>
                               <p className="font-semibold text-sm">{book.title}</p>
                               <p className="text-xs text-muted-foreground">by {book.author}</p>
@@ -216,6 +203,9 @@ export function ChatWidget({ mode }: ChatWidgetProps) {
                             <div className="text-xs space-y-1">
                               {book.publisher && book.publisher !== 'Please check inventory' && (
                                 <p><span className="text-muted-foreground">Publisher:</span> {book.publisher}</p>
+                              )}
+                              {book.category && book.category !== 'Please check inventory' && (
+                                <p><span className="text-muted-foreground">Category:</span> {book.category}</p>
                               )}
                               {wholesalePrice > 0 && (
                                 <p><span className="text-muted-foreground">Cost:</span> ${wholesalePrice.toFixed(2)}</p>
@@ -232,7 +222,7 @@ export function ChatWidget({ mode }: ChatWidgetProps) {
                               size="sm"
                               className="w-full"
                               onClick={() => {
-                                // Trigger search on dashboard by updating URL with search param
+                                console.log('View Book clicked:', book.title);
                                 const searchEvent = new CustomEvent('chatSearchBook', { 
                                   detail: { title: book.title } 
                                 });
