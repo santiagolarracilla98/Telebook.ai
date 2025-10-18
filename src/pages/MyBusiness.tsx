@@ -2,29 +2,46 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Heart, Trash2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { ArrowLeft, Heart, Trash2, Eye, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/contexts/CartContext";
+import BookDetailsDialog from "@/components/BookDetailsDialog";
+import type { Book } from "@/data/mockBooks";
 
 interface WishlistItem {
   id: string;
   book_id: string;
   created_at: string;
   books: {
+    id: string;
     title: string;
     author: string;
     image_url: string | null;
     rrp: number | null;
     wholesale_price: number | null;
     category: string | null;
+    publisher: string | null;
+    amazon_price: number | null;
+    roi_target_price: number | null;
+    market_flag: string | null;
+    available_stock: number | null;
+    published_date: string | null;
+    page_count: number | null;
+    description: string | null;
+    publisher_rrp: number | null;
+    amazon_fee: number | null;
   };
 }
 
 const MyBusiness = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { addItem } = useCart();
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -47,12 +64,23 @@ const MyBusiness = () => {
           book_id,
           created_at,
           books (
+            id,
             title,
             author,
             image_url,
             rrp,
             wholesale_price,
-            category
+            category,
+            publisher,
+            amazon_price,
+            roi_target_price,
+            market_flag,
+            available_stock,
+            published_date,
+            page_count,
+            description,
+            publisher_rrp,
+            amazon_fee
           )
         `)
         .order('created_at', { ascending: false });
@@ -95,6 +123,49 @@ const MyBusiness = () => {
     }
   };
 
+  const handleViewDetails = (item: WishlistItem) => {
+    const bookData: Book = {
+      id: item.books.id,
+      title: item.books.title,
+      author: item.books.author,
+      isbn: item.book_id,
+      publisher: item.books.publisher || 'Unknown',
+      category: item.books.category || 'Uncategorized',
+      wholesalePrice: item.books.wholesale_price || 0,
+      suggestedPrice: item.books.rrp || 0,
+      amazonPrice: item.books.amazon_price || 0,
+      roi: 0,
+      verified: false,
+      imageUrl: item.books.image_url || undefined,
+      publisher_rrp: item.books.publisher_rrp || undefined,
+      roi_target_price: item.books.roi_target_price || undefined,
+      market_flag: item.books.market_flag || undefined,
+      available_stock: item.books.available_stock || 0,
+      description: item.books.description || undefined,
+      amazon_fee: item.books.amazon_fee || undefined,
+      rrp: item.books.rrp || 0,
+      wholesale_price: item.books.wholesale_price || 0,
+      amazon_price: item.books.amazon_price || 0,
+    };
+    setSelectedBook(bookData);
+    setDialogOpen(true);
+  };
+
+  const handleAddToCart = (item: WishlistItem) => {
+    addItem({
+      id: item.books.id,
+      title: item.books.title,
+      author: item.books.author,
+      imageUrl: item.books.image_url || undefined,
+      price: item.books.roi_target_price || item.books.amazon_price || item.books.rrp || 0,
+      isbn: item.book_id,
+    });
+    toast({
+      title: "Added to cart",
+      description: `${item.books.title} has been added to your cart`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <nav className="bg-card border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-card/95">
@@ -133,37 +204,64 @@ const MyBusiness = () => {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {wishlist.map((item) => (
-                  <Card key={item.id} className="overflow-hidden">
-                    <div className="aspect-[3/4] relative">
-                      {item.books.image_url ? (
-                        <img
-                          src={item.books.image_url}
-                          alt={item.books.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <span className="text-muted-foreground">No image</span>
-                        </div>
-                      )}
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold line-clamp-2 mb-1">{item.books.title}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">{item.books.author}</p>
-                      {item.books.category && (
-                        <p className="text-xs text-muted-foreground mb-2">{item.books.category}</p>
-                      )}
-                      <div className="flex justify-between items-center mb-3">
-                        {item.books.rrp && (
-                          <span className="text-sm font-medium">RRP: ${item.books.rrp.toFixed(2)}</span>
+                  <Card key={item.id} className="overflow-hidden flex flex-col">
+                    <CardHeader className="p-0">
+                      <div className="aspect-[2/3] relative bg-muted">
+                        {item.books.image_url ? (
+                          <img
+                            src={item.books.image_url}
+                            alt={item.books.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
+                            <span className="text-2xl text-muted-foreground/30">📚</span>
+                          </div>
                         )}
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="p-3 flex-grow">
+                      <h3 className="font-semibold text-sm line-clamp-2 mb-1">{item.books.title}</h3>
+                      <p className="text-xs text-muted-foreground mb-2">{item.books.author}</p>
+                      
+                      <div className="space-y-1 text-xs">
                         {item.books.wholesale_price && (
-                          <span className="text-sm text-muted-foreground">
-                            Wholesale: ${item.books.wholesale_price.toFixed(2)}
-                          </span>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Cost:</span>
+                            <span className="font-medium">${item.books.wholesale_price.toFixed(2)}</span>
+                          </div>
                         )}
+                        {item.books.roi_target_price && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Smart Price:</span>
+                            <span className="font-semibold text-primary">${item.books.roi_target_price.toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                    
+                    <CardFooter className="p-3 pt-0 flex flex-col gap-2">
+                      <div className="flex gap-2 w-full">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewDetails(item)}
+                          className="flex-1"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          Details
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleAddToCart(item)}
+                          className="flex-1"
+                        >
+                          <ShoppingCart className="w-3 h-3 mr-1" />
+                          Add
+                        </Button>
                       </div>
                       <Button
                         variant="destructive"
@@ -171,10 +269,10 @@ const MyBusiness = () => {
                         onClick={() => removeFromWishlist(item.id)}
                         className="w-full gap-2"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3" />
                         Remove
                       </Button>
-                    </CardContent>
+                    </CardFooter>
                   </Card>
                 ))}
               </div>
@@ -182,6 +280,15 @@ const MyBusiness = () => {
           </CardContent>
         </Card>
       </main>
+
+      {selectedBook && (
+        <BookDetailsDialog
+          book={selectedBook}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          marketplace="usa"
+        />
+      )}
     </div>
   );
 };
