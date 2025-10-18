@@ -41,6 +41,8 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   
   // Unified market state - derived from marketplace prop
   const unifiedMarket: Market = marketplace === 'uk' ? 'UK' : 'US';
+  // Use ASIN if available, fallback to ISBN for Keepa lookup
+  const currentIdentifier = unifiedMarket === 'UK' ? (book.uk_asin || book.isbn) : (book.us_asin || book.isbn);
   const currentAsin = unifiedMarket === 'UK' ? book.uk_asin : book.us_asin;
 
   // Function to strip HTML tags from description
@@ -157,11 +159,11 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
           marketplace: 'both'
         });
       } else {
-        // Fetch from single marketplace using the appropriate ASIN
-        const asinToUse = marketplace === 'uk' ? (book.uk_asin || book.isbn) : (book.us_asin || book.isbn);
+        // Fetch from single marketplace using the appropriate ASIN or ISBN
+        const identifier = marketplace === 'uk' ? (book.uk_asin || book.isbn) : (book.us_asin || book.isbn);
         const { data, error: functionError } = await supabase.functions.invoke('keepa-product', {
           body: { 
-            isbn: asinToUse,
+            isbn: identifier,
             marketplace: marketplace
           }
         });
@@ -171,7 +173,35 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
         }
         
         console.log('Keepa response:', data);
-        setKeepaData(data);
+        
+        // Normalize Keepa data to extract current prices
+        if (data?.products && data.products.length > 0) {
+          const product = data.products[0];
+          const csvData = product.csv;
+          
+          // Helper to get the latest price from Keepa CSV array
+          const getCurrentPrice = (csvArray: number[] | null | undefined): number | null => {
+            if (!csvArray || csvArray.length < 2) return null;
+            // CSV format: [timestamp1, price1, timestamp2, price2, ...]
+            // Get the last price value (second-to-last element)
+            const lastPrice = csvArray[csvArray.length - 1];
+            return lastPrice === -1 ? null : lastPrice;
+          };
+          
+          const normalized = {
+            ...data,
+            current: {
+              buyBox: getCurrentPrice(csvData[18]), // Buy Box price index
+              lowestNew: getCurrentPrice(csvData[1]), // New price index
+              lowestUsed: getCurrentPrice(csvData[2]), // Used price index
+            }
+          };
+          
+          console.log('Normalized Keepa data:', normalized.current);
+          setKeepaData(normalized);
+        } else {
+          setKeepaData(data);
+        }
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Could not load Amazon product data';

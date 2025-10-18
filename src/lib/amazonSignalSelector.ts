@@ -47,13 +47,14 @@ export function selectAmazonSignal({
       asin,
       prefer,
       hasKeepaData: !!keepaData,
+      keepaDataCurrent: keepaData?.current,
       amazonRefUS: amazonReferenceUS,
       amazonRefUK: amazonReferenceUK,
     });
   }
 
-  // Try Keepa live data first (if available and ASIN is present)
-  if (keepaData && asin) {
+  // Try Keepa live data first (if available - ASIN not strictly required if ISBN was used)
+  if (keepaData?.current) {
     const preferredPrice = keepaData.current[prefer];
     
     if (preferredPrice !== null && preferredPrice > 0) {
@@ -64,7 +65,7 @@ export function selectAmazonSignal({
           signalType: prefer,
           value,
           market,
-          asin,
+          rawPrice: preferredPrice,
         });
       }
 
@@ -84,7 +85,7 @@ export function selectAmazonSignal({
         console.log('[AmazonSignal] Fallback to lowestNew', {
           value,
           market,
-          asin,
+          rawPrice: keepaData.current.lowestNew,
         });
       }
 
