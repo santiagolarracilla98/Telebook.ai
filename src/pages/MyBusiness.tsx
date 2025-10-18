@@ -31,6 +31,8 @@ interface WishlistItem {
     description: string | null;
     publisher_rrp: number | null;
     amazon_fee: number | null;
+    uk_asin: string | null;
+    us_asin: string | null;
   };
 }
 
@@ -80,7 +82,9 @@ const MyBusiness = () => {
             page_count,
             description,
             publisher_rrp,
-            amazon_fee
+            amazon_fee,
+            uk_asin,
+            us_asin
           )
         `)
         .order('created_at', { ascending: false });
@@ -128,7 +132,9 @@ const MyBusiness = () => {
       id: item.books.id,
       title: item.books.title,
       author: item.books.author,
-      isbn: item.book_id,
+      isbn: item.books.us_asin || item.books.uk_asin || item.book_id,
+      uk_asin: item.books.uk_asin,
+      us_asin: item.books.us_asin,
       publisher: item.books.publisher || 'Unknown',
       category: item.books.category || 'Uncategorized',
       wholesalePrice: item.books.wholesale_price || 0,
