@@ -237,6 +237,7 @@ Deno.serve(async (req) => {
 
     // Insert books individually to handle duplicates gracefully
     let insertedCount = 0;
+    let skippedCount = 0;
     if (booksToInsert.length > 0) {
       console.log(`Inserting ${booksToInsert.length} books...`);
       
@@ -249,6 +250,7 @@ Deno.serve(async (req) => {
           // If it's a duplicate, log and skip
           if (insertError.code === '23505') {
             console.log(`Skipping duplicate: ${book.title}`);
+            skippedCount++;
           } else {
             console.error(`Error inserting ${book.title}:`, insertError);
             errors.push({
@@ -262,16 +264,21 @@ Deno.serve(async (req) => {
       }
       
       console.log(`✅ Successfully inserted ${insertedCount} books`);
+      if (skippedCount > 0) {
+        console.log(`⏭️ Skipped ${skippedCount} duplicate books`);
+      }
     }
 
-    // Update dataset metadata with results
+    // Update dataset with correct book count and metadata
     await supabase
       .from('datasets')
       .update({
+        book_count: insertedCount,
         metadata: {
           ...dataset.metadata,
           totalResults: data.total || 0,
           booksImported: insertedCount,
+          skippedDuplicates: skippedCount,
           errors: errors.length > 0 ? errors : undefined,
           completedAt: new Date().toISOString()
         }
@@ -284,6 +291,7 @@ Deno.serve(async (req) => {
         dataset_id: dataset.id,
         dataset_name: dataset.name,
         books_imported: insertedCount,
+        skipped_duplicates: skippedCount,
         total_found: data.total || 0,
         errors: errors.length > 0 ? errors : undefined
       }),

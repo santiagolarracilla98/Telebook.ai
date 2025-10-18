@@ -325,9 +325,13 @@ const HostDashboardNew = () => {
 
       if (error) throw error;
 
+      const skippedMsg = data.skipped_duplicates > 0 
+        ? ` (${data.skipped_duplicates} skipped duplicates)` 
+        : '';
+      
       toast({
         title: "Import Complete",
-        description: `Imported ${data.books_imported} books from ISBNdb API`,
+        description: `Imported ${data.books_imported} books from ISBNdb API${skippedMsg}`,
       });
 
       setIsbndbQuery('');
