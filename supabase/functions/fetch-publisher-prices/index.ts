@@ -12,6 +12,11 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const BOWKER_ENDPOINT = "https://api.bowker.com/book/v1/metadata?isbn=";
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 // Validate ISBN format
 function isValidISBN(isbn: string): boolean {
   if (!isbn || typeof isbn !== 'string') return false;
@@ -201,6 +206,11 @@ async function fetchOnixFallback() {
 }
 
 serve(async (req) => {
+  // Handle CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   // Use service role for system operations (inserting price logs, updating books)
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -414,7 +424,7 @@ serve(async (req) => {
     
     console.log('✨ Sync complete:', result);
     return new Response(JSON.stringify(result), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (e) {
@@ -425,7 +435,7 @@ serve(async (req) => {
       message: 'Failed to sync publisher prices' 
     }), { 
       status: 500,
-      headers: { "Content-Type": "application/json" }
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   }
 });
