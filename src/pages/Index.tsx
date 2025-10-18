@@ -40,7 +40,7 @@ interface Book {
 const Index = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
-  const [marketplace, setMarketplace] = useState<'usa' | 'uk' | 'both'>('usa');
+  const [marketplace, setMarketplace] = useState<'usa' | 'uk' | 'both'>('both');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -86,7 +86,7 @@ const Index = () => {
   useEffect(() => {
     filterBooks();
     setCurrentPage(1); // Reset to page 1 when filters change
-  }, [books, searchQuery, selectedCategory, selectedPublisher]);
+  }, [books, searchQuery, selectedCategory, selectedPublisher, marketplace]);
 
   const applyFilters = () => {
     setSearchQuery(tempSearchQuery);
@@ -178,6 +178,18 @@ const Index = () => {
 
   const filterBooks = () => {
     let filtered = [...books];
+
+    // Filter by marketplace
+    if (marketplace !== 'both') {
+      filtered = filtered.filter(book => {
+        if (marketplace === 'usa') {
+          return book.us_asin || book.market_flag === 'US';
+        } else if (marketplace === 'uk') {
+          return book.uk_asin || book.market_flag === 'UK';
+        }
+        return true;
+      });
+    }
 
     // Filter by search query
     if (searchQuery) {
