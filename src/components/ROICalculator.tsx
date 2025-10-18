@@ -222,15 +222,22 @@ export const ROICalculator = () => {
             <Label htmlFor="quantity">
               Target Purchase Quantity: {quantity} units
             </Label>
-            <Slider
-              id="quantity"
-              min={10}
-              max={1000}
-              step={10}
-              value={[quantity]}
-              onValueChange={(value) => setQuantity(value[0])}
-              className="py-4"
-            />
+            <div className="relative">
+              <Slider
+                id="quantity"
+                min={10}
+                max={1000}
+                step={10}
+                value={[quantity]}
+                onValueChange={(value) => setQuantity(value[0])}
+                className="py-4"
+              />
+              <div className="absolute top-[calc(50%+2px)] left-0 right-0 flex justify-between px-0.5 pointer-events-none">
+                <div className="w-0.5 h-2 bg-muted-foreground/40" />
+                <div className="w-0.5 h-2 bg-muted-foreground/40" />
+                <div className="w-0.5 h-2 bg-muted-foreground/40" />
+              </div>
+            </div>
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>10 units</span>
               <span>500 units</span>
