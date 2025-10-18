@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Extract ISBNdb pricing data (store separately from Amazon/publisher pricing)
+        // Extract ISBNdb pricing data
         let isbndbMsrp = null;
         let isbndbCurrency = territory === 'GB' ? 'GBP' : 'USD';
         
@@ -189,13 +189,14 @@ Deno.serve(async (req) => {
           isbndbMsrp = parseFloat(book.price);
         }
         
-        // Map ISBNdb data to our schema
-        let msrp = null;
+        // For NEW books from ISBNdb, use ISBNdb pricing as publisher pricing
+        // This ONLY affects newly imported books, not existing data
+        let publisherRrp = null;
         let estimatedWholesale = null;
         
-        // Calculate wholesale if we have a retail price
+        // Calculate prices if we have ISBNdb pricing
         if (isbndbMsrp && isbndbMsrp > 0) {
-          msrp = isbndbMsrp;
+          publisherRrp = isbndbMsrp;
           estimatedWholesale = isbndbMsrp * 0.6; // Estimate wholesale at 60% of MSRP
         }
         
@@ -213,10 +214,10 @@ Deno.serve(async (req) => {
           category: book.subjects?.join(', ') || 'General',
           currency: territory === 'GB' ? 'GBP' : 'USD',
           available_stock: 0,
-          rrp: msrp || null,
+          rrp: publisherRrp || null,
           wholesale_price: estimatedWholesale || null,
-          publisher_rrp: msrp || null,
-          // ISBNdb-specific pricing fields (separate from Amazon/publisher data)
+          publisher_rrp: publisherRrp || null, // Use ISBNdb pricing as publisher pricing for new imports
+          // ISBNdb-specific tracking fields (for data source tracking)
           isbndb_msrp: isbndbMsrp,
           isbndb_price_currency: isbndbCurrency,
           isbndb_binding: book.binding || null,
