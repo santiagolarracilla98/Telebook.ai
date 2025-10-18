@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ROIResults } from "./ROIResults";
 import { ROIExplanationDialog } from "./ROIExplanationDialog";
 import { ROIPaywall } from "./ROIPaywall";
+import type { User } from "@supabase/supabase-js";
 
 export const ROICalculator = () => {
   const [bookInput, setBookInput] = useState("");
@@ -24,6 +25,20 @@ export const ROICalculator = () => {
     return stored ? parseInt(stored, 10) : 0;
   });
   const [showPaywall, setShowPaywall] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  // Check authentication status
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const getVolumeDiscount = (qty: number): number => {
     if (qty >= 500) return 0.25; // 25% discount
@@ -128,14 +143,17 @@ export const ROICalculator = () => {
       
       setCalculationResult(result);
       
-      // Increment calculation count
-      const newCount = calculationCount + 1;
-      setCalculationCount(newCount);
-      localStorage.setItem('roi_calculation_count', newCount.toString());
-      
-      // Show paywall if limit exceeded
-      if (newCount > 4) {
-        setShowPaywall(true);
+      // Only apply calculation limits to non-authenticated users
+      if (!user) {
+        // Increment calculation count for non-logged-in users
+        const newCount = calculationCount + 1;
+        setCalculationCount(newCount);
+        localStorage.setItem('roi_calculation_count', newCount.toString());
+        
+        // Show paywall if limit exceeded (only for non-authenticated users)
+        if (newCount > 4) {
+          setShowPaywall(true);
+        }
       }
       
       toast.success("ROI Calculated Successfully", {
@@ -278,7 +296,7 @@ export const ROICalculator = () => {
         </CardContent>
       </Card>
 
-      {showPaywall && calculationResult ? (
+      {showPaywall && calculationResult && !user ? (
         <ROIPaywall lastROI={calculationResult.potentialROI} />
       ) : (
         calculationResult && <ROIResults result={calculationResult} />
