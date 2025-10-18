@@ -10,6 +10,16 @@ import { cn } from "@/lib/utils";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  books?: Array<{
+    id: string;
+    title: string;
+    author: string;
+    publisher: string;
+    category: string;
+    wholesale_price: number;
+    amazon_price: number;
+    available_stock: number;
+  }>;
 }
 
 interface ChatWidgetProps {
@@ -86,9 +96,24 @@ export function ChatWidget({ mode }: ChatWidgetProps) {
         throw new Error(data.error);
       }
 
+      // Parse book results if present
+      let content = data.content;
+      let books = undefined;
+      
+      const bookResultMatch = content.match(/\[BOOK_RESULTS:(.*?)\]/);
+      if (bookResultMatch) {
+        try {
+          books = JSON.parse(bookResultMatch[1]);
+          content = content.replace(/\[BOOK_RESULTS:.*?\]/, '').trim();
+        } catch (e) {
+          console.error('Failed to parse book results:', e);
+        }
+      }
+
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.content,
+        content,
+        books,
       };
       
       setMessages((prev) => [...prev, assistantMessage]);
@@ -171,6 +196,61 @@ export function ChatWidget({ mode }: ChatWidgetProps) {
                   >
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   </div>
+                  
+                  {/* Book results with action buttons */}
+                  {msg.books && msg.books.length > 0 && (
+                    <div className="w-full space-y-2 mt-2">
+                      {msg.books.map((book) => {
+                        const wholesalePrice = book.wholesale_price || 0;
+                        const amazonPrice = book.amazon_price || 0;
+                        const roi = wholesalePrice > 0 && amazonPrice > 0 
+                          ? (((amazonPrice - wholesalePrice) / wholesalePrice) * 100).toFixed(1)
+                          : null;
+                        
+                        return (
+                          <div key={book.id} className="bg-background border rounded-lg p-3 space-y-2">
+                            <div>
+                              <p className="font-semibold text-sm">{book.title}</p>
+                              <p className="text-xs text-muted-foreground">by {book.author}</p>
+                            </div>
+                            <div className="text-xs space-y-1">
+                              {book.publisher && book.publisher !== 'Please check inventory' && (
+                                <p><span className="text-muted-foreground">Publisher:</span> {book.publisher}</p>
+                              )}
+                              {wholesalePrice > 0 && (
+                                <p><span className="text-muted-foreground">Cost:</span> ${wholesalePrice.toFixed(2)}</p>
+                              )}
+                              {amazonPrice > 0 && (
+                                <p><span className="text-muted-foreground">Amazon:</span> ${amazonPrice.toFixed(2)}</p>
+                              )}
+                              {roi && (
+                                <p><span className="text-muted-foreground">ROI:</span> {roi}%</p>
+                              )}
+                              <p><span className="text-muted-foreground">Stock:</span> {book.available_stock} units</p>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="w-full"
+                              onClick={() => {
+                                // Trigger search on dashboard by updating URL with search param
+                                const searchEvent = new CustomEvent('chatSearchBook', { 
+                                  detail: { title: book.title } 
+                                });
+                                window.dispatchEvent(searchEvent);
+                                setIsOpen(false);
+                                toast({
+                                  title: "Searching for book",
+                                  description: `Looking for "${book.title}" in the dashboard`,
+                                });
+                              }}
+                            >
+                              View Book
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   
                   {msg.role === "assistant" && (
                     <div className="flex gap-1">

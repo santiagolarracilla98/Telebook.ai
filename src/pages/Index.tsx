@@ -69,6 +69,19 @@ const Index = () => {
 
   useEffect(() => {
     fetchBooks();
+    
+    // Listen for chat search events
+    const handleChatSearch = (event: CustomEvent) => {
+      const { title } = event.detail;
+      setTempSearchQuery(title);
+      setSearchQuery(title);
+    };
+    
+    window.addEventListener('chatSearchBook', handleChatSearch as EventListener);
+    
+    return () => {
+      window.removeEventListener('chatSearchBook', handleChatSearch as EventListener);
+    };
   }, []);
 
   useEffect(() => {

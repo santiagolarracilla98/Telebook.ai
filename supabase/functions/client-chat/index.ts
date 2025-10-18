@@ -201,30 +201,29 @@ AVAILABLE TOOLS:
         if (functionName === 'searchBooks') {
           const { data: books } = await supabase
             .from('books')
-            .select('title, author, publisher, wholesale_price, rrp, amazon_price, category, available_stock, uk_asin, us_asin')
+            .select('id, title, author, publisher, wholesale_price, amazon_price, category, available_stock')
             .or(`title.ilike.%${args.query}%,author.ilike.%${args.query}%,publisher.ilike.%${args.query}%`)
             .limit(5);
 
           if (books && books.length > 0) {
-            finalContent += `\n\n**Found ${books.length} book(s):**\n\n`;
-            books.forEach((book, index) => {
-              const wholesalePrice = book.wholesale_price || 0;
-              const amazonPrice = book.amazon_price || 0;
-              const roi = wholesalePrice > 0 && amazonPrice > 0 
-                ? (((amazonPrice - wholesalePrice) / wholesalePrice) * 100).toFixed(1)
-                : 'N/A';
-              
-              finalContent += `${index + 1}. **${book.title}** by ${book.author}\n`;
-              finalContent += `   - **Publisher:** ${book.publisher}\n`;
-              finalContent += `   - **Category:** ${book.category}\n`;
-              finalContent += `   - **Wholesale Cost:** $${wholesalePrice.toFixed(2)}\n`;
-              finalContent += `   - **Amazon Price:** $${amazonPrice > 0 ? amazonPrice.toFixed(2) : 'N/A'}\n`;
-              finalContent += `   - **Potential ROI:** ${roi}%\n`;
-              finalContent += `   - **In Stock:** ${book.available_stock || 0} units\n\n`;
-            });
-            finalContent += `You can use the search bar and filters on the dashboard to view these books in detail and add them to your cart.`;
+            finalContent += `\n\n**Found ${books.length} book(s) in our inventory:**\n\n`;
+            
+            // Return structured data for button rendering
+            const bookData = books.map(book => ({
+              id: book.id,
+              title: book.title,
+              author: book.author,
+              publisher: book.publisher || 'Please check inventory',
+              category: book.category || 'Please check inventory',
+              wholesale_price: book.wholesale_price,
+              amazon_price: book.amazon_price,
+              available_stock: book.available_stock || 0
+            }));
+
+            finalContent += `[BOOK_RESULTS:${JSON.stringify(bookData)}]`;
+            finalContent += `\n\nClick "View Book" to see full details and add to your cart.`;
           } else {
-            finalContent += `\n\nNo books found matching "${args.query}". Try searching with a different term, or use the search bar on the dashboard.`;
+            finalContent += `\n\nNo books found matching "${args.query}". Please check our inventory using the search bar for more options.`;
           }
         } else if (functionName === 'getHowTo') {
           const guide = clientGuide.how_to[args.topic as keyof typeof clientGuide.how_to];

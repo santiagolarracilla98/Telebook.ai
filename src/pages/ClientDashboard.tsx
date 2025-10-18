@@ -52,6 +52,18 @@ const ClientDashboard = () => {
     checkAuth();
     fetchBooks();
     calculatePricing();
+    
+    // Listen for chat search events
+    const handleChatSearch = (event: CustomEvent) => {
+      const { title } = event.detail;
+      setSearchQuery(title);
+    };
+    
+    window.addEventListener('chatSearchBook', handleChatSearch as EventListener);
+    
+    return () => {
+      window.removeEventListener('chatSearchBook', handleChatSearch as EventListener);
+    };
   }, []);
 
   const calculatePricing = async () => {
