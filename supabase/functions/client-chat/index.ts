@@ -74,12 +74,14 @@ STRICT RULES:
 - Use the available tools to answer questions about books and features
 - Keep responses concise and actionable
 - Focus on CLIENT features: browsing books, understanding pricing, using filters, analytics
+- When users ask about specific books, ALWAYS use the searchBooks tool to find them
+- Provide helpful book information including pricing and ROI to help users make decisions
 
 KNOWLEDGE:
 ${JSON.stringify(clientGuide, null, 2)}
 
 AVAILABLE TOOLS:
-- getBookByISBN: Look up book details by ISBN (read-only)
+- searchBooks: Search for books by title, author, ISBN, or publisher (read-only)
 - getHowTo: Get step-by-step guides for platform features
 - getGlossary: Define platform-specific terms`;
 
@@ -88,17 +90,17 @@ AVAILABLE TOOLS:
       {
         type: "function",
         function: {
-          name: "getBookByISBN",
-          description: "Look up book information by ISBN number (read-only)",
+          name: "searchBooks",
+          description: "Search for books in the catalog by title, author, ISBN, or publisher. Returns matching books with pricing and availability.",
           parameters: {
             type: "object",
             properties: {
-              isbn: {
+              query: {
                 type: "string",
-                description: "The ISBN number to look up"
+                description: "Search term - can be book title, author name, ISBN, or publisher"
               }
             },
-            required: ["isbn"]
+            required: ["query"]
           }
         }
       },
@@ -196,18 +198,33 @@ AVAILABLE TOOLS:
         
         console.log('Tool call:', functionName, args);
 
-        if (functionName === 'getBookByISBN') {
-          const { data: book } = await supabase
+        if (functionName === 'searchBooks') {
+          const { data: books } = await supabase
             .from('books')
-            .select('title, author, publisher, wholesale_price, rrp, amazon_price, isbndb_msrp, category, available_stock')
-            .ilike('title', `%${args.isbn}%`)
-            .limit(1)
-            .single();
+            .select('title, author, publisher, wholesale_price, rrp, amazon_price, category, available_stock, uk_asin, us_asin')
+            .or(`title.ilike.%${args.query}%,author.ilike.%${args.query}%,publisher.ilike.%${args.query}%`)
+            .limit(5);
 
-          if (book) {
-            finalContent += `\n\n**Book Found:**\n- **Title:** ${book.title}\n- **Author:** ${book.author}\n- **Publisher:** ${book.publisher}\n- **Category:** ${book.category}\n- **Wholesale Price:** $${book.wholesale_price || 'N/A'}\n- **RRP:** $${book.rrp || 'N/A'}\n- **Amazon Price:** $${book.amazon_price || 'N/A'}\n- **Stock:** ${book.available_stock || 0} units`;
+          if (books && books.length > 0) {
+            finalContent += `\n\n**Found ${books.length} book(s):**\n\n`;
+            books.forEach((book, index) => {
+              const wholesalePrice = book.wholesale_price || 0;
+              const amazonPrice = book.amazon_price || 0;
+              const roi = wholesalePrice > 0 && amazonPrice > 0 
+                ? (((amazonPrice - wholesalePrice) / wholesalePrice) * 100).toFixed(1)
+                : 'N/A';
+              
+              finalContent += `${index + 1}. **${book.title}** by ${book.author}\n`;
+              finalContent += `   - **Publisher:** ${book.publisher}\n`;
+              finalContent += `   - **Category:** ${book.category}\n`;
+              finalContent += `   - **Wholesale Cost:** $${wholesalePrice.toFixed(2)}\n`;
+              finalContent += `   - **Amazon Price:** $${amazonPrice > 0 ? amazonPrice.toFixed(2) : 'N/A'}\n`;
+              finalContent += `   - **Potential ROI:** ${roi}%\n`;
+              finalContent += `   - **In Stock:** ${book.available_stock || 0} units\n\n`;
+            });
+            finalContent += `You can use the search bar and filters on the dashboard to view these books in detail and add them to your cart.`;
           } else {
-            finalContent += `\n\nNo book found with ISBN ${args.isbn}.`;
+            finalContent += `\n\nNo books found matching "${args.query}". Try searching with a different term, or use the search bar on the dashboard.`;
           }
         } else if (functionName === 'getHowTo') {
           const guide = clientGuide.how_to[args.topic as keyof typeof clientGuide.how_to];

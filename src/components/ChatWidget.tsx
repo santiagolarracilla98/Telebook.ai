@@ -23,10 +23,10 @@ const quickLinks = {
     "What sources do you use?",
   ],
   client: [
-    "How do I use the Pricing Engine?",
+    "Search for 'Atomic Habits'",
     "How do I select profitable books?",
     "What's ROI and how is it calculated?",
-    "Where do prices come from?",
+    "Find books by Stephen King",
   ],
 };
 
