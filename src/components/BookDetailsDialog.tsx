@@ -131,26 +131,61 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     setError(null);
     
     try {
-      // Use ASIN as ISBN identifier (books in DB use ASINs, not ISBNs)
-      const isbnIdentifier = book.isbn || book.us_asin || book.uk_asin || '';
+      const market = marketplace === 'uk' ? 'UK' : 'US';
+      const marketplaceLower = marketplace === 'uk' ? 'uk' : 'usa';
+      
+      // Step 1: Get ASIN from database or search Amazon by title
+      let asinToUse = marketplace === 'uk' ? book.uk_asin : book.us_asin;
+      let searchedAsin = null;
+      
+      // If no ASIN exists, search Amazon by book title and author
+      if (!asinToUse) {
+        console.log('[BookDetails] No ASIN found, searching Amazon by title:', book.title);
+        
+        const searchResponse = await supabase.functions.invoke('search-amazon-product', {
+          body: {
+            title: book.title,
+            author: book.author,
+            marketplace: marketplaceLower
+          }
+        });
+        
+        if (searchResponse.data?.found && searchResponse.data?.asin) {
+          searchedAsin = searchResponse.data.asin;
+          asinToUse = searchedAsin;
+          console.log('[BookDetails] Found ASIN via search:', asinToUse);
+        } else {
+          console.log('[BookDetails] Product not found on Amazon:', book.title);
+        }
+      }
       
       if (marketplace === 'both') {
-        // Fetch data from both marketplaces using keepa-price-history
+        // Fetch data from both marketplaces
         const [usaResponse, ukResponse] = await Promise.all([
-          supabase.functions.invoke('keepa-price-history', {
-            body: { 
-              asin: book.us_asin || undefined,
-              isbn: isbnIdentifier,
-              market: 'US'
+          (async () => {
+            let usAsin = book.us_asin;
+            if (!usAsin) {
+              const searchResp = await supabase.functions.invoke('search-amazon-product', {
+                body: { title: book.title, author: book.author, marketplace: 'usa' }
+              });
+              usAsin = searchResp.data?.asin;
             }
-          }),
-          supabase.functions.invoke('keepa-price-history', {
-            body: { 
-              asin: book.uk_asin || undefined,
-              isbn: isbnIdentifier,
-              market: 'UK'
+            return supabase.functions.invoke('keepa-price-history', {
+              body: { asin: usAsin, isbn: usAsin, market: 'US' }
+            });
+          })(),
+          (async () => {
+            let ukAsin = book.uk_asin;
+            if (!ukAsin) {
+              const searchResp = await supabase.functions.invoke('search-amazon-product', {
+                body: { title: book.title, author: book.author, marketplace: 'uk' }
+              });
+              ukAsin = searchResp.data?.asin;
             }
-          })
+            return supabase.functions.invoke('keepa-price-history', {
+              body: { asin: ukAsin, isbn: ukAsin, market: 'UK' }
+            });
+          })()
         ]);
         
         if (usaResponse.error && ukResponse.error) {
@@ -160,33 +195,23 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
         console.log('[BookDetails] Keepa US response:', usaResponse.data);
         console.log('[BookDetails] Keepa UK response:', ukResponse.data);
         
-        // Combine the data from both marketplaces
         setKeepaData({
           usa: usaResponse.data,
           uk: ukResponse.data,
           marketplace: 'both'
         });
       } else {
-        // Fetch from single marketplace using keepa-price-history
-        // CRITICAL FIX: Use whichever ASIN exists, fallback to the other market if primary is null
-        const market = marketplace === 'uk' ? 'UK' : 'US';
-        const primaryAsin = marketplace === 'uk' ? book.uk_asin : book.us_asin;
-        const fallbackAsin = marketplace === 'uk' ? book.us_asin : book.uk_asin;
-        const asinToUse = primaryAsin || fallbackAsin;
+        // Single marketplace - use the ASIN we found (from DB or search)
+        if (!asinToUse) {
+          throw new Error(`Product not found on Amazon ${market} marketplace`);
+        }
         
-        console.log('[BookDetails] Fetching Keepa data:', {
-          market,
-          primaryAsin,
-          fallbackAsin,
-          asinToUse,
-          isbnIdentifier,
-          bookTitle: book.title
-        });
+        console.log('[BookDetails] Fetching price history with ASIN:', asinToUse);
         
         const { data, error: functionError } = await supabase.functions.invoke('keepa-price-history', {
           body: { 
-            asin: asinToUse || undefined,
-            isbn: isbnIdentifier,
+            asin: asinToUse,
+            isbn: asinToUse, // Use ASIN as ISBN fallback
             market
           }
         });
@@ -200,7 +225,6 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
         console.log('[BookDetails] Current prices:', data?.current);
         console.log('[BookDetails] ASIN used:', data?.asin);
         
-        // keepa-price-history already returns normalized data with current prices
         setKeepaData(data);
       }
     } catch (err) {
