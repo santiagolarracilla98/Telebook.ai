@@ -22,9 +22,10 @@ import type { Book } from "@/data/mockBooks";
 
 interface BookCardProps extends Book {
   marketplace?: 'usa' | 'uk' | 'both';
+  onSelect?: () => void;
 }
 
-const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
+const BookCard = ({ marketplace = 'usa', onSelect, ...book }: BookCardProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loginAlertOpen, setLoginAlertOpen] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
@@ -230,7 +231,10 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
         <Button 
           variant="outline" 
           className="flex-1 group/btn"
-          onClick={() => setDialogOpen(true)}
+          onClick={() => {
+            setDialogOpen(true);
+            onSelect?.();
+          }}
         >
           <Eye className="w-4 h-4 mr-2" />
           Details
