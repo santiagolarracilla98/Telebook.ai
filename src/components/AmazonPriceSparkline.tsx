@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
+import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
@@ -113,18 +113,42 @@ export const AmazonPriceSparkline = ({
 
   // Convert price from cents to currency units
   const chartData = series.map(point => ({
-    date: new Date(point.t).toLocaleDateString(),
+    date: new Date(point.t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     fullDate: new Date(point.t).toLocaleString(),
+    timestamp: new Date(point.t).getTime(),
     price: point.price / 100
   }));
 
   const currentPrice = data.current[line];
   const currencySymbol = data.currency === 'GBP' ? '£' : '$';
+  
+  // Show axes only if height is sufficient (not for mini sparklines)
+  const showAxes = height >= 100;
 
   return (
     <div className={className}>
       <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={chartData}>
+        <LineChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+          {showAxes && (
+            <>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+              <XAxis 
+                dataKey="date"
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={11}
+                tickLine={false}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+              />
+              <YAxis 
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={11}
+                tickLine={false}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+                tickFormatter={(value) => `${currencySymbol}${value.toFixed(0)}`}
+                width={45}
+              />
+            </>
+          )}
           <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
@@ -145,7 +169,7 @@ export const AmazonPriceSparkline = ({
             type="monotone"
             dataKey="price"
             stroke="hsl(var(--primary))"
-            strokeWidth={1.5}
+            strokeWidth={2}
             dot={false}
             animationDuration={300}
           />

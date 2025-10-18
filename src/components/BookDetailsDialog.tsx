@@ -405,7 +405,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     asin={marketplace === 'both' ? undefined : (marketplace === 'uk' ? book.uk_asin : book.us_asin)}
                     isbn={book.isbn}
                     market={marketplace === 'both' ? 'US' : (marketplace === 'uk' ? 'UK' : 'US')}
-                    height={120}
+                    height={200}
                     line={priceLineType}
                     showLegend={true}
                   />
