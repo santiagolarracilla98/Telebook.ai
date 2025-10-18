@@ -10,13 +10,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShieldCheck, TrendingUp, Package, DollarSign, BarChart3, Loader2, LogIn, ShoppingCart } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ShieldCheck, TrendingUp, Package, DollarSign, BarChart3, Loader2, LogIn, ShoppingCart, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import type { Book } from "@/data/mockBooks";
 import SimilarBookCard from "./SimilarBookCard";
 import { PricingEngineCalculator } from "./PricingEngineCalculator";
 import { AmazonPriceSparkline } from "./AmazonPriceSparkline";
+import { selectAmazonSignal, getSignalLabel, getSignalTooltip, type Market } from "@/lib/amazonSignalSelector";
 
 interface BookDetailsDialogProps {
   book: Book;
@@ -36,6 +38,10 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   const [selectedSimilarBook, setSelectedSimilarBook] = useState<Book | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [priceLineType, setPriceLineType] = useState<"buyBox" | "lowestNew" | "lowestUsed">("buyBox");
+  
+  // Unified market state - derived from marketplace prop
+  const unifiedMarket: Market = marketplace === 'uk' ? 'UK' : 'US';
+  const currentAsin = unifiedMarket === 'UK' ? book.uk_asin : book.us_asin;
 
   // Function to strip HTML tags from description
   const stripHtmlTags = (html: string) => {
@@ -177,7 +183,18 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   };
 
   const cost = book.wholesale_price || book.wholesalePrice || book.publisher_rrp || 0;
-  const amazonPrice = book.amazon_price || book.amazonPrice || 0;
+  
+  // Use unified signal selector for Amazon pricing
+  const amazonSignal = selectAmazonSignal({
+    market: unifiedMarket,
+    asin: currentAsin,
+    keepaData: keepaData,
+    amazonReferenceUS: book.amazon_price || book.amazonPrice || book.rrp,
+    amazonReferenceUK: book.amazon_price || book.amazonPrice || book.rrp,
+    prefer: "buyBox",
+  });
+  
+  const amazonPrice = amazonSignal.value;
   const amazonFees = book.amazon_fee || (amazonPrice * 0.15);
   const targetPrice = book.roi_target_price || book.suggestedPrice || 0;
   
@@ -281,16 +298,32 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                 <div className="p-4 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                    <h4 className="text-sm font-medium">Amazon Price (Ref)</h4>
+                    <h4 className="text-sm font-medium">{getSignalLabel(amazonSignal.signalType)}</h4>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge 
+                            variant={amazonSignal.signalType === 'reference' ? 'outline' : 'default'}
+                            className="text-xs"
+                          >
+                            {amazonSignal.signalType === 'reference' ? 'Reference' : 'Live'}
+                            <Info className="w-3 h-3 ml-1" />
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">{getSignalTooltip(amazonSignal)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="text-2xl font-bold">
                       {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA'}
                     </p>
                     <AmazonPriceSparkline
-                      asin={marketplace === 'uk' ? book.uk_asin : book.us_asin}
+                      asin={currentAsin}
                       isbn={book.isbn}
-                      market={marketplace === 'uk' ? 'UK' : 'US'}
+                      market={unifiedMarket}
                       height={24}
                       line="buyBox"
                       className="flex-1"
@@ -339,6 +372,19 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                   <p className="text-sm font-medium">
                     📊 Use the ROI Calculator below with this book's data pre-filled to calculate your exact profit potential.
                   </p>
+                </div>
+                <div className="mb-3 p-3 rounded-lg bg-muted/50 border border-border">
+                  <div className="flex items-center gap-2">
+                    <Badge 
+                      variant={amazonSignal.signalType === 'reference' ? 'outline' : 'default'}
+                      className="text-xs"
+                    >
+                      {amazonSignal.signalType === 'reference' ? 'Reference' : 'Live'}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {amazonSignal.source} • Market: {unifiedMarket}
+                    </span>
+                  </div>
                 </div>
                 <PricingEngineCalculator 
                   prefilledBook={{
@@ -402,9 +448,9 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     </div>
                   </div>
                   <AmazonPriceSparkline
-                    asin={marketplace === 'both' ? undefined : (marketplace === 'uk' ? book.uk_asin : book.us_asin)}
+                    asin={currentAsin}
                     isbn={book.isbn}
-                    market={marketplace === 'both' ? 'US' : (marketplace === 'uk' ? 'UK' : 'US')}
+                    market={unifiedMarket}
                     height={200}
                     line={priceLineType}
                     showLegend={true}
