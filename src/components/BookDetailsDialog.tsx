@@ -131,20 +131,23 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     setError(null);
     
     try {
+      // Use ASIN as ISBN identifier (books in DB use ASINs, not ISBNs)
+      const isbnIdentifier = book.isbn || book.us_asin || book.uk_asin || '';
+      
       if (marketplace === 'both') {
         // Fetch data from both marketplaces using keepa-price-history
         const [usaResponse, ukResponse] = await Promise.all([
           supabase.functions.invoke('keepa-price-history', {
             body: { 
-              asin: book.us_asin,
-              isbn: book.isbn,
+              asin: book.us_asin || undefined,
+              isbn: isbnIdentifier,
               market: 'US'
             }
           }),
           supabase.functions.invoke('keepa-price-history', {
             body: { 
-              asin: book.uk_asin,
-              isbn: book.isbn,
+              asin: book.uk_asin || undefined,
+              isbn: isbnIdentifier,
               market: 'UK'
             }
           })
@@ -154,8 +157,8 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
           throw new Error('Failed to fetch Amazon data from both marketplaces');
         }
         
-        console.log('Keepa US response:', usaResponse.data);
-        console.log('Keepa UK response:', ukResponse.data);
+        console.log('[BookDetails] Keepa US response:', usaResponse.data);
+        console.log('[BookDetails] Keepa UK response:', ukResponse.data);
         
         // Combine the data from both marketplaces
         setKeepaData({
@@ -165,23 +168,37 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
         });
       } else {
         // Fetch from single marketplace using keepa-price-history
+        // CRITICAL FIX: Use whichever ASIN exists, fallback to the other market if primary is null
         const market = marketplace === 'uk' ? 'UK' : 'US';
-        const asin = marketplace === 'uk' ? book.uk_asin : book.us_asin;
+        const primaryAsin = marketplace === 'uk' ? book.uk_asin : book.us_asin;
+        const fallbackAsin = marketplace === 'uk' ? book.us_asin : book.uk_asin;
+        const asinToUse = primaryAsin || fallbackAsin;
+        
+        console.log('[BookDetails] Fetching Keepa data:', {
+          market,
+          primaryAsin,
+          fallbackAsin,
+          asinToUse,
+          isbnIdentifier,
+          bookTitle: book.title
+        });
         
         const { data, error: functionError } = await supabase.functions.invoke('keepa-price-history', {
           body: { 
-            asin,
-            isbn: book.isbn,
+            asin: asinToUse || undefined,
+            isbn: isbnIdentifier,
             market
           }
         });
         
         if (functionError) {
+          console.error('[BookDetails] Keepa error:', functionError);
           throw new Error(functionError.message || 'Failed to fetch Amazon data');
         }
         
-        console.log('Keepa price history response:', data);
-        console.log('Current prices:', data?.current);
+        console.log('[BookDetails] Keepa price history response:', data);
+        console.log('[BookDetails] Current prices:', data?.current);
+        console.log('[BookDetails] ASIN used:', data?.asin);
         
         // keepa-price-history already returns normalized data with current prices
         setKeepaData(data);
@@ -189,7 +206,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Could not load Amazon product data';
       setError(errorMessage);
-      console.error('Keepa API error:', err);
+      console.error('[BookDetails] Keepa API error:', err);
     } finally {
       setLoading(false);
     }
