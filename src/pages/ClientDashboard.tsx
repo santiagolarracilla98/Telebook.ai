@@ -97,7 +97,7 @@ const ClientDashboard = () => {
       
       // Transform database books to match BookCard interface
       const transformedBooks = (data || []).map(book => {
-        const cost = book.publisher_rrp || book.wholesale_price || 0;
+        const cost = book.wholesale_price || book.publisher_rrp || 0;
         const amazonPrice = book.amazon_price || book.rrp || 0;
         const targetPrice = book.roi_target_price || (cost > 0 ? cost * 1.25 : 0);
         const amazonFee = book.amazon_fee || (amazonPrice * 0.15);

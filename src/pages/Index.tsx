@@ -121,7 +121,7 @@ const Index = () => {
 
       // Transform database books to match BookCard interface
       const transformedBooks: Book[] = (booksData || []).map(book => {
-        const publisherPrice = book.publisher_rrp || book.wholesale_price;
+        const publisherPrice = book.wholesale_price || book.publisher_rrp;
         const amazonPrice = book.amazon_price || book.rrp;
         const targetPrice = book.roi_target_price || (publisherPrice * 1.2);
         const margin = amazonPrice - (amazonPrice * 0.15) - publisherPrice;

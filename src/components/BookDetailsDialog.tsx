@@ -169,7 +169,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     }
   };
 
-  const cost = book.publisher_rrp || book.wholesale_price || book.wholesalePrice || 0;
+  const cost = book.wholesale_price || book.wholesalePrice || book.publisher_rrp || 0;
   const amazonPrice = book.amazon_price || book.amazonPrice || 0;
   const amazonFees = book.amazon_fee || (amazonPrice * 0.15);
   const targetPrice = book.roi_target_price || book.suggestedPrice || 0;

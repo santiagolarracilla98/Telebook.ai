@@ -32,7 +32,7 @@ const GenreAnalytics = () => {
 
       data?.forEach(book => {
         const category = book.category || 'Uncategorized';
-        const publisherPrice = book.publisher_rrp || book.wholesale_price;
+        const publisherPrice = book.wholesale_price || book.publisher_rrp;
         const amazonPrice = book.amazon_price || 0;
         
         if (!categoryMap.has(category)) {
