@@ -9,7 +9,7 @@ const BOWKER_API_KEY = Deno.env.get("BOWKER_API_KEY");
 const GOOGLE_BOOKS_API_KEY = Deno.env.get("GOOGLE_BOOKS_API_KEY");
 const ISBNDB_API_KEY = Deno.env.get("ISBNDB_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const BOWKER_ENDPOINT = "https://api.bowker.com/book/v1/metadata?isbn=";
 
 // Validate ISBN format
@@ -201,9 +201,8 @@ async function fetchOnixFallback() {
 }
 
 serve(async (req) => {
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: req.headers.get("Authorization")! } },
-  });
+  // Use service role for system operations (inserting price logs, updating books)
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
     console.log('🚀 Starting fetch-publisher-prices function');
