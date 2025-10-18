@@ -330,7 +330,9 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     isbn: book.isbn,
                     cost: cost,
                     smartPrice: targetPrice,
-                    amazonPrice: amazonPrice
+                    amazonPrice: amazonPrice,
+                    id: book.id,
+                    imageUrl: book.imageUrl
                   }}
                 />
               </div>

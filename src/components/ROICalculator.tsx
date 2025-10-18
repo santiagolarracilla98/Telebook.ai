@@ -127,6 +127,9 @@ export const ROICalculator = () => {
       const result = {
         bookTitle: book.title,
         bookAuthor: book.author,
+        bookId: book.id,
+        bookIsbn: book.us_asin || book.uk_asin || '',
+        bookImageUrl: book.image_url,
         ourAcquisitionCost: ourAcquisitionCost.toFixed(2),
         potentialROI: potentialROI.toFixed(1),
         smartPrice: smartPrice.toFixed(2),

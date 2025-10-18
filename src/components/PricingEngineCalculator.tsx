@@ -17,6 +17,8 @@ interface PrefilledBook {
   cost: number;
   smartPrice: number;
   amazonPrice: number;
+  id?: string;
+  imageUrl?: string;
 }
 
 interface PricingEngineCalculatorProps {
@@ -63,6 +65,9 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
       return {
         bookTitle: prefilledBook.title,
         bookAuthor: prefilledBook.author,
+        bookId: prefilledBook.id,
+        bookIsbn: prefilledBook.isbn,
+        bookImageUrl: prefilledBook.imageUrl,
         ourAcquisitionCost: prefilledBook.cost.toFixed(2),
         potentialROI: roi.toFixed(1),
         smartPrice: smartPrice.toFixed(2),
@@ -158,6 +163,9 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
       const result = {
         bookTitle: book.title,
         bookAuthor: book.author,
+        bookId: book.id,
+        bookIsbn: book.us_asin || book.uk_asin || '',
+        bookImageUrl: book.image_url,
         ourAcquisitionCost: ourAcquisitionCost.toFixed(2),
         potentialROI: potentialROI.toFixed(1),
         smartPrice: smartPrice.toFixed(2),

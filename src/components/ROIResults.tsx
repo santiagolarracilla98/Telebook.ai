@@ -3,11 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, DollarSign, Tag, Award } from "lucide-react";
 import { SensitivityAnalysis } from "./SensitivityAnalysis";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
 
 interface ROIResultsProps {
   result: {
     bookTitle: string;
     bookAuthor: string;
+    bookId?: string;
+    bookIsbn?: string;
+    bookImageUrl?: string;
     ourAcquisitionCost: string;
     potentialROI: string;
     smartPrice: string;
@@ -25,6 +30,23 @@ interface ROIResultsProps {
 export const ROIResults = ({ result }: ROIResultsProps) => {
   const roiValue = parseFloat(result.potentialROI);
   const roiColor = roiValue > 40 ? "text-green-600" : roiValue > 25 ? "text-blue-600" : "text-yellow-600";
+  const { addItem } = useCart();
+
+  const handleAddToCart = () => {
+    if (!result.bookId || !result.bookIsbn) {
+      toast.error("Unable to add book to cart. Missing book information.");
+      return;
+    }
+
+    addItem({
+      id: result.bookId,
+      title: result.bookTitle,
+      author: result.bookAuthor,
+      isbn: result.bookIsbn,
+      price: parseFloat(result.smartPrice),
+      imageUrl: result.bookImageUrl,
+    });
+  };
 
   return (
     <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -126,7 +148,7 @@ export const ROIResults = ({ result }: ROIResultsProps) => {
               <p className="text-lg font-semibold">
                 Your {result.potentialROI}% ROI is Ready! This title has the margin you've been looking for.
               </p>
-              <Button size="lg" className="text-lg px-8 h-12">
+              <Button size="lg" className="text-lg px-8 h-12" onClick={handleAddToCart}>
                 Secure Your Price & Place Your Order Now
               </Button>
               <p className="text-sm text-muted-foreground">
