@@ -12,9 +12,10 @@ interface FilterBarProps {
   onMarketplaceChange?: (marketplace: string) => void;
   onApplyFilters?: () => void;
   filteredBooks?: number;
+  marketplace?: string;
 }
 
-const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplaceChange, onApplyFilters, filteredBooks }: FilterBarProps) => {
+const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplaceChange, onApplyFilters, filteredBooks, marketplace = 'both' }: FilterBarProps) => {
   return (
     <div className="bg-card rounded-2xl shadow-md border border-border p-6 space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -34,7 +35,7 @@ const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplac
           </div>
         </div>
         
-        <Select onValueChange={onMarketplaceChange} defaultValue="both">
+        <Select onValueChange={onMarketplaceChange} value={marketplace}>
           <SelectTrigger>
             <SelectValue placeholder="Marketplace" />
           </SelectTrigger>
