@@ -669,13 +669,22 @@ const HostDashboardNew = () => {
                             Created: {new Date(dataset.created_at).toLocaleDateString()}
                           </p>
                         </div>
-                        <Button 
-                          variant="default" 
-                          size="sm"
-                          onClick={() => toggleDatasetActive(dataset.id, dataset.is_active)}
-                        >
-                          Activate
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="default" 
+                            size="sm"
+                            onClick={() => toggleDatasetActive(dataset.id, dataset.is_active)}
+                          >
+                            Activate
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => openDeleteDialog(dataset)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
