@@ -16,6 +16,7 @@ import { useCart } from "@/contexts/CartContext";
 import type { Book } from "@/data/mockBooks";
 import SimilarBookCard from "./SimilarBookCard";
 import { PricingEngineCalculator } from "./PricingEngineCalculator";
+import { AmazonPriceSparkline } from "./AmazonPriceSparkline";
 
 interface BookDetailsDialogProps {
   book: Book;
@@ -34,6 +35,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [selectedSimilarBook, setSelectedSimilarBook] = useState<Book | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [priceLineType, setPriceLineType] = useState<"buyBox" | "lowestNew" | "lowestUsed">("buyBox");
 
   // Function to strip HTML tags from description
   const stripHtmlTags = (html: string) => {
@@ -281,9 +283,19 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     <TrendingUp className="w-4 h-4 text-muted-foreground" />
                     <h4 className="text-sm font-medium">Amazon Price (Ref)</h4>
                   </div>
-                  <p className="text-2xl font-bold">
-                    {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA'}
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <p className="text-2xl font-bold">
+                      {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA'}
+                    </p>
+                    <AmazonPriceSparkline
+                      asin={marketplace === 'uk' ? book.uk_asin : book.us_asin}
+                      isbn={book.isbn}
+                      market={marketplace === 'uk' ? 'UK' : 'US'}
+                      height={24}
+                      line="buyBox"
+                      className="flex-1"
+                    />
+                  </div>
                 </div>
 
                 <div className="p-4 rounded-lg bg-success/10">
@@ -359,6 +371,46 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
 
             {!loading && !error && keepaData && (
               <div className="space-y-4">
+                <div className="p-4 rounded-lg border border-border">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-lg">Price Trend (180d)</h3>
+                    <div className="flex gap-1 bg-muted rounded-md p-1">
+                      <Button
+                        variant={priceLineType === 'buyBox' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setPriceLineType('buyBox')}
+                        className="text-xs"
+                      >
+                        Buy Box
+                      </Button>
+                      <Button
+                        variant={priceLineType === 'lowestNew' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setPriceLineType('lowestNew')}
+                        className="text-xs"
+                      >
+                        Lowest New
+                      </Button>
+                      <Button
+                        variant={priceLineType === 'lowestUsed' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setPriceLineType('lowestUsed')}
+                        className="text-xs"
+                      >
+                        Lowest Used
+                      </Button>
+                    </div>
+                  </div>
+                  <AmazonPriceSparkline
+                    asin={marketplace === 'both' ? undefined : (marketplace === 'uk' ? book.uk_asin : book.us_asin)}
+                    isbn={book.isbn}
+                    market={marketplace === 'both' ? 'US' : (marketplace === 'uk' ? 'UK' : 'US')}
+                    height={120}
+                    line={priceLineType}
+                    showLegend={true}
+                  />
+                </div>
+
                 {keepaData.marketplace === 'both' ? (
                   // Display data from both marketplaces in tabs
                   <Tabs defaultValue="usa" className="w-full">
