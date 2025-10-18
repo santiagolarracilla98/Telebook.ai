@@ -95,13 +95,17 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
             <Label htmlFor="priceSlider" className="text-base font-semibold">
               Simulate Your Selling Price: ${simulatedPrice.toFixed(2)}
             </Label>
-            {isAboveAmazon && (
-              <div className="flex items-center gap-2 text-red-600 text-sm font-medium animate-pulse">
-                <AlertTriangle className="h-4 w-4" />
-                <span>Overpriced Risk</span>
-              </div>
-            )}
+            <span className="bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-semibold whitespace-nowrap shadow-md">
+              Smart Price: ${initialPrice.toFixed(2)}
+            </span>
           </div>
+          
+          {isAboveAmazon && (
+            <div className="flex items-center gap-2 text-red-600 text-sm font-medium animate-pulse">
+              <AlertTriangle className="h-4 w-4" />
+              <span>Overpriced Risk</span>
+            </div>
+          )}
           
           <div className="relative">
             <div className={cn(
@@ -206,13 +210,6 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
                 isAboveAmazon ? "text-red-600" : "text-blue-600"
               )}>
                 ${amazonPrice.toFixed(2)}
-              </span>
-            </div>
-            
-            {/* Smart Price positioned at the right, above the slider */}
-            <div className="absolute right-0 -top-8 flex justify-end">
-              <span className="bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-semibold whitespace-nowrap shadow-md">
-                Smart Price: ${initialPrice.toFixed(2)}
               </span>
             </div>
           </div>
