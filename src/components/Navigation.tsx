@@ -3,6 +3,7 @@ import { BookOpen, LayoutDashboard, Calculator, Users, LogOut } from "lucide-rea
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { CartButton } from "@/components/Cart";
 
 const Navigation = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -89,6 +90,7 @@ const Navigation = () => {
           </div>
           
           <div className="flex items-center gap-3">
+            {user && <CartButton />}
             {user ? (
               <Button 
                 variant="outline" 
