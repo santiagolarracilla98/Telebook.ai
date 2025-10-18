@@ -113,21 +113,21 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
       const calculatedSmartPrice = (ourAcquisitionCost * (1 + minROITarget) + fixedFee) / (1 - feePercentage);
       
       // Market-aware pricing: Balance profitability with competitiveness
-      const amazonPrice = book.amazon_price || calculatedSmartPrice;
-      let smartPrice: number;
+      // Use RRP as Amazon price reference when actual Amazon price is not available
+      const amazonPrice = book.amazon_price || book.rrp || calculatedSmartPrice;
+      
+      // Always use calculatedSmartPrice to ensure 20% ROI minimum
+      // Determine competitiveness based on comparison to Amazon
+      const smartPrice = calculatedSmartPrice;
       let marketCompetitiveness: string;
       
       if (calculatedSmartPrice <= amazonPrice * 0.95) {
-        // We can price at 95% of Amazon and still hit target ROI - highly competitive
-        smartPrice = amazonPrice * 0.95;
-        marketCompetitiveness = "Highly Competitive";
-      } else if (calculatedSmartPrice <= amazonPrice * 1.05) {
-        // Close to Amazon price - still competitive
-        smartPrice = Math.min(calculatedSmartPrice, amazonPrice);
-        marketCompetitiveness = "Competitive";
+        marketCompetitiveness = "Highly Competitive - Below Amazon";
+      } else if (calculatedSmartPrice <= amazonPrice) {
+        marketCompetitiveness = "Competitive - At Amazon Price";
+      } else if (calculatedSmartPrice <= amazonPrice * 1.10) {
+        marketCompetitiveness = "Competitive - Slightly Above Amazon";
       } else {
-        // Our minimum viable price is above Amazon's - flag as above market
-        smartPrice = calculatedSmartPrice;
         marketCompetitiveness = "Above Market";
       }
       
