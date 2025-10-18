@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { DeleteDatasetDialog } from "@/components/DeleteDatasetDialog";
+import { ManualPriceEntry } from "@/components/ManualPriceEntry";
 
 interface Dataset {
   id: string;
@@ -873,11 +874,19 @@ const HostDashboardNew = () => {
                     </>
                   )}
                 </Button>
-                <p className="text-sm text-muted-foreground">
-                  This will fetch wholesale prices from publisher APIs, Amazon prices, and calculate unit economics for all books.
-                </p>
+                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                  <p className="font-medium mb-1">ℹ️ Enhanced Pricing:</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>Validates ISBNs and tries ISBN-10/13 conversions</li>
+                    <li>Falls back to title+author search if ISBN fails</li>
+                    <li>Processes 50 books per run - click multiple times if needed</li>
+                    <li>Syncs Amazon prices and calculates ROI targets</li>
+                  </ul>
+                </div>
               </CardContent>
             </Card>
+
+            <ManualPriceEntry />
 
             <Card>
               <CardHeader>

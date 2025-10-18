@@ -12,6 +12,53 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const BOWKER_ENDPOINT = "https://api.bowker.com/book/v1/metadata?isbn=";
 
+// Validate ISBN format
+function isValidISBN(isbn: string): boolean {
+  if (!isbn || typeof isbn !== 'string') return false;
+  
+  const cleaned = isbn.replace(/[-\s]/g, '');
+  
+  // Check if it's a valid ISBN-10 or ISBN-13
+  if (cleaned.length === 10) {
+    return /^[0-9]{9}[0-9X]$/i.test(cleaned);
+  } else if (cleaned.length === 13) {
+    return /^[0-9]{13}$/.test(cleaned);
+  }
+  
+  return false;
+}
+
+// Helper function to convert ISBN-13 to ISBN-10
+function isbn13ToIsbn10(isbn13: string): string | null {
+  if (isbn13.length !== 13 || !isbn13.startsWith('978')) {
+    return null;
+  }
+  
+  const base = isbn13.substring(3, 12);
+  let checksum = 0;
+  for (let i = 0; i < 9; i++) {
+    checksum += parseInt(base[i]) * (10 - i);
+  }
+  const check = (11 - (checksum % 11)) % 11;
+  const checkDigit = check === 10 ? 'X' : check.toString();
+  
+  return base + checkDigit;
+}
+
+// Helper function to convert ISBN-10 to ISBN-13
+function isbn10ToIsbn13(isbn10: string): string | null {
+  if (isbn10.length !== 10) return null;
+  
+  const base = '978' + isbn10.substring(0, 9);
+  let checksum = 0;
+  for (let i = 0; i < 12; i++) {
+    checksum += parseInt(base[i]) * (i % 2 === 0 ? 1 : 3);
+  }
+  const check = (10 - (checksum % 10)) % 10;
+  
+  return base + check.toString();
+}
+
 async function fetchGoogleBooksPrice(isbn13: string) {
   if (!GOOGLE_BOOKS_API_KEY) return null;
   try {
@@ -35,6 +82,32 @@ async function fetchGoogleBooksPrice(isbn13: string) {
       price_type: "01", // RRP
       raw: item,
       source: "google_books",
+    };
+  } catch { return null; }
+}
+
+async function fetchGoogleBooksPriceByTitleAuthor(title: string, author: string) {
+  if (!GOOGLE_BOOKS_API_KEY) return null;
+  try {
+    const query = `intitle:${encodeURIComponent(title)}+inauthor:${encodeURIComponent(author)}`;
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&key=${GOOGLE_BOOKS_API_KEY}`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json.items || json.items.length === 0) return null;
+    
+    const item = json.items[0];
+    const saleInfo = item.saleInfo;
+    const priceInfo = saleInfo?.retailPrice || saleInfo?.listPrice;
+    if (!priceInfo) return null;
+    
+    return {
+      isbn13: item.volumeInfo?.industryIdentifiers?.find((id: any) => id.type === 'ISBN_13')?.identifier || '',
+      territory: priceInfo.currencyCode === "USD" ? "US" : "GB",
+      price_amount: Number(priceInfo.amount),
+      currency: priceInfo.currencyCode,
+      price_type: "01",
+      raw: item,
+      source: "google_books_title",
     };
   } catch { return null; }
 }
@@ -64,6 +137,35 @@ async function fetchIsbndbPrice(isbn13: string) {
       source: "isbndb",
     };
   } catch { return null; }
+}
+
+async function fetchIsbndbPriceByTitleAuthor(title: string, author: string) {
+  if (!ISBNDB_API_KEY) return null;
+  try {
+    const query = `${title} ${author}`.substring(0, 100);
+    const res = await fetch(`https://api2.isbndb.com/books/${encodeURIComponent(query)}`, {
+      headers: { Authorization: ISBNDB_API_KEY },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    
+    if (json.books && json.books.length > 0) {
+      const book = json.books[0];
+      const msrp = book.msrp ? parseFloat(book.msrp) : null;
+      if (!msrp) return null;
+      
+      return {
+        isbn13: book.isbn13 || book.isbn || '',
+        territory: "US",
+        price_amount: msrp,
+        currency: "USD",
+        price_type: "01",
+        raw: book,
+        source: "isbndb_title",
+      };
+    }
+  } catch { return null; }
+  return null;
 }
 
 async function fetchBowkerPrice(isbn13: string) {
@@ -106,23 +208,38 @@ serve(async (req) => {
   try {
     console.log('🚀 Starting fetch-publisher-prices function');
     const { isbns, territory }: Input = await req.json().catch(() => ({}));
+    
+    const invalidIsbns: Array<{ isbn: string; title: string }> = [];
 
     // collect target isbns: books missing publisher_rrp
-    let target = isbns;
-    if (!target || target.length === 0) {
+    let targetBooks = [];
+    if (isbns && isbns.length > 0) {
+      console.log(`📚 Processing ${isbns.length} specific ISBNs`);
+      const { data } = await supabase
+        .from("books")
+        .select("id, title, author, us_asin, uk_asin, publisher_rrp")
+        .in(territory === 'US' ? 'us_asin' : 'uk_asin', isbns)
+        .limit(50);
+      targetBooks = data || [];
+    } else {
       console.log('📚 Fetching books missing publisher_rrp...');
       const { data } = await supabase
         .from("books")
-        .select("us_asin, uk_asin, publisher_rrp")
+        .select("id, title, author, us_asin, uk_asin, publisher_rrp")
         .is("publisher_rrp", null)
-        .limit(50); // Limit to 50 books per run to avoid timeout
-      const uniq = new Set<string>();
-      for (const row of data ?? []) {
-        const guess = row.us_asin || row.uk_asin;
-        if (guess) uniq.add(String(guess));
+        .limit(50);
+      targetBooks = data || [];
+    }
+    
+    console.log(`📖 Found ${targetBooks.length} books to process`);
+
+    // Validate ISBNs
+    for (const book of targetBooks) {
+      const isbn = territory === 'US' ? book.us_asin : book.uk_asin;
+      if (!isValidISBN(isbn)) {
+        console.log(`⚠️ Invalid ISBN for "${book.title}": ${isbn}`);
+        invalidIsbns.push({ isbn: isbn || 'missing', title: book.title });
       }
-      target = Array.from(uniq);
-      console.log(`📖 Found ${target.length} books to process`);
     }
 
     const logs: any[] = [];
@@ -130,69 +247,123 @@ serve(async (req) => {
     let processed = 0;
     let found = 0;
 
-    for (const raw of target) {
+    for (const book of targetBooks) {
+      const isbn13 = territory === 'US' ? book.us_asin : book.uk_asin;
+      
+      // Skip invalid ISBNs
+      if (!isValidISBN(isbn13)) {
+        console.log(`⏭️ Skipping "${book.title}" - invalid ISBN: ${isbn13}`);
+        continue;
+      }
+
       processed++;
-      const isbn13 = String(raw).replace(/[^0-9Xx]/g, "");
-      console.log(`🔍 [${processed}/${target.length}] Processing ISBN: ${isbn13}`);
+      console.log(`\n🔍 [${processed}/${targetBooks.length}] Processing: "${book.title}" (ISBN: ${isbn13})`);
 
-      // Try sources in priority order: Google Books -> ISBNdb -> Bowker -> ONIX
       let picked: any = null;
-      
-      try {
-        picked = await fetchGoogleBooksPrice(isbn13);
-        if (picked) {
-          console.log(`✅ Found price from Google Books: $${picked.price_amount} ${picked.currency}`);
-        }
-      } catch (e) {
-        console.error(`❌ Google Books error for ${isbn13}:`, e);
+
+      // Try with ISBN variants
+      const isbnVariants = [isbn13];
+      if (isbn13.length === 13) {
+        const isbn10 = isbn13ToIsbn10(isbn13);
+        if (isbn10) isbnVariants.push(isbn10);
+      } else if (isbn13.length === 10) {
+        const isbn13Alt = isbn10ToIsbn13(isbn13);
+        if (isbn13Alt) isbnVariants.push(isbn13Alt);
       }
-      
-      if (!picked) {
+
+      // Try each ISBN variant
+      for (const isbn of isbnVariants) {
+        if (picked) break;
+
         try {
-          picked = await fetchIsbndbPrice(isbn13);
+          console.log(`  📗 Trying Google Books with ISBN: ${isbn}...`);
+          picked = await fetchGoogleBooksPrice(isbn);
           if (picked) {
-            console.log(`✅ Found price from ISBNdb: $${picked.price_amount} ${picked.currency}`);
+            console.log(`  ✅ Found via Google Books: ${picked.price_amount} ${picked.currency}`);
+            break;
           }
         } catch (e) {
-          console.error(`❌ ISBNdb error for ${isbn13}:`, e);
+          console.error(`  ❌ Google Books error:`, e);
+        }
+
+        if (!picked) {
+          try {
+            console.log(`  📘 Trying ISBNdb with ISBN: ${isbn}...`);
+            picked = await fetchIsbndbPrice(isbn);
+            if (picked) {
+              console.log(`  ✅ Found via ISBNdb: ${picked.price_amount} ${picked.currency}`);
+              break;
+            }
+          } catch (e) {
+            console.error(`  ❌ ISBNdb error:`, e);
+          }
+        }
+
+        if (!picked) {
+          try {
+            console.log(`  📙 Trying Bowker with ISBN: ${isbn}...`);
+            picked = await fetchBowkerPrice(isbn);
+            if (picked) {
+              console.log(`  ✅ Found via Bowker: ${picked.price_amount} ${picked.currency}`);
+              break;
+            }
+          } catch (e) {
+            console.error(`  ❌ Bowker error:`, e);
+          }
+        }
+
+        if (!picked) {
+          try {
+            console.log(`  📕 Trying ONIX fallback with ISBN: ${isbn}...`);
+            const onix = await fetchOnixFallback();
+            const relevant = onix.filter(p => p.isbn13 === isbn);
+            const best = pickBestRRP(relevant, { territory });
+            if (best) {
+              picked = {
+                isbn13: isbn,
+                territory: best.territory ?? (territory ?? "GB"),
+                price_amount: best.priceAmount,
+                currency: best.currencyCode ?? "GBP",
+                price_type: best.priceType ?? null,
+                raw: best,
+                source: "onix",
+              };
+              console.log(`  ✅ Found via ONIX: ${picked.price_amount} ${picked.currency}`);
+              break;
+            }
+          } catch (e) {
+            console.error(`  ❌ ONIX error:`, e);
+          }
+        }
+      }
+
+      // Fallback: Try title + author search
+      if (!picked && book.title && book.author) {
+        console.log(`  🔎 Trying title + author search...`);
+        
+        try {
+          picked = await fetchGoogleBooksPriceByTitleAuthor(book.title, book.author);
+          if (picked) {
+            console.log(`  ✅ Found via Google Books title search: ${picked.price_amount} ${picked.currency}`);
+          }
+        } catch (e) {
+          console.error(`  ❌ Google Books title search error:`, e);
+        }
+
+        if (!picked) {
+          try {
+            picked = await fetchIsbndbPriceByTitleAuthor(book.title, book.author);
+            if (picked) {
+              console.log(`  ✅ Found via ISBNdb title search: ${picked.price_amount} ${picked.currency}`);
+            }
+          } catch (e) {
+            console.error(`  ❌ ISBNdb title search error:`, e);
+          }
         }
       }
 
       if (!picked) {
-        try {
-          picked = await fetchBowkerPrice(isbn13);
-          if (picked) {
-            console.log(`✅ Found price from Bowker: $${picked.price_amount} ${picked.currency}`);
-          }
-        } catch (e) {
-          console.error(`❌ Bowker error for ${isbn13}:`, e);
-        }
-      }
-
-      if (!picked) {
-        try {
-          const onix = await fetchOnixFallback();
-          const relevant = onix.filter(p => p.isbn13 === isbn13);
-          const best = pickBestRRP(relevant, { territory });
-          if (best) {
-            picked = {
-              isbn13,
-              territory: best.territory ?? (territory ?? "GB"),
-              price_amount: best.priceAmount,
-              currency: best.currencyCode ?? "GBP",
-              price_type: best.priceType ?? null,
-              raw: best,
-              source: "onix",
-            };
-            console.log(`✅ Found price from ONIX: $${picked.price_amount} ${picked.currency}`);
-          }
-        } catch (e) {
-          console.error(`❌ ONIX error for ${isbn13}:`, e);
-        }
-      }
-      
-      if (!picked) {
-        console.log(`⚠️ No price found for ISBN: ${isbn13}`);
+        console.log(`  ⚠️ No price found for "${book.title}" after all attempts`);
         continue;
       }
       
@@ -235,10 +406,11 @@ serve(async (req) => {
     const result = { 
       success: true,
       updated: updates.length, 
-      attempted: target.length,
+      attempted: targetBooks.length,
       found,
       processed,
-      message: `Successfully updated ${updates.length} of ${target.length} books with publisher pricing`
+      invalidIsbns: invalidIsbns.length > 0 ? invalidIsbns : undefined,
+      message: `Successfully updated ${updates.length} of ${targetBooks.length} books with publisher pricing`
     };
     
     console.log('✨ Sync complete:', result);
