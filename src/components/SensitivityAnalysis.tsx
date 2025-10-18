@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SensitivityAnalysisProps {
   result: {
@@ -18,9 +19,32 @@ interface SensitivityAnalysisProps {
 export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
   const acquisitionCost = parseFloat(result.ourAcquisitionCost);
   const initialPrice = parseFloat(result.smartPrice);
-  const maxPrice = parseFloat(result.amazonReferencePrice);
+  const amazonPrice = parseFloat(result.amazonReferencePrice);
+  const maxAllowedPrice = amazonPrice * 1.3; // 30% above Amazon price
   
   const [simulatedPrice, setSimulatedPrice] = useState(initialPrice);
+  const [lastPrice, setLastPrice] = useState(initialPrice);
+  const isAboveAmazon = simulatedPrice > amazonPrice;
+  
+  // Sticky behavior at Amazon price point
+  const handlePriceChange = (value: number[]) => {
+    const newPrice = value[0];
+    const threshold = 0.5; // Sticky zone threshold
+    
+    // If crossing Amazon price point, add resistance
+    if ((lastPrice <= amazonPrice && newPrice > amazonPrice) || 
+        (lastPrice >= amazonPrice && newPrice < amazonPrice)) {
+      // Check if we're within the sticky zone
+      if (Math.abs(newPrice - amazonPrice) < threshold) {
+        setSimulatedPrice(amazonPrice);
+        setLastPrice(amazonPrice);
+        return;
+      }
+    }
+    
+    setSimulatedPrice(newPrice);
+    setLastPrice(newPrice);
+  };
 
   // Calculate dynamic metrics based on simulated price
   const calculateMetrics = (price: number) => {
@@ -52,22 +76,62 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
       </CardHeader>
       <CardContent className="pt-6 space-y-6">
         <div className="space-y-4">
-          <Label htmlFor="priceSlider" className="text-base font-semibold">
-            Simulate Your Selling Price: ${simulatedPrice.toFixed(2)}
-          </Label>
-          <Slider
-            id="priceSlider"
-            min={acquisitionCost * 1.1}
-            max={maxPrice}
-            step={0.01}
-            value={[simulatedPrice]}
-            onValueChange={(value) => setSimulatedPrice(value[0])}
-            className="py-4"
-          />
+          <div className="flex items-center justify-between">
+            <Label htmlFor="priceSlider" className="text-base font-semibold">
+              Simulate Your Selling Price: ${simulatedPrice.toFixed(2)}
+            </Label>
+            {isAboveAmazon && (
+              <div className="flex items-center gap-2 text-red-600 text-sm font-medium animate-pulse">
+                <AlertTriangle className="h-4 w-4" />
+                <span>Overpriced Risk</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="relative">
+            <div className={cn(
+              "slider-wrapper",
+              isAboveAmazon && "slider-danger"
+            )}>
+              <Slider
+                id="priceSlider"
+                min={acquisitionCost * 1.1}
+                max={maxAllowedPrice}
+                step={0.01}
+                value={[simulatedPrice]}
+                onValueChange={handlePriceChange}
+                className="py-4"
+              />
+            </div>
+            
+            {isAboveAmazon && (
+              <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 shadow-lg z-10 whitespace-nowrap">
+                <p className="text-xs text-red-700 font-medium flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Not recommended: Risk of being overpriced vs. Amazon
+                </p>
+              </div>
+            )}
+            
+            <style>{`
+              .slider-danger [data-radix-slider-range] {
+                background-color: #dc2626 !important;
+              }
+              .slider-danger [data-radix-slider-thumb] {
+                border-color: #dc2626 !important;
+              }
+            `}</style>
+          </div>
+          
           <div className="flex justify-between text-sm text-muted-foreground">
             <span>Min: ${(acquisitionCost * 1.1).toFixed(2)}</span>
-            <span className="text-primary font-medium">Average: ${initialPrice.toFixed(2)}</span>
-            <span>Max: ${maxPrice.toFixed(2)}</span>
+            <span className="text-primary font-medium">Smart Price: ${initialPrice.toFixed(2)}</span>
+            <span className={cn(
+              "font-semibold",
+              isAboveAmazon ? "text-red-600" : "text-blue-600"
+            )}>
+              Amazon Current Price: ${amazonPrice.toFixed(2)}
+            </span>
           </div>
         </div>
 
@@ -108,10 +172,17 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
           </Table>
         </div>
 
-        <div className="p-4 rounded-lg bg-muted text-sm text-muted-foreground">
+        <div className={cn(
+          "p-4 rounded-lg text-sm",
+          isAboveAmazon 
+            ? "bg-red-50 border border-red-200 text-red-700" 
+            : "bg-muted text-muted-foreground"
+        )}>
           <p>
-            <strong>Note:</strong> This analysis shows how your ROI changes with different selling prices. 
-            The maximum price is capped at Amazon's reference price (${maxPrice.toFixed(2)}) to ensure competitive positioning.
+            <strong>Note:</strong> {isAboveAmazon 
+              ? `You are pricing ${((simulatedPrice / amazonPrice - 1) * 100).toFixed(1)}% above Amazon's current price. This may reduce your competitiveness and sales velocity.`
+              : `This analysis shows how your ROI changes with different selling prices. Amazon's current price is $${amazonPrice.toFixed(2)}.`
+            }
           </p>
         </div>
       </CardContent>
