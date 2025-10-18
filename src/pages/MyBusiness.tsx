@@ -128,6 +128,9 @@ const MyBusiness = () => {
   };
 
   const handleViewDetails = (item: WishlistItem) => {
+    // Use RRP as fallback for Amazon price if not available
+    const amazonPrice = item.books.amazon_price || item.books.rrp || 0;
+    
     const bookData: Book = {
       id: item.books.id,
       title: item.books.title,
@@ -139,7 +142,7 @@ const MyBusiness = () => {
       category: item.books.category || 'Uncategorized',
       wholesalePrice: item.books.wholesale_price || 0,
       suggestedPrice: item.books.rrp || 0,
-      amazonPrice: item.books.amazon_price || 0,
+      amazonPrice: amazonPrice,
       roi: 0,
       verified: false,
       imageUrl: item.books.image_url || undefined,
@@ -151,7 +154,7 @@ const MyBusiness = () => {
       amazon_fee: item.books.amazon_fee || undefined,
       rrp: item.books.rrp || 0,
       wholesale_price: item.books.wholesale_price || 0,
-      amazon_price: item.books.amazon_price || 0,
+      amazon_price: amazonPrice,
     };
     setSelectedBook(bookData);
     setDialogOpen(true);
