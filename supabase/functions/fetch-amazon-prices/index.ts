@@ -110,42 +110,49 @@ serve(async (req) => {
             }));
 
             // Try multiple parsing strategies
-            // Strategy 1: CSV array (current Amazon price)
+            // Strategy 1: CSV array (current Amazon price) - csv[0] is Amazon price history
             if (product.csv && product.csv[0] && Array.isArray(product.csv[0])) {
               const prices = product.csv[0];
-              const latestPrice = prices[prices.length - 1];
-              if (latestPrice > 0) {
-                amazonPrice = latestPrice / 100; // Keepa stores prices in cents
-                priceSource = 'keepa-csv';
-                console.log(`✅ Layer 2 SUCCESS (CSV): Found price $${amazonPrice.toFixed(2)}`);
-              }
-            }
-
-            // Strategy 2: Stats current price
-            if (!amazonPrice && product.stats?.current?.[0]) {
-              const currentPrice = product.stats.current[0];
-              if (currentPrice > 0) {
-                amazonPrice = currentPrice / 100;
-                priceSource = 'keepa-stats';
-                console.log(`✅ Layer 2 SUCCESS (Stats): Found price $${amazonPrice.toFixed(2)}`);
-              }
-            }
-
-            // Strategy 3: Direct AMAZON data field
-            if (!amazonPrice && product.data?.AMAZON) {
-              const amazonData = product.data.AMAZON;
-              if (Array.isArray(amazonData) && amazonData.length > 0) {
-                const latestPrice = amazonData[amazonData.length - 1];
-                if (latestPrice > 0) {
-                  amazonPrice = latestPrice / 100;
-                  priceSource = 'keepa-data-amazon';
-                  console.log(`✅ Layer 2 SUCCESS (Data): Found price $${amazonPrice.toFixed(2)}`);
+              // Keepa stores prices as: [timestamp1, price1, timestamp2, price2, ...]
+              // Get the last price value (skip timestamp, get actual price)
+              // Keepa uses -1 for "no data available"
+              if (prices.length >= 2) {
+                const latestPrice = prices[prices.length - 1];
+                if (latestPrice > 0 && latestPrice !== -1) {
+                  amazonPrice = latestPrice / 100; // Keepa stores prices in cents
+                  priceSource = 'keepa-csv';
+                  console.log(`✅ Layer 2 SUCCESS (CSV): Found price £${amazonPrice.toFixed(2)}`);
                 }
               }
             }
 
+            // Strategy 2: Try csv[1] (New Amazon price)
+            if (!amazonPrice && product.csv && product.csv[1] && Array.isArray(product.csv[1])) {
+              const prices = product.csv[1];
+              if (prices.length >= 2) {
+                const latestPrice = prices[prices.length - 1];
+                if (latestPrice > 0 && latestPrice !== -1) {
+                  amazonPrice = latestPrice / 100;
+                  priceSource = 'keepa-csv-new';
+                  console.log(`✅ Layer 2 SUCCESS (CSV New): Found price £${amazonPrice.toFixed(2)}`);
+                }
+              }
+            }
+
+            // Strategy 3: Stats current price
+            if (!amazonPrice && product.stats?.current?.[0]) {
+              const currentPrice = product.stats.current[0];
+              if (currentPrice > 0 && currentPrice !== -1) {
+                amazonPrice = currentPrice / 100;
+                priceSource = 'keepa-stats';
+                console.log(`✅ Layer 2 SUCCESS (Stats): Found price £${amazonPrice.toFixed(2)}`);
+              }
+            }
+
             if (!amazonPrice) {
-              console.log(`⚠️ Layer 2 failed: Could not parse price from Keepa response`);
+              console.log(`⚠️ Layer 2 failed: All Keepa price fields were empty or -1 (no data)`);
+              console.log(`📉 CSV arrays available: ${product.csv?.length || 0}, Last values:`, 
+                product.csv?.slice(0, 5).map((arr: number[]) => arr?.[arr.length - 1] || 'empty'));
             }
           } else {
             console.log(`⚠️ Layer 2 failed: Keepa returned no products or error:`, keepaError);
