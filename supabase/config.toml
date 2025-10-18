@@ -2,3 +2,6 @@ project_id = "zvsmsjrjzrdtybtgfxzw"
 
 [functions.keepa-product]
 verify_jwt = false
+
+[functions.client-chat]
+verify_jwt = false

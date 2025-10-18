@@ -9,6 +9,7 @@ import FilterBar from "@/components/FilterBar";
 import BookCard from "@/components/BookCard";
 import { CartButton } from "@/components/Cart";
 import { PricingEngineCalculator } from "@/components/PricingEngineCalculator";
+import { ChatWidget } from "@/components/ChatWidget";
 
 interface Book {
   id: string;
@@ -281,6 +282,8 @@ const ClientDashboard = () => {
           </div>
         )}
       </div>
+      
+      <ChatWidget mode="client" />
     </div>
   );
 };

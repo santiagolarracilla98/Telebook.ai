@@ -1,0 +1,29 @@
+{
+  "platform_purpose": "Telemachus is a book wholesaling platform that helps you discover profitable books to stock. It provides pricing intelligence from multiple sources (Amazon, publishers, ISBNdb) and calculates ROI to help you make informed purchasing decisions.",
+  
+  "how_to": {
+    "pricing_engine": "The Pricing Engine shows you the acquisition cost (wholesale price), Amazon's current price, and calculates potential ROI. It uses real-time data from Amazon, publisher feeds, and ISBNdb to give you accurate pricing intelligence. Look for the 'ROI' column to see potential profit margins.",
+    
+    "select_books": "To select profitable books: 1) Use the search and filters to narrow down by category, publisher, or marketplace (US/UK). 2) Look at the ROI column - higher percentages mean better margins. 3) Check the 'Smart Price' suggestion for optimal pricing. 4) Compare Amazon prices with wholesale costs. 5) Add profitable books to your cart.",
+    
+    "upload_isbn": "You can upload a list of ISBNs to quickly import book data. The system will fetch pricing information from multiple sources automatically. Contact support for bulk upload features.",
+    
+    "analytics": "The analytics section shows genre performance, ROI distributions, and helps you identify which categories are most profitable. Use this to guide your purchasing decisions and focus on high-margin categories.",
+    
+    "orders": "Once you've selected books, add them to your cart and proceed to checkout. The platform tracks your orders and helps you manage inventory.",
+    
+    "faq": "**Where do prices come from?** We aggregate data from Amazon (real-time marketplace prices), publishers (wholesale prices), and ISBNdb (MSRP data). **Can I change prices?** You can view suggested prices but cannot modify source data. **What's ROI?** Return on Investment shows your potential profit margin: (Amazon Price - Wholesale Cost - Fees) / Wholesale Cost. **Need help?** Contact support or use this chat for guidance."
+  },
+  
+  "glossary": {
+    "rrp": "Recommended Retail Price - the suggested selling price from the publisher",
+    "wholesale_price": "The cost you pay to acquire the book from the publisher or distributor",
+    "amazon_price": "Current selling price on Amazon marketplace",
+    "roi": "Return on Investment - your potential profit margin as a percentage",
+    "smart_price": "Our recommended selling price based on market analysis and fees",
+    "asin": "Amazon Standard Identification Number - unique product identifier on Amazon",
+    "isbn": "International Standard Book Number - unique book identifier",
+    "marketplace": "Either US or UK Amazon marketplace",
+    "category": "Book genre or subject classification"
+  }
+}

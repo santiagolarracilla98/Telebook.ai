@@ -6,6 +6,7 @@ import BookCard from "@/components/BookCard";
 import { ROICalculator } from "@/components/ROICalculator";
 import Suppliers from "@/components/Suppliers";
 import GenreAnalytics from "@/components/GenreAnalytics";
+import { ChatWidget } from "@/components/ChatWidget";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -299,6 +300,8 @@ const Index = () => {
         
         <Suppliers />
       </main>
+      
+      <ChatWidget mode="public" />
     </div>
   );
 };
