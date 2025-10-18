@@ -147,7 +147,7 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
         marketCompetitiveness = "Above Market";
       }
       
-      const amazonReferencePrice = book.rrp || book.amazon_price || smartPrice;
+      const amazonReferencePrice = book.amazon_price || book.rrp || smartPrice;
       const amazonFee = fulfillmentMethod === "FBA" 
         ? smartPrice * 0.15 + 3
         : smartPrice * 0.08;
