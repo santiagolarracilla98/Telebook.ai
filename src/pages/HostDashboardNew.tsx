@@ -413,9 +413,6 @@ const HostDashboardNew = () => {
       const { data: pubData, error: pubError } = await supabase.functions.invoke('fetch-publisher-prices');
       if (pubError) throw pubError;
       
-      // Fetch Amazon prices
-      await supabase.functions.invoke('fetch-amazon-prices');
-      
       // Calculate unit economics
       await supabase.functions.invoke('calc-unit-econ', {
         body: { roiTarget: 0.20 }
@@ -423,7 +420,7 @@ const HostDashboardNew = () => {
 
       toast({
         title: "Sync Complete",
-        description: `Updated ${pubData?.updated || 0} books with publisher pricing. All data refreshed.`,
+        description: `Updated ${pubData?.updated || 0} books with publisher pricing.`,
       });
 
       await Promise.all([fetchBooks(), fetchStats()]);
@@ -432,6 +429,41 @@ const HostDashboardNew = () => {
       toast({
         title: "Sync Failed",
         description: "There was an error syncing publisher data.",
+        variant: "destructive"
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleSyncAmazonPrices = async () => {
+    setSyncing(true);
+    try {
+      toast({
+        title: "Syncing Amazon Prices",
+        description: "Searching Amazon for current market prices...",
+      });
+      
+      // Fetch Amazon prices using the 3-layer approach
+      const { data: amazonData, error: amazonError } = await supabase.functions.invoke('fetch-amazon-prices');
+      if (amazonError) throw amazonError;
+      
+      // Calculate unit economics
+      await supabase.functions.invoke('calc-unit-econ', {
+        body: { roiTarget: 0.20 }
+      });
+
+      toast({
+        title: "Amazon Sync Complete",
+        description: `Updated ${amazonData?.processed || 0} books with Amazon prices. ${amazonData?.searched || 0} ASINs discovered.`,
+      });
+
+      await Promise.all([fetchBooks(), fetchStats()]);
+    } catch (error) {
+      console.error('Amazon sync error:', error);
+      toast({
+        title: "Amazon Sync Failed",
+        description: "There was an error fetching Amazon prices.",
         variant: "destructive"
       });
     } finally {
@@ -853,7 +885,7 @@ const HostDashboardNew = () => {
               <CardHeader>
                 <CardTitle>Publisher API Sync</CardTitle>
                 <CardDescription>
-                  Fetch pricing data from Google Books, ISBNdb, Bowker, and publisher APIs for all books missing cost data
+                  Fetch publisher retail prices from Google Books, ISBNdb, and Bowker APIs
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -870,17 +902,55 @@ const HostDashboardNew = () => {
                   ) : (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      Sync Publisher APIs
+                      Sync Publisher Prices
                     </>
                   )}
                 </Button>
                 <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                  <p className="font-medium mb-1">ℹ️ Enhanced Pricing:</p>
+                  <p className="font-medium mb-1">ℹ️ Publisher Pricing:</p>
                   <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>Fetches recommended retail prices (RRP) from publishers</li>
                     <li>Validates ISBNs and tries ISBN-10/13 conversions</li>
                     <li>Falls back to title+author search if ISBN fails</li>
-                    <li>Processes 50 books per run - click multiple times if needed</li>
-                    <li>Syncs Amazon prices and calculates ROI targets</li>
+                    <li>Processes 50 books per run</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Amazon Price Sync</CardTitle>
+                <CardDescription>
+                  Fetch current Amazon marketplace prices for ROI calculations
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button 
+                  onClick={handleSyncAmazonPrices} 
+                  disabled={syncing}
+                  className="w-full"
+                  variant="secondary"
+                >
+                  {syncing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Sync Amazon Prices
+                    </>
+                  )}
+                </Button>
+                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                  <p className="font-medium mb-1">ℹ️ Amazon Pricing:</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>Searches Amazon by title+author to find current prices</li>
+                    <li>Discovers and saves real ASINs for future lookups</li>
+                    <li>Falls back to Keepa API for detailed price history</li>
+                    <li>Updates ROI targets based on current market prices</li>
                   </ul>
                 </div>
               </CardContent>

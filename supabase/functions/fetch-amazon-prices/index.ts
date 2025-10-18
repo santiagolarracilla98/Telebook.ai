@@ -46,28 +46,48 @@ serve(async (req) => {
       let foundNewAsin = false;
       let priceSource = null;
 
-      // LAYER 1: If we have ASIN, try search-amazon-product first (proven to work in UI)
-      if (asin && keepaApiKey) {
+      // LAYER 1: Always try search-amazon-product with title/author (proven to work in UI)
+      if (keepaApiKey) {
         try {
-          console.log(`🎯 Layer 1: Trying search-amazon-product for "${book.title}" (ASIN: ${asin})`);
+          console.log(`🎯 Layer 1: Searching Amazon for "${book.title}" by ${book.author || 'Unknown'}`);
           
           const { data: searchData, error: searchError } = await supabase.functions.invoke('search-amazon-product', {
             body: { 
               title: book.title,
-              author: book.author,
+              author: book.author || 'Unknown Author',
               marketplace 
             }
           });
 
-          if (!searchError && searchData?.found && searchData?.productDetails?.currentPrice) {
-            amazonPrice = searchData.productDetails.currentPrice;
-            priceSource = 'search-amazon-product';
-            console.log(`✅ Layer 1 SUCCESS: Got price $${amazonPrice.toFixed(2)} from search-amazon-product`);
+          if (!searchError && searchData?.found) {
+            // Update ASIN with the real one found by search
+            if (searchData.asin && !asin) {
+              asin = searchData.asin;
+              foundNewAsin = true;
+              searched++;
+              console.log(`📍 Found ASIN via search: ${asin}`);
+              
+              // Update the book record with the found ASIN
+              const asinField = marketplace === 'us' ? 'us_asin' : 'uk_asin';
+              await supabase
+                .from('books')
+                .update({ [asinField]: asin })
+                .eq('id', book.id);
+            }
+            
+            // Get price if available
+            if (searchData.productDetails?.currentPrice) {
+              amazonPrice = searchData.productDetails.currentPrice;
+              priceSource = 'search-amazon-product';
+              console.log(`✅ Layer 1 SUCCESS: Got price $${amazonPrice.toFixed(2)} from search-amazon-product`);
+            } else {
+              console.log(`⚠️ Layer 1: Found product but no price available`);
+            }
           } else {
-            console.log(`⚠️ Layer 1 failed: search-amazon-product didn't return price`);
+            console.log(`⚠️ Layer 1 failed: Could not find "${book.title}" on Amazon`);
           }
         } catch (error) {
-          console.log(`⚠️ Layer 1 error for ${asin}:`, error);
+          console.log(`⚠️ Layer 1 error for "${book.title}":`, error);
         }
       }
 
@@ -135,49 +155,12 @@ serve(async (req) => {
         }
       }
 
-      // LAYER 3: If still no ASIN and no price, try to search Amazon by title and author
-      if (!amazonPrice && !asin && keepaApiKey) {
-        console.log(`🔍 Layer 3: No ASIN found for "${book.title}" - searching Amazon...`);
-        try {
-          const { data: searchData, error: searchError } = await supabase.functions.invoke('search-amazon-product', {
-            body: { 
-              title: book.title, 
-              author: book.author,
-              marketplace 
-            }
-          });
+      // Layer 3 removed - Layer 1 now handles all title/author searches
 
-          if (!searchError && searchData?.found && searchData?.asin) {
-            asin = searchData.asin;
-            foundNewAsin = true;
-            searched++;
-            console.log(`✅ Layer 3: Found ASIN via search: ${asin}`);
-
-            // Update the book record with the found ASIN
-            const asinField = marketplace === 'us' ? 'us_asin' : 'uk_asin';
-            await supabase
-              .from('books')
-              .update({ [asinField]: asin })
-              .eq('id', book.id);
-
-            // If search returned price, use it
-            if (searchData.productDetails?.currentPrice) {
-              amazonPrice = searchData.productDetails.currentPrice;
-              priceSource = 'search-by-title';
-              console.log(`✅ Layer 3 SUCCESS: Got price $${amazonPrice.toFixed(2)} from title search`);
-            }
-          } else {
-            console.log(`⚠️ Layer 3 failed: Could not find "${book.title}" on Amazon`);
-          }
-        } catch (error) {
-          console.log(`⚠️ Layer 3 error for "${book.title}":`, error);
-        }
-      }
-
-      // Skip if still no ASIN or price after all attempts
-      if (!asin && !amazonPrice) {
+      // Skip if still no price after all attempts
+      if (!amazonPrice) {
         skipped++;
-        console.log(`⏭️ Skipping "${book.title}" - no ASIN or price found after all attempts`);
+        console.log(`⏭️ Skipping "${book.title}" - no price found after all attempts`);
         continue;
       }
 
