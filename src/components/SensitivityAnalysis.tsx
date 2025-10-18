@@ -22,22 +22,37 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
   const amazonPrice = parseFloat(result.amazonReferencePrice);
   const maxAllowedPrice = amazonPrice * 1.3; // 30% above Amazon price
   
+  // Calculate break-even price (where net profit = 0)
+  const breakEvenPrice = result.fulfillmentMethod === "FBA"
+    ? (acquisitionCost + 3) / 0.85  // (cost + fixed fee) / (1 - 15%)
+    : acquisitionCost / 0.92;        // cost / (1 - 8%)
+  
   const [simulatedPrice, setSimulatedPrice] = useState(initialPrice);
   const [lastPrice, setLastPrice] = useState(initialPrice);
   const isAboveAmazon = simulatedPrice > amazonPrice;
+  const isBelowBreakEven = simulatedPrice < breakEvenPrice;
   
-  // Sticky behavior at Amazon price point
+  // Sticky behavior at Amazon price point and break-even point
   const handlePriceChange = (value: number[]) => {
     const newPrice = value[0];
     const threshold = 0.5; // Sticky zone threshold
     
-    // If crossing Amazon price point, add resistance
+    // Sticky at Amazon price point
     if ((lastPrice <= amazonPrice && newPrice > amazonPrice) || 
         (lastPrice >= amazonPrice && newPrice < amazonPrice)) {
-      // Check if we're within the sticky zone
       if (Math.abs(newPrice - amazonPrice) < threshold) {
         setSimulatedPrice(amazonPrice);
         setLastPrice(amazonPrice);
+        return;
+      }
+    }
+    
+    // Sticky at break-even point
+    if ((lastPrice <= breakEvenPrice && newPrice > breakEvenPrice) || 
+        (lastPrice >= breakEvenPrice && newPrice < breakEvenPrice)) {
+      if (Math.abs(newPrice - breakEvenPrice) < threshold) {
+        setSimulatedPrice(breakEvenPrice);
+        setLastPrice(breakEvenPrice);
         return;
       }
     }
@@ -91,7 +106,8 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
           <div className="relative">
             <div className={cn(
               "slider-wrapper",
-              isAboveAmazon && "slider-danger"
+              isAboveAmazon && "slider-danger",
+              isBelowBreakEven && "slider-warning"
             )}>
               <Slider
                 id="priceSlider"
@@ -101,6 +117,14 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
                 value={[simulatedPrice]}
                 onValueChange={handlePriceChange}
                 className="py-4"
+              />
+              
+              {/* Visual marker for break-even point */}
+              <div 
+                className="absolute top-1/2 transform -translate-y-1/2 w-0.5 h-8 bg-orange-500 pointer-events-none"
+                style={{
+                  left: `${((breakEvenPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
+                }}
               />
               
               {/* Visual marker for Amazon price */}
@@ -121,6 +145,15 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
               </div>
             )}
             
+            {isBelowBreakEven && (
+              <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 shadow-lg z-10 whitespace-nowrap">
+                <p className="text-xs text-orange-700 font-medium flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Below break-even: You're losing money at this price
+                </p>
+              </div>
+            )}
+            
             <style>{`
               .slider-danger [data-radix-slider-range] {
                 background-color: #dc2626 !important;
@@ -128,11 +161,32 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
               .slider-danger [data-radix-slider-thumb] {
                 border-color: #dc2626 !important;
               }
+              .slider-warning [data-radix-slider-range] {
+                background-color: #f97316 !important;
+              }
+              .slider-warning [data-radix-slider-thumb] {
+                border-color: #f97316 !important;
+              }
             `}</style>
           </div>
           
           <div className="relative flex justify-between text-sm pt-2">
             <span className="text-muted-foreground">Min: ${(acquisitionCost * 1.1).toFixed(2)}</span>
+            
+            {/* Break-even point positioned at its exact location */}
+            <div 
+              className="absolute transform -translate-x-1/2 flex flex-col items-center"
+              style={{
+                left: `${((breakEvenPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
+              }}
+            >
+              <span className="font-semibold whitespace-nowrap text-xs text-orange-600">
+                Break-Even
+              </span>
+              <span className="font-bold text-orange-600">
+                ${breakEvenPrice.toFixed(2)}
+              </span>
+            </div>
             
             {/* Amazon Current Price positioned at its exact location */}
             <div 
