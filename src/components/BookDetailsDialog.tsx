@@ -35,6 +35,11 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   const [selectedSimilarBook, setSelectedSimilarBook] = useState<Book | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Function to strip HTML tags from description
+  const stripHtmlTags = (html: string) => {
+    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+
   useEffect(() => {
     const checkAuthAndFetch = async () => {
       if (open && book.isbn) {
@@ -245,7 +250,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                 {book.description && (
                   <div>
                     <h4 className="text-sm font-medium text-muted-foreground mb-1">Description</h4>
-                    <p className="text-sm line-clamp-6">{book.description}</p>
+                    <p className="text-sm line-clamp-6">{stripHtmlTags(book.description)}</p>
                   </div>
                 )}
               </div>

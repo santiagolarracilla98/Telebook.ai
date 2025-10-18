@@ -20,7 +20,12 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
   const acquisitionCost = parseFloat(result.ourAcquisitionCost);
   const initialPrice = parseFloat(result.smartPrice);
   const amazonPrice = parseFloat(result.amazonReferencePrice);
-  const maxAllowedPrice = amazonPrice * 1.3; // 30% above Amazon price
+  
+  // Handle missing Amazon price data
+  const hasAmazonPrice = amazonPrice > 0;
+  const maxAllowedPrice = hasAmazonPrice 
+    ? amazonPrice * 1.3  // 30% above Amazon price
+    : initialPrice * 1.5; // 50% above smart price if no Amazon data
   
   // Calculate break-even price (where net profit = 0)
   const breakEvenPrice = result.fulfillmentMethod === "FBA"
@@ -29,7 +34,7 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
   
   const [simulatedPrice, setSimulatedPrice] = useState(initialPrice);
   const [lastPrice, setLastPrice] = useState(initialPrice);
-  const isAboveAmazon = simulatedPrice > amazonPrice;
+  const isAboveAmazon = hasAmazonPrice && simulatedPrice > amazonPrice;
   const isBelowBreakEven = simulatedPrice < breakEvenPrice;
   
   // Sticky behavior at Amazon price point and break-even point
@@ -37,13 +42,15 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
     const newPrice = value[0];
     const threshold = 0.5; // Sticky zone threshold
     
-    // Sticky at Amazon price point
-    if ((lastPrice <= amazonPrice && newPrice > amazonPrice) || 
-        (lastPrice >= amazonPrice && newPrice < amazonPrice)) {
-      if (Math.abs(newPrice - amazonPrice) < threshold) {
-        setSimulatedPrice(amazonPrice);
-        setLastPrice(amazonPrice);
-        return;
+    // Sticky at Amazon price point (only if we have Amazon price data)
+    if (hasAmazonPrice) {
+      if ((lastPrice <= amazonPrice && newPrice > amazonPrice) || 
+          (lastPrice >= amazonPrice && newPrice < amazonPrice)) {
+        if (Math.abs(newPrice - amazonPrice) < threshold) {
+          setSimulatedPrice(amazonPrice);
+          setLastPrice(amazonPrice);
+          return;
+        }
       }
     }
     
@@ -100,6 +107,13 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
             </span>
           </div>
           
+          {!hasAmazonPrice && (
+            <div className="flex items-center gap-2 text-amber-600 text-sm font-medium">
+              <AlertTriangle className="h-4 w-4" />
+              <span>No Amazon price data available - using estimated range</span>
+            </div>
+          )}
+          
           {isAboveAmazon && (
             <div className="flex items-center gap-2 text-red-600 text-sm font-medium animate-pulse">
               <AlertTriangle className="h-4 w-4" />
@@ -133,13 +147,15 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
                   }}
                 />
                 
-                {/* Amazon price tick mark */}
-                <div 
-                  className="absolute w-0.5 h-2 bg-blue-500/60"
-                  style={{
-                    left: `${((amazonPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
-                  }}
-                />
+                {/* Amazon price tick mark - only show if we have Amazon price data */}
+                {hasAmazonPrice && (
+                  <div 
+                    className="absolute w-0.5 h-2 bg-blue-500/60"
+                    style={{
+                      left: `${((amazonPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
+                    }}
+                  />
+                )}
               </div>
             </div>
             
@@ -198,26 +214,28 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
               </span>
             </div>
             
-            {/* Amazon Current Price label positioned below its tick mark */}
-            <div 
-              className="absolute top-0 transform -translate-x-1/2 flex flex-col items-center"
-              style={{
-                left: `${((amazonPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
-              }}
-            >
-              <span className={cn(
-                "font-semibold whitespace-nowrap text-xs",
-                isAboveAmazon ? "text-red-600" : "text-blue-600"
-              )}>
-                Amazon Current Price
-              </span>
-              <span className={cn(
-                "font-bold",
-                isAboveAmazon ? "text-red-600" : "text-blue-600"
-              )}>
-                ${amazonPrice.toFixed(2)}
-              </span>
-            </div>
+            {/* Amazon Current Price label - only show if we have Amazon price data */}
+            {hasAmazonPrice && (
+              <div 
+                className="absolute top-0 transform -translate-x-1/2 flex flex-col items-center"
+                style={{
+                  left: `${((amazonPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
+                }}
+              >
+                <span className={cn(
+                  "font-semibold whitespace-nowrap text-xs",
+                  isAboveAmazon ? "text-red-600" : "text-blue-600"
+                )}>
+                  Amazon Current Price
+                </span>
+                <span className={cn(
+                  "font-bold",
+                  isAboveAmazon ? "text-red-600" : "text-blue-600"
+                )}>
+                  ${amazonPrice.toFixed(2)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -265,9 +283,12 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
             : "bg-muted text-muted-foreground"
         )}>
           <p>
-            <strong>Note:</strong> {isAboveAmazon 
-              ? `You are pricing ${((simulatedPrice / amazonPrice - 1) * 100).toFixed(1)}% above Amazon's current price. This may reduce your competitiveness and sales velocity.`
-              : `This analysis shows how your ROI changes with different selling prices. Amazon's current price is $${amazonPrice.toFixed(2)}.`
+            <strong>Note:</strong> {
+              !hasAmazonPrice
+                ? "Amazon price data is not available for this book. The pricing range is estimated based on your smart price."
+                : isAboveAmazon 
+                  ? `You are pricing ${((simulatedPrice / amazonPrice - 1) * 100).toFixed(1)}% above Amazon's current price. This may reduce your competitiveness and sales velocity.`
+                  : `This analysis shows how your ROI changes with different selling prices. Amazon's current price is $${amazonPrice.toFixed(2)}.`
             }
           </p>
         </div>
