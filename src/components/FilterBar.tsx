@@ -34,14 +34,14 @@ const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplac
           </div>
         </div>
         
-        <Select onValueChange={onMarketplaceChange} defaultValue="usa">
+        <Select onValueChange={onMarketplaceChange} defaultValue="both">
           <SelectTrigger>
             <SelectValue placeholder="Marketplace" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="usa">🇺🇸 USA</SelectItem>
             <SelectItem value="uk">🇬🇧 UK</SelectItem>
-            <SelectItem value="both">🌍 Both</SelectItem>
+            <SelectItem value="both">All Countries</SelectItem>
           </SelectContent>
         </Select>
         
