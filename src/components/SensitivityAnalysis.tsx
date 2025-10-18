@@ -123,21 +123,24 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
                 className="py-4"
               />
               
-              {/* Visual marker for break-even point */}
-              <div 
-                className="absolute top-1/2 transform -translate-y-1/2 w-0.5 h-8 bg-orange-500 pointer-events-none"
-                style={{
-                  left: `${((breakEvenPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
-                }}
-              />
-              
-              {/* Visual marker for Amazon price */}
-              <div 
-                className="absolute top-1/2 transform -translate-y-1/2 w-0.5 h-8 bg-blue-500 pointer-events-none"
-                style={{
-                  left: `${((amazonPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
-                }}
-              />
+              {/* Tick marks positioned below the track like quantity slider */}
+              <div className="absolute top-[calc(50%+2px)] left-0 right-0 flex pointer-events-none">
+                {/* Break-even tick mark */}
+                <div 
+                  className="absolute w-0.5 h-2 bg-orange-500/60"
+                  style={{
+                    left: `${((breakEvenPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
+                  }}
+                />
+                
+                {/* Amazon price tick mark */}
+                <div 
+                  className="absolute w-0.5 h-2 bg-blue-500/60"
+                  style={{
+                    left: `${((amazonPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
+                  }}
+                />
+              </div>
             </div>
             
             {isAboveAmazon && (
@@ -174,12 +177,14 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
             `}</style>
           </div>
           
-          <div className="relative flex justify-between text-sm pt-2">
-            <span className="text-muted-foreground">Min: ${(acquisitionCost * 1.1).toFixed(2)} (Acquisition cost)</span>
+          <div className="relative pt-2">
+            <div className="flex justify-between text-sm text-muted-foreground mb-8">
+              <span>Min: ${(acquisitionCost * 1.1).toFixed(2)} (Acquisition cost)</span>
+            </div>
             
-            {/* Break-even point positioned at its exact location */}
+            {/* Break-even label positioned below its tick mark */}
             <div 
-              className="absolute transform -translate-x-1/2 flex flex-col items-center"
+              className="absolute top-0 transform -translate-x-1/2 flex flex-col items-center"
               style={{
                 left: `${((breakEvenPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
               }}
@@ -192,9 +197,9 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
               </span>
             </div>
             
-            {/* Amazon Current Price positioned at its exact location */}
+            {/* Amazon Current Price label positioned below its tick mark */}
             <div 
-              className="absolute transform -translate-x-1/2 flex flex-col items-center"
+              className="absolute top-0 transform -translate-x-1/2 flex flex-col items-center"
               style={{
                 left: `${((amazonPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) * 100}%`
               }}
