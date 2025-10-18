@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, DollarSign, Tag, Award } from "lucide-react";
+import { TrendingUp, DollarSign, Tag, Award, Clock } from "lucide-react";
 import { SensitivityAnalysis } from "./SensitivityAnalysis";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 interface ROIResultsProps {
   result: {
@@ -24,6 +25,8 @@ interface ROIResultsProps {
     amazonFee: string;
     fulfillmentMethod: string;
     quantity: number;
+    priceSource?: string;
+    livePriceFetchedAt?: Date;
   };
 }
 
@@ -31,6 +34,34 @@ export const ROIResults = ({ result }: ROIResultsProps) => {
   const roiValue = parseFloat(result.potentialROI);
   const roiColor = roiValue > 40 ? "text-green-600" : roiValue > 25 ? "text-blue-600" : "text-yellow-600";
   const { addItem } = useCart();
+
+  // Format price source badge
+  const getPriceSourceBadge = () => {
+    if (!result.priceSource) return null;
+    
+    if (result.priceSource === 'live') {
+      return (
+        <Badge variant="default" className="bg-success/20 text-success border-success/30">
+          <Clock className="w-3 h-3 mr-1" />
+          Live - just now
+        </Badge>
+      );
+    } else if (result.priceSource === 'cached' && result.livePriceFetchedAt) {
+      const age = formatDistanceToNow(new Date(result.livePriceFetchedAt), { addSuffix: true });
+      return (
+        <Badge variant="outline" className="border-warning/50 text-warning">
+          <Clock className="w-3 h-3 mr-1" />
+          Cached - {age}
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="secondary">
+          Reference - from database
+        </Badge>
+      );
+    }
+  };
 
   const handleAddToCart = () => {
     if (!result.bookId) {
@@ -91,9 +122,12 @@ export const ROIResults = ({ result }: ROIResultsProps) => {
                   <span className="text-sm font-medium text-muted-foreground">Smart Selling Price</span>
                 </div>
                 <p className="text-2xl font-bold">${result.smartPrice}</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Amazon Reference RRP: ${result.amazonReferencePrice}
-                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <p className="text-sm text-muted-foreground">
+                    Amazon Reference RRP: ${result.amazonReferencePrice}
+                  </p>
+                  {getPriceSourceBadge()}
+                </div>
               </div>
             </div>
 

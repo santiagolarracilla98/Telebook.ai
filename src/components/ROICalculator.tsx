@@ -4,12 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Calculator, TrendingUp, Info } from "lucide-react";
 import { toast } from "sonner";
 import { ROIResults } from "./ROIResults";
 import { ROIExplanationDialog } from "./ROIExplanationDialog";
 import { ROIPaywall } from "./ROIPaywall";
+import { useAmazonPrice } from "@/hooks/useAmazonPrice";
 import type { User } from "@supabase/supabase-js";
 
 export const ROICalculator = () => {
@@ -26,6 +28,7 @@ export const ROICalculator = () => {
   });
   const [showPaywall, setShowPaywall] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const { fetchLivePrice } = useAmazonPrice();
 
   // Check authentication status
   useEffect(() => {
@@ -74,6 +77,18 @@ export const ROICalculator = () => {
 
       const book = books[0];
 
+      // Fetch live Amazon price
+      let livePriceData = null;
+      let priceSource = 'database';
+      try {
+        livePriceData = await fetchLivePrice(book.title, book.author, 'usa');
+        if (livePriceData.price && livePriceData.price > 0) {
+          priceSource = livePriceData.source;
+        }
+      } catch (err) {
+        console.log('Live price fetch failed, using database price');
+      }
+
       // Calculate costs and ROI using actual database pricing
       const volumeDiscount = getVolumeDiscount(quantity);
       // Use wholesale_price directly as final acquisition cost (already includes discounts)
@@ -87,9 +102,10 @@ export const ROICalculator = () => {
       // Formula: Price = (Cost × (1 + Target ROI) + Fixed Fee) / (1 - Fee %)
       const calculatedSmartPrice = (ourAcquisitionCost * (1 + minROITarget) + fixedFee) / (1 - feePercentage);
       
-      // Market-aware pricing: Balance profitability with competitiveness
-      // Use RRP as Amazon price reference when actual Amazon price is not available
-      const amazonPrice = book.amazon_price || book.rrp || calculatedSmartPrice;
+      // Market-aware pricing: Use live Amazon price if available, otherwise fallback
+      const amazonPrice = (livePriceData?.price && livePriceData.price > 0) 
+        ? livePriceData.price 
+        : (book.amazon_price || book.rrp || calculatedSmartPrice);
       
       // Always use calculatedSmartPrice to ensure 20% ROI minimum
       // Determine competitiveness based on comparison to Amazon
@@ -141,7 +157,9 @@ export const ROICalculator = () => {
         amazonFee: amazonFee.toFixed(2),
         fulfillmentMethod,
         quantity,
-        marketCompetitiveness
+        marketCompetitiveness,
+        priceSource,
+        livePriceFetchedAt: livePriceData?.fetchedAt
       };
       
       setCalculationResult(result);
