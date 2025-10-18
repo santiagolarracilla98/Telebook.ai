@@ -209,9 +209,9 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
               </span>
             </div>
             
-            {/* Smart Price positioned at the right */}
-            <div className="absolute right-0 transform flex flex-col items-end -top-12">
-              <span className="bg-primary text-primary-foreground px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap shadow-sm">
+            {/* Smart Price positioned at the right, above the slider */}
+            <div className="absolute right-0 -top-8 flex justify-end">
+              <span className="bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-semibold whitespace-nowrap shadow-md">
                 Smart Price: ${initialPrice.toFixed(2)}
               </span>
             </div>
