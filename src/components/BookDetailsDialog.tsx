@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -245,43 +245,58 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
 
   const cost = book.wholesale_price || book.wholesalePrice || book.publisher_rrp || 0;
   
-  // Use unified signal selector for Amazon pricing
-  console.log('[BookDetails] 💰 Selecting Amazon price signal:', {
-    market: unifiedMarket,
-    currentAsin,
-    hasKeepaData: !!keepaData,
-    keepaDataCurrent: keepaData?.current,
-    referenceRRP: book.rrp,
-    dbAmazonPrice: book.amazon_price
-  });
+  // Use unified signal selector for Amazon pricing - recalculate when keepaData changes
+  const pricingData = useMemo(() => {
+    console.log('[BookDetails] 💰 Calculating pricing (useMemo):', {
+      market: unifiedMarket,
+      currentAsin,
+      hasKeepaData: !!keepaData,
+      keepaDataCurrent: keepaData?.current,
+      referenceRRP: book.rrp,
+      dbAmazonPrice: book.amazon_price
+    });
+    
+    const amazonSignal = selectAmazonSignal({
+      market: unifiedMarket,
+      asin: currentAsin,
+      keepaData: keepaData,
+      amazonReferenceUS: book.amazon_price || book.amazonPrice || book.rrp,
+      amazonReferenceUK: book.amazon_price || book.amazonPrice || book.rrp,
+      prefer: "buyBox",
+    });
+    
+    console.log('[BookDetails] 🎯 Amazon signal result:', {
+      value: amazonSignal.value,
+      signalType: amazonSignal.signalType,
+      source: amazonSignal.source
+    });
+    
+    const amazonPrice = amazonSignal.value;
+    const amazonFees = book.amazon_fee || (amazonPrice * 0.15);
+    const targetPrice = book.roi_target_price || book.suggestedPrice || 0;
+    
+    // Calculate net profit and ROI at our smart target price (25% target)
+    const targetFees = targetPrice * 0.15;
+    const netProfitAtTarget = targetPrice - targetFees - cost;
+    const targetRoi = cost > 0 ? ((netProfitAtTarget / cost) * 100).toFixed(1) : '0.0';
+    
+    // Calculate net profit and ROI at Amazon's current price (for reference)
+    const netProfitAtAmazon = amazonPrice > 0 ? amazonPrice - amazonFees - cost : 0;
+    const amazonRoi = cost > 0 && amazonPrice > 0 ? ((netProfitAtAmazon / cost) * 100).toFixed(1) : '0.0';
+    
+    return {
+      amazonSignal,
+      amazonPrice,
+      amazonFees,
+      targetPrice,
+      targetRoi,
+      netProfitAtTarget,
+      netProfitAtAmazon,
+      amazonRoi
+    };
+  }, [keepaData, unifiedMarket, currentAsin, book, cost]);
   
-  const amazonSignal = selectAmazonSignal({
-    market: unifiedMarket,
-    asin: currentAsin,
-    keepaData: keepaData,
-    amazonReferenceUS: book.amazon_price || book.amazonPrice || book.rrp,
-    amazonReferenceUK: book.amazon_price || book.amazonPrice || book.rrp,
-    prefer: "buyBox",
-  });
-  
-  console.log('[BookDetails] 🎯 Amazon signal result:', {
-    value: amazonSignal.value,
-    signalType: amazonSignal.signalType,
-    source: amazonSignal.source
-  });
-  
-  const amazonPrice = amazonSignal.value;
-  const amazonFees = book.amazon_fee || (amazonPrice * 0.15);
-  const targetPrice = book.roi_target_price || book.suggestedPrice || 0;
-  
-  // Calculate net profit and ROI at our smart target price (25% target)
-  const targetFees = targetPrice * 0.15; // Approximate Amazon fees
-  const netProfitAtTarget = targetPrice - targetFees - cost;
-  const targetRoi = cost > 0 ? ((netProfitAtTarget / cost) * 100).toFixed(1) : '0.0';
-  
-  // Calculate net profit and ROI at Amazon's current price (for reference)
-  const netProfitAtAmazon = amazonPrice > 0 ? amazonPrice - amazonFees - cost : 0;
-  const amazonRoi = cost > 0 && amazonPrice > 0 ? ((netProfitAtAmazon / cost) * 100).toFixed(1) : '0.0';
+  const { amazonSignal, amazonPrice, amazonFees, targetPrice, targetRoi, netProfitAtTarget, netProfitAtAmazon, amazonRoi } = pricingData;
   
   // Check if stored price is stale (>7 days old)
   const lastPriceCheck = (book as any).last_price_check ? new Date((book as any).last_price_check) : null;
