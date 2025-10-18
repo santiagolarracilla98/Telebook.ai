@@ -10,33 +10,9 @@ import { toast } from "sonner";
 import { ROIResults } from "./ROIResults";
 import { ROIExplanationDialog } from "./ROIExplanationDialog";
 import { ROIPaywall } from "./ROIPaywall";
-import { selectAmazonPrice, getPriceSourceLabel, formatTimeSince, type Market } from "@/lib/marketPriceSelector";
 import type { User } from "@supabase/supabase-js";
 
-interface Book {
-  id: string;
-  title: string;
-  author: string;
-  isbn: string;
-  us_asin?: string | null;
-  uk_asin?: string | null;
-  publisher?: string;
-  category?: string;
-  wholesale_price: number;
-  publisher_rrp?: number;
-  amazon_price?: number;
-  rrp: number;
-  roi_target_price?: number;
-  imageUrl?: string;
-  last_price_check?: string | null;
-}
-
-interface ROICalculatorProps {
-  selectedBook?: Book | null;
-  marketplace?: Market;
-}
-
-export const ROICalculator = ({ selectedBook, marketplace = 'usa' }: ROICalculatorProps) => {
+export const ROICalculator = () => {
   const [bookInput, setBookInput] = useState("");
   const [fulfillmentMethod, setFulfillmentMethod] = useState<"FBA" | "FBM">("FBA");
   const [quantity, setQuantity] = useState(100);
@@ -50,14 +26,6 @@ export const ROICalculator = ({ selectedBook, marketplace = 'usa' }: ROICalculat
   });
   const [showPaywall, setShowPaywall] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-
-  // Auto-populate when book is selected
-  useEffect(() => {
-    if (selectedBook) {
-      setBookInput(selectedBook.title);
-      calculateROI();
-    }
-  }, [selectedBook]);
 
   // Check authentication status
   useEffect(() => {
@@ -106,21 +74,22 @@ export const ROICalculator = ({ selectedBook, marketplace = 'usa' }: ROICalculat
 
       const book = books[0];
 
-      // Simple Amazon price - use DB field directly, market-specific handling is in BookDetailsDialog
-      const amazonPrice = book.amazon_price || book.rrp || 0;
-
       // Calculate costs and ROI using actual database pricing
       const volumeDiscount = getVolumeDiscount(quantity);
+      // Use wholesale_price directly as final acquisition cost (already includes discounts)
       const ourAcquisitionCost = book.wholesale_price || book.publisher_rrp || 0;
-      const publisherPrice = book.publisher_rrp || 0;
       
       // Calculate smart price that ensures minimum 20% ROI
-      const minROITarget = 0.20;
+      const minROITarget = 0.20; // 20% minimum ROI
       const feePercentage = fulfillmentMethod === "FBA" ? 0.15 : 0.08;
       const fixedFee = fulfillmentMethod === "FBA" ? 3 : 0;
       
       // Formula: Price = (Cost × (1 + Target ROI) + Fixed Fee) / (1 - Fee %)
       const calculatedSmartPrice = (ourAcquisitionCost * (1 + minROITarget) + fixedFee) / (1 - feePercentage);
+      
+      // Market-aware pricing: Balance profitability with competitiveness
+      // Use RRP as Amazon price reference when actual Amazon price is not available
+      const amazonPrice = book.amazon_price || book.rrp || calculatedSmartPrice;
       
       // Always use calculatedSmartPrice to ensure 20% ROI minimum
       // Determine competitiveness based on comparison to Amazon
@@ -164,8 +133,7 @@ export const ROICalculator = ({ selectedBook, marketplace = 'usa' }: ROICalculat
         ourAcquisitionCost: ourAcquisitionCost.toFixed(2),
         potentialROI: potentialROI.toFixed(1),
         smartPrice: smartPrice.toFixed(2),
-        amazonReferencePrice: amazonPrice > 0 ? amazonPrice.toFixed(2) : 'N/A',
-        publisherPrice: publisherPrice > 0 ? publisherPrice.toFixed(2) : 'N/A',
+        amazonReferencePrice: amazonReferencePrice.toFixed(2),
         priceRange: `$${(smartPrice * 0.95).toFixed(2)} - $${(smartPrice * 1.05).toFixed(2)}`,
         pricingEdge,
         volumeDiscount: (volumeDiscount * 100).toFixed(0),
@@ -173,8 +141,7 @@ export const ROICalculator = ({ selectedBook, marketplace = 'usa' }: ROICalculat
         amazonFee: amazonFee.toFixed(2),
         fulfillmentMethod,
         quantity,
-        marketCompetitiveness,
-        marketplace
+        marketCompetitiveness
       };
       
       setCalculationResult(result);

@@ -17,33 +17,30 @@ interface Book {
   title: string;
   author: string;
   isbn: string;
-  us_asin?: string | null;
   uk_asin?: string | null;
-  publisher?: string;
-  category?: string;
+  us_asin?: string | null;
   available_stock: number;
-  wholesale_price: number;
-  publisher_rrp?: number;
-  amazon_price?: number;
-  currency?: 'USD' | 'GBP';
-  market_flag?: 'us' | 'uk';
   rrp: number;
+  wholesale_price: number;
+  publisher: string;
+  category: string;
   wholesalePrice: number;
   suggestedPrice: number;
   amazonPrice: number;
   roi: number;
-  roi_target_price?: number;
   verified: boolean;
   imageUrl?: string;
-  last_price_check?: string | null;
-  description?: string;
+  publisher_rrp?: number;
+  amazon_price?: number;
+  roi_target_price?: number;
+  market_flag?: string;
+  currency?: string;
 }
 
 const Index = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [marketplace, setMarketplace] = useState<'usa' | 'uk' | 'both'>('both');
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -147,30 +144,26 @@ const Index = () => {
           id: book.id,
           title: book.title,
           author: book.author,
-          // FIX: ISBN field doesn't exist in DB, use identifier fallback
-          isbn: book.us_asin || book.uk_asin || book.google_books_id || '',
-          us_asin: book.us_asin,
+          isbn: book.us_asin || book.uk_asin || '',
           uk_asin: book.uk_asin,
-          // FIX: Use real publisher and category from DB
-          publisher: book.publisher || 'Unknown',
-          category: book.category || 'Uncategorized',
+          us_asin: book.us_asin,
           available_stock: book.available_stock,
-          wholesale_price: book.wholesale_price,
-          publisher_rrp: book.publisher_rrp,
-          // Single amazon_price field in DB (not market-specific)
-          amazon_price: book.amazon_price,
-          currency: book.currency as 'USD' | 'GBP' | undefined,
-          market_flag: (book.market_flag === 'US' ? 'us' : book.market_flag === 'UK' ? 'uk' : undefined) as 'us' | 'uk' | undefined,
           rrp: book.rrp,
+          wholesale_price: book.wholesale_price,
+          publisher: 'Various',
+          category: book.category || 'Fiction',
           wholesalePrice: book.wholesale_price,
           suggestedPrice: targetPrice,
           amazonPrice: amazonPrice,
           roi: calculatedRoi,
-          roi_target_price: book.roi_target_price,
           verified: true,
           imageUrl: book.image_url || undefined,
+          publisher_rrp: book.publisher_rrp,
+          amazon_price: book.amazon_price,
+          roi_target_price: book.roi_target_price,
+          market_flag: book.market_flag,
+          currency: book.currency,
           last_price_check: book.last_price_check,
-          description: book.description,
         };
       });
 
@@ -190,9 +183,9 @@ const Index = () => {
     if (marketplace !== 'both') {
       filtered = filtered.filter(book => {
         if (marketplace === 'usa') {
-          return book.us_asin || book.market_flag === 'us';
+          return book.us_asin || book.market_flag === 'US';
         } else if (marketplace === 'uk') {
-          return book.uk_asin || book.market_flag === 'uk';
+          return book.uk_asin || book.market_flag === 'UK';
         }
         return true;
       });
@@ -247,10 +240,7 @@ const Index = () => {
       <Navigation />
       <Hero />
       <div id="pricing-engine">
-        <ROICalculator 
-          selectedBook={selectedBook} 
-          marketplace={marketplace === 'both' ? 'usa' : marketplace}
-        />
+        <ROICalculator />
       </div>
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" id="inventory">
@@ -292,15 +282,7 @@ const Index = () => {
             {filteredBooks
               .slice((currentPage - 1) * booksPerPage, currentPage * booksPerPage)
               .map((book) => (
-                <BookCard 
-                  key={book.id} 
-                  {...book} 
-                  marketplace={marketplace}
-                  onSelect={() => {
-                    setSelectedBook(book);
-                    document.getElementById('pricing-engine')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                />
+                <BookCard key={book.id} {...book} marketplace={marketplace} />
               ))}
           </div>
 

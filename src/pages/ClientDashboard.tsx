@@ -45,7 +45,6 @@ const ClientDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedPublisher, setSelectedPublisher] = useState<string>("");
   const [marketplace, setMarketplace] = useState<'usa' | 'uk' | 'both'>('usa');
-  const [showCompleteDataOnly, setShowCompleteDataOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const booksPerPage = 15;
 
@@ -82,7 +81,7 @@ const ClientDashboard = () => {
   useEffect(() => {
     filterBooks();
     setCurrentPage(1); // Reset to page 1 when filters change
-  }, [books, searchQuery, selectedCategory, selectedPublisher, marketplace, showCompleteDataOnly]);
+  }, [books, searchQuery, selectedCategory, selectedPublisher, marketplace]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -162,8 +161,7 @@ const ClientDashboard = () => {
     if (searchQuery) {
       filtered = filtered.filter(book =>
         book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.isbn.toLowerCase().includes(searchQuery.toLowerCase())
+        book.author.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -179,31 +177,20 @@ const ClientDashboard = () => {
       );
     }
 
-    // Filter by marketplace - more lenient, show books without ASINs too
+    // Filter by marketplace
     if (marketplace === 'usa') {
-      filtered = filtered.filter(book => 
-        book.us_asin || book.currency === 'USD' || (!book.market_flag)
-      );
+      filtered = filtered.filter(book => book.us_asin || book.currency === 'USD');
     } else if (marketplace === 'uk') {
-      filtered = filtered.filter(book => 
-        book.uk_asin || book.currency === 'GBP' || (!book.market_flag)
-      );
+      filtered = filtered.filter(book => book.uk_asin || book.currency === 'GBP');
     }
 
-    // Only filter for cost data if the toggle is ON
-    if (showCompleteDataOnly) {
-      filtered = filtered.filter(book => {
-        const hasCost = (book.publisher_rrp && book.publisher_rrp > 0) || 
-                       (book.wholesale_price && book.wholesale_price > 0) ||
-                       (book.wholesalePrice && book.wholesalePrice > 0);
-        const hasAmazonPrice = (book.amazon_price && book.amazon_price > 0) ||
-                              (book.amazonPrice && book.amazonPrice > 0);
-        const hasMarketAsin = marketplace === 'both' || 
-                             (marketplace === 'usa' && book.us_asin) ||
-                             (marketplace === 'uk' && book.uk_asin);
-        return hasCost && hasAmazonPrice && hasMarketAsin;
-      });
-    }
+    // Always filter to show only books with cost data
+    filtered = filtered.filter(book => {
+      const hasCost = (book.publisher_rrp && book.publisher_rrp > 0) || 
+                     (book.wholesale_price && book.wholesale_price > 0) ||
+                     (book.wholesalePrice && book.wholesalePrice > 0);
+      return hasCost;
+    });
 
     setFilteredBooks(filtered);
   };
@@ -258,8 +245,6 @@ const ClientDashboard = () => {
         onCategoryChange={setSelectedCategory}
         onPublisherChange={setSelectedPublisher}
         filteredBooks={filteredBooks.length}
-        onCompleteDataToggle={setShowCompleteDataOnly}
-        showCompleteDataOnly={showCompleteDataOnly}
       />
 
         {filteredBooks.length > 0 && (

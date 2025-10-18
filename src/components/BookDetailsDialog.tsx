@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -10,15 +10,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ShieldCheck, TrendingUp, Package, DollarSign, BarChart3, Loader2, LogIn, ShoppingCart, Info } from "lucide-react";
+import { ShieldCheck, TrendingUp, Package, DollarSign, BarChart3, Loader2, LogIn, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import type { Book } from "@/data/mockBooks";
 import SimilarBookCard from "./SimilarBookCard";
 import { PricingEngineCalculator } from "./PricingEngineCalculator";
-import { AmazonPriceSparkline } from "./AmazonPriceSparkline";
-import { selectAmazonSignal, getSignalLabel, getSignalTooltip, type Market } from "@/lib/amazonSignalSelector";
 
 interface BookDetailsDialogProps {
   book: Book;
@@ -37,13 +34,6 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [selectedSimilarBook, setSelectedSimilarBook] = useState<Book | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [priceLineType, setPriceLineType] = useState<"buyBox" | "lowestNew" | "lowestUsed">("buyBox");
-  
-  // Unified market state - derived from marketplace prop
-  const unifiedMarket: Market = marketplace === 'uk' ? 'UK' : 'US';
-  // Use ASIN if available, fallback to ISBN for Keepa lookup
-  const currentIdentifier = unifiedMarket === 'UK' ? (book.uk_asin || book.isbn) : (book.us_asin || book.isbn);
-  const currentAsin = unifiedMarket === 'UK' ? book.uk_asin : book.us_asin;
 
   // Function to strip HTML tags from description
   const stripHtmlTags = (html: string) => {
@@ -131,172 +121,72 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     setError(null);
     
     try {
-      const market = marketplace === 'uk' ? 'UK' : 'US';
-      const marketplaceLower = marketplace === 'uk' ? 'uk' : 'usa';
-      
-      // Step 1: Get ASIN from database or search Amazon by title
-      let asinToUse = marketplace === 'uk' ? book.uk_asin : book.us_asin;
-      
-      console.log(`[BookDetails] 📚 Book: "${book.title}" by ${book.author}`);
-      console.log(`[BookDetails] 🌍 Requested market: ${market} (${marketplaceLower})`);
-      console.log(`[BookDetails] 📋 Database ASINs - US: ${book.us_asin || 'NULL'}, UK: ${book.uk_asin || 'NULL'}`);
-      console.log(`[BookDetails] 🎯 Selected ASIN for ${market}: ${asinToUse || 'NULL - will search'}`);
-      
-      // CRITICAL: If no ASIN for requested market, search Amazon by title
-      if (!asinToUse) {
-        console.log(`[BookDetails] 🔍 Searching Amazon ${market} marketplace for: "${book.title}" by ${book.author}`);
-        
-        const searchResponse = await supabase.functions.invoke('search-amazon-product', {
-          body: {
-            title: book.title,
-            author: book.author,
-            marketplace: marketplaceLower
-          }
-        });
-        
-        console.log('[BookDetails] 📡 Search response:', searchResponse);
-        
-        if (searchResponse.data?.found && searchResponse.data?.asin) {
-          asinToUse = searchResponse.data.asin;
-          console.log(`[BookDetails] ✅ Found ${market} ASIN via search: ${asinToUse}`);
-        } else {
-          console.log(`[BookDetails] ❌ No results from Amazon ${market} search`);
-        }
-      } else {
-        console.log(`[BookDetails] ✅ Using existing ${market} ASIN from database: ${asinToUse}`);
-      }
-      
       if (marketplace === 'both') {
-        // Fetch data from both marketplaces
+        // Fetch data from both marketplaces using the appropriate ASIN
         const [usaResponse, ukResponse] = await Promise.all([
-          (async () => {
-            let usAsin = book.us_asin;
-            if (!usAsin) {
-              const searchResp = await supabase.functions.invoke('search-amazon-product', {
-                body: { title: book.title, author: book.author, marketplace: 'usa' }
-              });
-              usAsin = searchResp.data?.asin;
+          supabase.functions.invoke('keepa-product', {
+            body: { 
+              isbn: book.us_asin || book.isbn,
+              marketplace: 'usa'
             }
-            return supabase.functions.invoke('keepa-price-history', {
-              body: { asin: usAsin, isbn: usAsin, market: 'US' }
-            });
-          })(),
-          (async () => {
-            let ukAsin = book.uk_asin;
-            if (!ukAsin) {
-              const searchResp = await supabase.functions.invoke('search-amazon-product', {
-                body: { title: book.title, author: book.author, marketplace: 'uk' }
-              });
-              ukAsin = searchResp.data?.asin;
+          }),
+          supabase.functions.invoke('keepa-product', {
+            body: { 
+              isbn: book.uk_asin || book.isbn,
+              marketplace: 'uk'
             }
-            return supabase.functions.invoke('keepa-price-history', {
-              body: { asin: ukAsin, isbn: ukAsin, market: 'UK' }
-            });
-          })()
+          })
         ]);
         
         if (usaResponse.error && ukResponse.error) {
           throw new Error('Failed to fetch Amazon data from both marketplaces');
         }
         
-        console.log('[BookDetails] Keepa US response:', usaResponse.data);
-        console.log('[BookDetails] Keepa UK response:', ukResponse.data);
-        
+        // Combine the data from both marketplaces
         setKeepaData({
           usa: usaResponse.data,
           uk: ukResponse.data,
           marketplace: 'both'
         });
       } else {
-        // Single marketplace - use the ASIN we found (from DB or search)
-        if (!asinToUse) {
-          throw new Error(`Product not found on Amazon ${market} marketplace`);
-        }
-        
-        console.log('[BookDetails] Fetching price history with ASIN:', asinToUse);
-        
-        const { data, error: functionError } = await supabase.functions.invoke('keepa-price-history', {
+        // Fetch from single marketplace using the appropriate ASIN
+        const asinToUse = marketplace === 'uk' ? (book.uk_asin || book.isbn) : (book.us_asin || book.isbn);
+        const { data, error: functionError } = await supabase.functions.invoke('keepa-product', {
           body: { 
-            asin: asinToUse,
-            isbn: asinToUse, // Use ASIN as ISBN fallback
-            market
+            isbn: asinToUse,
+            marketplace: marketplace
           }
         });
         
         if (functionError) {
-          console.error('[BookDetails] Keepa error:', functionError);
           throw new Error(functionError.message || 'Failed to fetch Amazon data');
         }
         
-        console.log('[BookDetails] Keepa price history response:', data);
-        console.log('[BookDetails] Current prices:', data?.current);
-        console.log('[BookDetails] ASIN used:', data?.asin);
-        
+        console.log('Keepa response:', data);
         setKeepaData(data);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Could not load Amazon product data';
       setError(errorMessage);
-      console.error('[BookDetails] Keepa API error:', err);
+      console.error('Keepa API error:', err);
     } finally {
       setLoading(false);
     }
   };
 
   const cost = book.wholesale_price || book.wholesalePrice || book.publisher_rrp || 0;
+  const amazonPrice = book.amazon_price || book.amazonPrice || 0;
+  const amazonFees = book.amazon_fee || (amazonPrice * 0.15);
+  const targetPrice = book.roi_target_price || book.suggestedPrice || 0;
   
-  // Use unified signal selector for Amazon pricing - recalculate when keepaData changes
-  const pricingData = useMemo(() => {
-    console.log('[BookDetails] 💰 Calculating pricing (useMemo):', {
-      market: unifiedMarket,
-      currentAsin,
-      hasKeepaData: !!keepaData,
-      keepaDataCurrent: keepaData?.current,
-      referenceRRP: book.rrp,
-      dbAmazonPrice: book.amazon_price
-    });
-    
-    const amazonSignal = selectAmazonSignal({
-      market: unifiedMarket,
-      asin: currentAsin,
-      keepaData: keepaData,
-      amazonReferenceUS: book.amazon_price || book.amazonPrice || book.rrp,
-      amazonReferenceUK: book.amazon_price || book.amazonPrice || book.rrp,
-      prefer: "buyBox",
-    });
-    
-    console.log('[BookDetails] 🎯 Amazon signal result:', {
-      value: amazonSignal.value,
-      signalType: amazonSignal.signalType,
-      source: amazonSignal.source
-    });
-    
-    const amazonPrice = amazonSignal.value;
-    const amazonFees = book.amazon_fee || (amazonPrice * 0.15);
-    const targetPrice = book.roi_target_price || book.suggestedPrice || 0;
-    
-    // Calculate net profit and ROI at our smart target price (25% target)
-    const targetFees = targetPrice * 0.15;
-    const netProfitAtTarget = targetPrice - targetFees - cost;
-    const targetRoi = cost > 0 ? ((netProfitAtTarget / cost) * 100).toFixed(1) : '0.0';
-    
-    // Calculate net profit and ROI at Amazon's current price (for reference)
-    const netProfitAtAmazon = amazonPrice > 0 ? amazonPrice - amazonFees - cost : 0;
-    const amazonRoi = cost > 0 && amazonPrice > 0 ? ((netProfitAtAmazon / cost) * 100).toFixed(1) : '0.0';
-    
-    return {
-      amazonSignal,
-      amazonPrice,
-      amazonFees,
-      targetPrice,
-      targetRoi,
-      netProfitAtTarget,
-      netProfitAtAmazon,
-      amazonRoi
-    };
-  }, [keepaData, unifiedMarket, currentAsin, book, cost]);
+  // Calculate net profit and ROI at our smart target price (25% target)
+  const targetFees = targetPrice * 0.15; // Approximate Amazon fees
+  const netProfitAtTarget = targetPrice - targetFees - cost;
+  const targetRoi = cost > 0 ? ((netProfitAtTarget / cost) * 100).toFixed(1) : '0.0';
   
-  const { amazonSignal, amazonPrice, amazonFees, targetPrice, targetRoi, netProfitAtTarget, netProfitAtAmazon, amazonRoi } = pricingData;
+  // Calculate net profit and ROI at Amazon's current price (for reference)
+  const netProfitAtAmazon = amazonPrice > 0 ? amazonPrice - amazonFees - cost : 0;
+  const amazonRoi = cost > 0 && amazonPrice > 0 ? ((netProfitAtAmazon / cost) * 100).toFixed(1) : '0.0';
   
   // Check if stored price is stale (>7 days old)
   const lastPriceCheck = (book as any).last_price_check ? new Date((book as any).last_price_check) : null;
@@ -389,37 +279,11 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                 <div className="p-4 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                    <h4 className="text-sm font-medium">{getSignalLabel(amazonSignal.signalType)}</h4>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge 
-                            variant={amazonSignal.signalType === 'reference' ? 'outline' : 'default'}
-                            className="text-xs"
-                          >
-                            {amazonSignal.signalType === 'reference' ? 'Reference' : 'Live'}
-                            <Info className="w-3 h-3 ml-1" />
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p className="text-xs">{getSignalTooltip(amazonSignal)}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <h4 className="text-sm font-medium">Amazon Price (Ref)</h4>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <p className="text-2xl font-bold">
-                      {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA'}
-                    </p>
-                    <AmazonPriceSparkline
-                      asin={currentAsin}
-                      isbn={book.isbn}
-                      market={unifiedMarket}
-                      height={24}
-                      line="buyBox"
-                      className="flex-1"
-                    />
-                  </div>
+                  <p className="text-2xl font-bold">
+                    {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA'}
+                  </p>
                 </div>
 
                 <div className="p-4 rounded-lg bg-success/10">
@@ -464,19 +328,6 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     📊 Use the ROI Calculator below with this book's data pre-filled to calculate your exact profit potential.
                   </p>
                 </div>
-                <div className="mb-3 p-3 rounded-lg bg-muted/50 border border-border">
-                  <div className="flex items-center gap-2">
-                    <Badge 
-                      variant={amazonSignal.signalType === 'reference' ? 'outline' : 'default'}
-                      className="text-xs"
-                    >
-                      {amazonSignal.signalType === 'reference' ? 'Reference' : 'Live'}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {amazonSignal.source} • Market: {unifiedMarket}
-                    </span>
-                  </div>
-                </div>
                 <PricingEngineCalculator 
                   prefilledBook={{
                     title: book.title,
@@ -508,46 +359,6 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
 
             {!loading && !error && keepaData && (
               <div className="space-y-4">
-                <div className="p-4 rounded-lg border border-border">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-lg">Price Trend (180d)</h3>
-                    <div className="flex gap-1 bg-muted rounded-md p-1">
-                      <Button
-                        variant={priceLineType === 'buyBox' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setPriceLineType('buyBox')}
-                        className="text-xs"
-                      >
-                        Buy Box
-                      </Button>
-                      <Button
-                        variant={priceLineType === 'lowestNew' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setPriceLineType('lowestNew')}
-                        className="text-xs"
-                      >
-                        Lowest New
-                      </Button>
-                      <Button
-                        variant={priceLineType === 'lowestUsed' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setPriceLineType('lowestUsed')}
-                        className="text-xs"
-                      >
-                        Lowest Used
-                      </Button>
-                    </div>
-                  </div>
-                  <AmazonPriceSparkline
-                    asin={currentAsin}
-                    isbn={book.isbn}
-                    market={unifiedMarket}
-                    height={200}
-                    line={priceLineType}
-                    showLegend={true}
-                  />
-                </div>
-
                 {keepaData.marketplace === 'both' ? (
                   // Display data from both marketplaces in tabs
                   <Tabs defaultValue="usa" className="w-full">

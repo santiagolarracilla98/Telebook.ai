@@ -18,8 +18,8 @@ export interface Book {
   available_stock: number;
   rrp: number;
   wholesale_price: number;
-  publisher?: string;
-  category?: string;
+  publisher: string;
+  category: string;
   wholesalePrice: number;
   suggestedPrice: number;
   amazonPrice: number;

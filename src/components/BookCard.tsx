@@ -22,10 +22,9 @@ import type { Book } from "@/data/mockBooks";
 
 interface BookCardProps extends Book {
   marketplace?: 'usa' | 'uk' | 'both';
-  onSelect?: () => void;
 }
 
-const BookCard = ({ marketplace = 'usa', onSelect, ...book }: BookCardProps) => {
+const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loginAlertOpen, setLoginAlertOpen] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
@@ -203,18 +202,6 @@ const BookCard = ({ marketplace = 'usa', onSelect, ...book }: BookCardProps) => 
           <Badge variant="outline" className="text-xs">{category}</Badge>
           <Badge variant="outline" className="text-xs">{publisher}</Badge>
           {getMarketBadge()}
-          {wholesalePrice === 0 && (
-            <Badge variant="secondary" className="text-xs">No Cost Data</Badge>
-          )}
-          {amazonPrice === 0 && (
-            <Badge variant="secondary" className="text-xs">No Amazon Price</Badge>
-          )}
-          {marketplace === 'usa' && !book.us_asin && (
-            <Badge variant="secondary" className="text-xs">No US ASIN</Badge>
-          )}
-          {marketplace === 'uk' && !book.uk_asin && (
-            <Badge variant="secondary" className="text-xs">No UK ASIN</Badge>
-          )}
         </div>
         
         <div className="pt-2 border-t border-border space-y-2">
@@ -243,10 +230,7 @@ const BookCard = ({ marketplace = 'usa', onSelect, ...book }: BookCardProps) => 
         <Button 
           variant="outline" 
           className="flex-1 group/btn"
-          onClick={() => {
-            setDialogOpen(true);
-            onSelect?.();
-          }}
+          onClick={() => setDialogOpen(true)}
         >
           <Eye className="w-4 h-4 mr-2" />
           Details

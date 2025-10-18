@@ -44,15 +44,10 @@ const MyBusiness = () => {
   const [loading, setLoading] = useState(true);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [fetchingPrices, setFetchingPrices] = useState(false);
 
   useEffect(() => {
-    const initializeData = async () => {
-      await checkAuth();
-      await fetchWishlist();
-      await fetchAmazonPrices();
-    };
-    initializeData();
+    checkAuth();
+    fetchWishlist();
   }, []);
 
   const checkAuth = async () => {
@@ -105,63 +100,6 @@ const MyBusiness = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchAmazonPrices = async () => {
-    try {
-      setFetchingPrices(true);
-      
-      const { data, error } = await supabase.functions.invoke('fetch-amazon-prices');
-      
-      if (error) throw error;
-
-      // Reload wishlist to get updated prices
-      const { data: updatedWishlist, error: refetchError } = await supabase
-        .from('wishlist')
-        .select(`
-          id,
-          book_id,
-          created_at,
-          books (
-            id,
-            title,
-            author,
-            image_url,
-            rrp,
-            wholesale_price,
-            category,
-            publisher,
-            amazon_price,
-            roi_target_price,
-            market_flag,
-            available_stock,
-            published_date,
-            page_count,
-            description,
-            publisher_rrp,
-            amazon_fee,
-            uk_asin,
-            us_asin
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (!refetchError) {
-        setWishlist(updatedWishlist || []);
-      }
-
-      if (data?.processed > 0) {
-        toast({
-          title: "Prices Updated",
-          description: `Updated Amazon prices for ${data.processed} books`,
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching Amazon prices:', error);
-      // Silent fail - don't interrupt user experience with price fetch errors
-    } finally {
-      setFetchingPrices(false);
     }
   };
 
@@ -266,8 +204,6 @@ const MyBusiness = () => {
           <CardContent>
             {loading ? (
               <p className="text-muted-foreground">Loading wishlist...</p>
-            ) : fetchingPrices ? (
-              <p className="text-muted-foreground">Updating prices...</p>
             ) : wishlist.length === 0 ? (
               <div className="text-center py-12">
                 <Heart className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
