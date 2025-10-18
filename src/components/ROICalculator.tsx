@@ -72,12 +72,24 @@ export const ROICalculator = () => {
       // Formula: Price = (Cost × (1 + Target ROI) + Fixed Fee) / (1 - Fee %)
       const calculatedSmartPrice = (ourAcquisitionCost * (1 + minROITarget) + fixedFee) / (1 - feePercentage);
       
-      // Use the higher of calculated smart price or database target price
-      const smartPrice = Math.max(
-        calculatedSmartPrice,
-        book.roi_target_price || 0,
-        book.amazon_price || 0
-      );
+      // Market-aware pricing: Balance profitability with competitiveness
+      const amazonPrice = book.amazon_price || calculatedSmartPrice;
+      let smartPrice: number;
+      let marketCompetitiveness: string;
+      
+      if (calculatedSmartPrice <= amazonPrice * 0.95) {
+        // We can price at 95% of Amazon and still hit target ROI - highly competitive
+        smartPrice = amazonPrice * 0.95;
+        marketCompetitiveness = "Highly Competitive";
+      } else if (calculatedSmartPrice <= amazonPrice * 1.05) {
+        // Close to Amazon price - still competitive
+        smartPrice = Math.min(calculatedSmartPrice, amazonPrice);
+        marketCompetitiveness = "Competitive";
+      } else {
+        // Our minimum viable price is above Amazon's - flag as above market
+        smartPrice = calculatedSmartPrice;
+        marketCompetitiveness = "Above Market";
+      }
       
       const amazonReferencePrice = book.rrp || book.amazon_price || smartPrice;
       
@@ -110,7 +122,8 @@ export const ROICalculator = () => {
         estimatedNetProfit: estimatedNetProfit.toFixed(2),
         amazonFee: amazonFee.toFixed(2),
         fulfillmentMethod,
-        quantity
+        quantity,
+        marketCompetitiveness
       };
       
       setCalculationResult(result);
