@@ -29,6 +29,10 @@ export type Database = {
           id: string
           image_url: string | null
           info_link: string | null
+          isbndb_binding: string | null
+          isbndb_msrp: number | null
+          isbndb_price_currency: string | null
+          isbndb_price_date: string | null
           last_price_check: string | null
           market_flag: string | null
           page_count: number | null
@@ -58,6 +62,10 @@ export type Database = {
           id?: string
           image_url?: string | null
           info_link?: string | null
+          isbndb_binding?: string | null
+          isbndb_msrp?: number | null
+          isbndb_price_currency?: string | null
+          isbndb_price_date?: string | null
           last_price_check?: string | null
           market_flag?: string | null
           page_count?: number | null
@@ -87,6 +95,10 @@ export type Database = {
           id?: string
           image_url?: string | null
           info_link?: string | null
+          isbndb_binding?: string | null
+          isbndb_msrp?: number | null
+          isbndb_price_currency?: string | null
+          isbndb_price_date?: string | null
           last_price_check?: string | null
           market_flag?: string | null
           page_count?: number | null

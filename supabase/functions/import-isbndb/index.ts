@@ -172,26 +172,31 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Map ISBNdb data to our schema - Try multiple price sources
-        let msrp = null;
-        let estimatedWholesale = null;
+        // Extract ISBNdb pricing data (store separately from Amazon/publisher pricing)
+        let isbndbMsrp = null;
+        let isbndbCurrency = territory === 'GB' ? 'GBP' : 'USD';
         
         // Try msrp first
         if (book.msrp) {
-          msrp = parseFloat(book.msrp);
+          isbndbMsrp = parseFloat(book.msrp);
         }
         // Try price_amount as backup
         else if (book.price_amount) {
-          msrp = parseFloat(book.price_amount);
+          isbndbMsrp = parseFloat(book.price_amount);
         }
         // Try other price fields
         else if (book.price) {
-          msrp = parseFloat(book.price);
+          isbndbMsrp = parseFloat(book.price);
         }
         
+        // Map ISBNdb data to our schema
+        let msrp = null;
+        let estimatedWholesale = null;
+        
         // Calculate wholesale if we have a retail price
-        if (msrp && msrp > 0) {
-          estimatedWholesale = msrp * 0.6; // Estimate wholesale at 60% of MSRP
+        if (isbndbMsrp && isbndbMsrp > 0) {
+          msrp = isbndbMsrp;
+          estimatedWholesale = isbndbMsrp * 0.6; // Estimate wholesale at 60% of MSRP
         }
         
         const bookData = {
@@ -211,6 +216,11 @@ Deno.serve(async (req) => {
           rrp: msrp || null,
           wholesale_price: estimatedWholesale || null,
           publisher_rrp: msrp || null,
+          // ISBNdb-specific pricing fields (separate from Amazon/publisher data)
+          isbndb_msrp: isbndbMsrp,
+          isbndb_price_currency: isbndbCurrency,
+          isbndb_binding: book.binding || null,
+          isbndb_price_date: new Date().toISOString(),
         };
 
         booksToInsert.push(bookData);
