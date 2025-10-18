@@ -104,58 +104,99 @@ serve(async (req) => {
   });
 
   try {
+    console.log('🚀 Starting fetch-publisher-prices function');
     const { isbns, territory }: Input = await req.json().catch(() => ({}));
 
     // collect target isbns: books missing publisher_rrp
     let target = isbns;
     if (!target || target.length === 0) {
+      console.log('📚 Fetching books missing publisher_rrp...');
       const { data } = await supabase
         .from("books")
-        .select("us_asin, uk_asin, isbn, publisher_rrp")
-        .limit(500);
+        .select("us_asin, uk_asin, publisher_rrp")
+        .is("publisher_rrp", null)
+        .limit(50); // Limit to 50 books per run to avoid timeout
       const uniq = new Set<string>();
       for (const row of data ?? []) {
-        if (row.publisher_rrp) continue;
-        const guess = row.isbn || row.us_asin || row.uk_asin;
+        const guess = row.us_asin || row.uk_asin;
         if (guess) uniq.add(String(guess));
       }
       target = Array.from(uniq);
+      console.log(`📖 Found ${target.length} books to process`);
     }
 
     const logs: any[] = [];
     const updates: any[] = [];
+    let processed = 0;
+    let found = 0;
 
     for (const raw of target) {
+      processed++;
       const isbn13 = String(raw).replace(/[^0-9Xx]/g, "");
+      console.log(`🔍 [${processed}/${target.length}] Processing ISBN: ${isbn13}`);
 
       // Try sources in priority order: Google Books -> ISBNdb -> Bowker -> ONIX
-      let picked: any = await fetchGoogleBooksPrice(isbn13);
+      let picked: any = null;
+      
+      try {
+        picked = await fetchGoogleBooksPrice(isbn13);
+        if (picked) {
+          console.log(`✅ Found price from Google Books: $${picked.price_amount} ${picked.currency}`);
+        }
+      } catch (e) {
+        console.error(`❌ Google Books error for ${isbn13}:`, e);
+      }
       
       if (!picked) {
-        picked = await fetchIsbndbPrice(isbn13);
-      }
-
-      if (!picked) {
-        picked = await fetchBowkerPrice(isbn13);
-      }
-
-      if (!picked) {
-        const onix = await fetchOnixFallback();
-        const relevant = onix.filter(p => p.isbn13 === isbn13);
-        const best = pickBestRRP(relevant, { territory });
-        if (best) {
-          picked = {
-            isbn13,
-            territory: best.territory ?? (territory ?? "GB"),
-            price_amount: best.priceAmount,
-            currency: best.currencyCode ?? "GBP",
-            price_type: best.priceType ?? null,
-            raw: best,
-            source: "onix",
-          };
+        try {
+          picked = await fetchIsbndbPrice(isbn13);
+          if (picked) {
+            console.log(`✅ Found price from ISBNdb: $${picked.price_amount} ${picked.currency}`);
+          }
+        } catch (e) {
+          console.error(`❌ ISBNdb error for ${isbn13}:`, e);
         }
       }
-      if (!picked) continue;
+
+      if (!picked) {
+        try {
+          picked = await fetchBowkerPrice(isbn13);
+          if (picked) {
+            console.log(`✅ Found price from Bowker: $${picked.price_amount} ${picked.currency}`);
+          }
+        } catch (e) {
+          console.error(`❌ Bowker error for ${isbn13}:`, e);
+        }
+      }
+
+      if (!picked) {
+        try {
+          const onix = await fetchOnixFallback();
+          const relevant = onix.filter(p => p.isbn13 === isbn13);
+          const best = pickBestRRP(relevant, { territory });
+          if (best) {
+            picked = {
+              isbn13,
+              territory: best.territory ?? (territory ?? "GB"),
+              price_amount: best.priceAmount,
+              currency: best.currencyCode ?? "GBP",
+              price_type: best.priceType ?? null,
+              raw: best,
+              source: "onix",
+            };
+            console.log(`✅ Found price from ONIX: $${picked.price_amount} ${picked.currency}`);
+          }
+        } catch (e) {
+          console.error(`❌ ONIX error for ${isbn13}:`, e);
+        }
+      }
+      
+      if (!picked) {
+        console.log(`⚠️ No price found for ISBN: ${isbn13}`);
+        continue;
+      }
+      
+      found++;
 
       logs.push({
         isbn: isbn13,
@@ -170,21 +211,50 @@ serve(async (req) => {
       updates.push({ isbn13, currency: picked.currency, publisher_rrp: picked.price_amount });
     }
 
-    if (logs.length) await supabase.from("publisher_prices").insert(logs);
-
-    for (const u of updates) {
-      await supabase
-        .from("books")
-        .update({ publisher_rrp: u.publisher_rrp, currency: u.currency })
-        .or(`isbn.eq.${u.isbn13},us_asin.eq.${u.isbn13},uk_asin.eq.${u.isbn13}`);
+    console.log(`💾 Saving ${logs.length} price logs and ${updates.length} book updates...`);
+    
+    if (logs.length) {
+      try {
+        await supabase.from("publisher_prices").insert(logs);
+      } catch (e) {
+        console.error('❌ Error inserting publisher_prices:', e);
+      }
     }
 
-    return new Response(JSON.stringify({ updated: updates.length, attempted: target.length }), {
+    for (const u of updates) {
+      try {
+        await supabase
+          .from("books")
+          .update({ publisher_rrp: u.publisher_rrp, currency: u.currency })
+          .or(`us_asin.eq.${u.isbn13},uk_asin.eq.${u.isbn13}`);
+      } catch (e) {
+        console.error(`❌ Error updating book ${u.isbn13}:`, e);
+      }
+    }
+
+    const result = { 
+      success: true,
+      updated: updates.length, 
+      attempted: target.length,
+      found,
+      processed,
+      message: `Successfully updated ${updates.length} of ${target.length} books with publisher pricing`
+    };
+    
+    console.log('✨ Sync complete:', result);
+    return new Response(JSON.stringify(result), {
       headers: { "Content-Type": "application/json" },
       status: 200,
     });
   } catch (e) {
-    console.error(e);
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
+    console.error('💥 Fatal error:', e);
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: String(e),
+      message: 'Failed to sync publisher prices' 
+    }), { 
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 });
