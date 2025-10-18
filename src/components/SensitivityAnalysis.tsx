@@ -177,18 +177,11 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
             `}</style>
           </div>
           
-          <div className="relative pt-2">
-            {/* Only show Min label if break-even is far enough from the start */}
-            {((breakEvenPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) > 0.15 && (
-              <div className="flex justify-start text-sm text-muted-foreground mb-8">
-                <span>Min: ${(acquisitionCost * 1.1).toFixed(2)} (Acquisition cost)</span>
-              </div>
-            )}
-            
-            {/* If break-even is too close to start, add extra spacing */}
-            {((breakEvenPrice - acquisitionCost * 1.1) / (maxAllowedPrice - acquisitionCost * 1.1)) <= 0.15 && (
-              <div className="mb-8" />
-            )}
+          <div className="relative pt-2 pb-16">
+            {/* Min label positioned at the very bottom left */}
+            <div className="absolute bottom-0 left-0 text-sm text-muted-foreground">
+              <span>Min: ${(acquisitionCost * 1.1).toFixed(2)} (Acquisition cost)</span>
+            </div>
             
             {/* Break-even label positioned below its tick mark */}
             <div 
