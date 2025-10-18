@@ -5,7 +5,6 @@ import FilterBar from "@/components/FilterBar";
 import BookCard from "@/components/BookCard";
 import { ROICalculator } from "@/components/ROICalculator";
 import Suppliers from "@/components/Suppliers";
-import GenreAnalytics from "@/components/GenreAnalytics";
 import { ChatWidget } from "@/components/ChatWidget";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -241,8 +240,6 @@ const Index = () => {
           onApplyFilters={applyFilters}
           filteredBooks={filteredBooks.length}
         />
-
-        {user && <GenreAnalytics />}
         
         <div className="mt-8">
           <div className="flex items-center justify-between mb-6">
