@@ -64,9 +64,22 @@ export const ROICalculator = () => {
       // Use wholesale_price directly as final acquisition cost (already includes discounts)
       const ourAcquisitionCost = book.wholesale_price || book.publisher_rrp || 0;
       
-      // Use roi_target_price as the smart/optimal selling price
-      const smartPrice = book.roi_target_price || book.amazon_price || book.rrp || 0;
-      const amazonReferencePrice = book.rrp || smartPrice;
+      // Calculate smart price that ensures minimum 20% ROI
+      const minROITarget = 0.20; // 20% minimum ROI
+      const feePercentage = fulfillmentMethod === "FBA" ? 0.15 : 0.08;
+      const fixedFee = fulfillmentMethod === "FBA" ? 3 : 0;
+      
+      // Formula: Price = (Cost × (1 + Target ROI) + Fixed Fee) / (1 - Fee %)
+      const calculatedSmartPrice = (ourAcquisitionCost * (1 + minROITarget) + fixedFee) / (1 - feePercentage);
+      
+      // Use the higher of calculated smart price or database target price
+      const smartPrice = Math.max(
+        calculatedSmartPrice,
+        book.roi_target_price || 0,
+        book.amazon_price || 0
+      );
+      
+      const amazonReferencePrice = book.rrp || book.amazon_price || smartPrice;
       
       // FBA fees are typically 15% + $3, FBM fees are ~8%
       const amazonFee = fulfillmentMethod === "FBA" 

@@ -29,22 +29,43 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
   const [quantity, setQuantity] = useState(100);
   const [currentCost, setCurrentCost] = useState("");
   const [isCalculating, setIsCalculating] = useState(false);
+  
+  // Helper function to calculate smart price with minimum ROI guarantee
+  const calculateSmartPrice = (acquisitionCost: number, fulfillment: "FBA" | "FBM") => {
+    const minROITarget = 0.20; // 20% minimum ROI
+    const feePercentage = fulfillment === "FBA" ? 0.15 : 0.08;
+    const fixedFee = fulfillment === "FBA" ? 3 : 0;
+    
+    // Formula: Price = (Cost × (1 + Target ROI) + Fixed Fee) / (1 - Fee %)
+    return (acquisitionCost * (1 + minROITarget) + fixedFee) / (1 - feePercentage);
+  };
+  
   const [calculationResult, setCalculationResult] = useState<any>(
-    prefilledBook ? {
-      bookTitle: prefilledBook.title,
-      bookAuthor: prefilledBook.author,
-      ourAcquisitionCost: prefilledBook.cost.toFixed(2),
-      potentialROI: (((prefilledBook.smartPrice - (prefilledBook.smartPrice * 0.15 + 3) - prefilledBook.cost) / prefilledBook.cost) * 100).toFixed(1),
-      smartPrice: prefilledBook.smartPrice.toFixed(2),
-      amazonReferencePrice: prefilledBook.amazonPrice.toFixed(2),
-      priceRange: `$${(prefilledBook.smartPrice * 0.95).toFixed(2)} - $${(prefilledBook.smartPrice * 1.05).toFixed(2)}`,
-      pricingEdge: "Competitive",
-      volumeDiscount: "15",
-      estimatedNetProfit: (prefilledBook.smartPrice - (prefilledBook.smartPrice * 0.15 + 3) - prefilledBook.cost).toFixed(2),
-      amazonFee: (prefilledBook.smartPrice * 0.15 + 3).toFixed(2),
-      fulfillmentMethod: "FBA",
-      quantity: 100
-    } : null
+    prefilledBook ? (() => {
+      const smartPrice = Math.max(
+        calculateSmartPrice(prefilledBook.cost, "FBA"),
+        prefilledBook.smartPrice
+      );
+      const amazonFee = smartPrice * 0.15 + 3;
+      const netProfit = smartPrice - amazonFee - prefilledBook.cost;
+      const roi = (netProfit / prefilledBook.cost) * 100;
+      
+      return {
+        bookTitle: prefilledBook.title,
+        bookAuthor: prefilledBook.author,
+        ourAcquisitionCost: prefilledBook.cost.toFixed(2),
+        potentialROI: roi.toFixed(1),
+        smartPrice: smartPrice.toFixed(2),
+        amazonReferencePrice: prefilledBook.amazonPrice.toFixed(2),
+        priceRange: `$${(smartPrice * 0.95).toFixed(2)} - $${(smartPrice * 1.05).toFixed(2)}`,
+        pricingEdge: "Competitive",
+        volumeDiscount: "15",
+        estimatedNetProfit: netProfit.toFixed(2),
+        amazonFee: amazonFee.toFixed(2),
+        fulfillmentMethod: "FBA",
+        quantity: 100
+      };
+    })() : null
   );
   const [showExplanation, setShowExplanation] = useState(false);
 
@@ -82,8 +103,23 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
       const book = books[0];
       const volumeDiscount = getVolumeDiscount(quantity);
       const ourAcquisitionCost = book.wholesale_price || book.publisher_rrp || 0;
-      const smartPrice = book.roi_target_price || book.amazon_price || book.rrp || 0;
-      const amazonReferencePrice = book.rrp || smartPrice;
+      
+      // Calculate smart price that ensures minimum 20% ROI
+      const minROITarget = 0.20; // 20% minimum ROI
+      const feePercentage = fulfillmentMethod === "FBA" ? 0.15 : 0.08;
+      const fixedFee = fulfillmentMethod === "FBA" ? 3 : 0;
+      
+      // Formula: Price = (Cost × (1 + Target ROI) + Fixed Fee) / (1 - Fee %)
+      const calculatedSmartPrice = (ourAcquisitionCost * (1 + minROITarget) + fixedFee) / (1 - feePercentage);
+      
+      // Use the higher of calculated smart price or database target price
+      const smartPrice = Math.max(
+        calculatedSmartPrice,
+        book.roi_target_price || 0,
+        book.amazon_price || 0
+      );
+      
+      const amazonReferencePrice = book.rrp || book.amazon_price || smartPrice;
       const amazonFee = fulfillmentMethod === "FBA" 
         ? smartPrice * 0.15 + 3
         : smartPrice * 0.08;
