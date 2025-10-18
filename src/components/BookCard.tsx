@@ -203,6 +203,18 @@ const BookCard = ({ marketplace = 'usa', onSelect, ...book }: BookCardProps) => 
           <Badge variant="outline" className="text-xs">{category}</Badge>
           <Badge variant="outline" className="text-xs">{publisher}</Badge>
           {getMarketBadge()}
+          {wholesalePrice === 0 && (
+            <Badge variant="secondary" className="text-xs">No Cost Data</Badge>
+          )}
+          {amazonPrice === 0 && (
+            <Badge variant="secondary" className="text-xs">No Amazon Price</Badge>
+          )}
+          {marketplace === 'usa' && !book.us_asin && (
+            <Badge variant="secondary" className="text-xs">No US ASIN</Badge>
+          )}
+          {marketplace === 'uk' && !book.uk_asin && (
+            <Badge variant="secondary" className="text-xs">No UK ASIN</Badge>
+          )}
         </div>
         
         <div className="pt-2 border-t border-border space-y-2">

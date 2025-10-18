@@ -12,9 +12,11 @@ interface FilterBarProps {
   onMarketplaceChange?: (marketplace: string) => void;
   onApplyFilters?: () => void;
   filteredBooks?: number;
+  onCompleteDataToggle?: (enabled: boolean) => void;
+  showCompleteDataOnly?: boolean;
 }
 
-const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplaceChange, onApplyFilters, filteredBooks }: FilterBarProps) => {
+const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplaceChange, onApplyFilters, filteredBooks, onCompleteDataToggle, showCompleteDataOnly = false }: FilterBarProps) => {
   return (
     <div className="bg-card rounded-2xl shadow-md border border-border p-6 space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -78,26 +80,39 @@ const FilterBar = ({ onSearch, onCategoryChange, onPublisherChange, onMarketplac
         </Select>
       </div>
       
-      <div className="flex gap-2">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => {
-            onCategoryChange?.('all');
-            onPublisherChange?.('all');
-            onMarketplaceChange?.('both');
-            onSearch?.('');
-          }}
-        >
-          Reset Filters
-        </Button>
-        <Button 
-          size="sm" 
-          className="ml-auto"
-          onClick={onApplyFilters}
-        >
-          Show Books
-        </Button>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Checkbox 
+            id="complete-data" 
+            checked={showCompleteDataOnly}
+            onCheckedChange={(checked) => onCompleteDataToggle?.(checked as boolean)}
+          />
+          <Label htmlFor="complete-data" className="text-sm cursor-pointer">
+            Only show books with complete pricing
+          </Label>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              onCategoryChange?.('all');
+              onPublisherChange?.('all');
+              onMarketplaceChange?.('both');
+              onSearch?.('');
+            }}
+          >
+            Reset Filters
+          </Button>
+          <Button 
+            size="sm" 
+            className="ml-auto"
+            onClick={onApplyFilters}
+          >
+            Show Books
+          </Button>
+        </div>
       </div>
     </div>
   );
