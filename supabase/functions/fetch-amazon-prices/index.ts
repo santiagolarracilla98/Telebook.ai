@@ -44,10 +44,100 @@ serve(async (req) => {
       let marketplace = book.us_asin ? 'us' : (book.uk_asin ? 'uk' : (book.currency === 'GBP' ? 'uk' : 'us'));
       let amazonPrice = null;
       let foundNewAsin = false;
+      let priceSource = null;
 
-      // If no ASIN, try to search Amazon by title and author
-      if (!asin && keepaApiKey) {
-        console.log(`🔍 No ASIN found for "${book.title}" - searching Amazon...`);
+      // LAYER 1: If we have ASIN, try search-amazon-product first (proven to work in UI)
+      if (asin && keepaApiKey) {
+        try {
+          console.log(`🎯 Layer 1: Trying search-amazon-product for "${book.title}" (ASIN: ${asin})`);
+          
+          const { data: searchData, error: searchError } = await supabase.functions.invoke('search-amazon-product', {
+            body: { 
+              title: book.title,
+              author: book.author,
+              marketplace 
+            }
+          });
+
+          if (!searchError && searchData?.found && searchData?.productDetails?.currentPrice) {
+            amazonPrice = searchData.productDetails.currentPrice;
+            priceSource = 'search-amazon-product';
+            console.log(`✅ Layer 1 SUCCESS: Got price $${amazonPrice.toFixed(2)} from search-amazon-product`);
+          } else {
+            console.log(`⚠️ Layer 1 failed: search-amazon-product didn't return price`);
+          }
+        } catch (error) {
+          console.log(`⚠️ Layer 1 error for ${asin}:`, error);
+        }
+      }
+
+      // LAYER 2: If no price yet and we have ASIN, try keepa-product with improved parsing
+      if (!amazonPrice && asin && keepaApiKey) {
+        try {
+          console.log(`🔎 Layer 2: Trying keepa-product for "${book.title}" (ASIN: ${asin})`);
+          
+          const { data: keepaData, error: keepaError } = await supabase.functions.invoke('keepa-product', {
+            body: { isbn: asin, marketplace }
+          });
+
+          if (!keepaError && keepaData?.products?.[0]) {
+            const product = keepaData.products[0];
+            console.log(`📊 Keepa product data structure:`, JSON.stringify({
+              hasCsv: !!product.csv,
+              csvLength: product.csv?.length,
+              hasStats: !!product.stats,
+              hasData: !!product.data
+            }));
+
+            // Try multiple parsing strategies
+            // Strategy 1: CSV array (current Amazon price)
+            if (product.csv && product.csv[0] && Array.isArray(product.csv[0])) {
+              const prices = product.csv[0];
+              const latestPrice = prices[prices.length - 1];
+              if (latestPrice > 0) {
+                amazonPrice = latestPrice / 100; // Keepa stores prices in cents
+                priceSource = 'keepa-csv';
+                console.log(`✅ Layer 2 SUCCESS (CSV): Found price $${amazonPrice.toFixed(2)}`);
+              }
+            }
+
+            // Strategy 2: Stats current price
+            if (!amazonPrice && product.stats?.current?.[0]) {
+              const currentPrice = product.stats.current[0];
+              if (currentPrice > 0) {
+                amazonPrice = currentPrice / 100;
+                priceSource = 'keepa-stats';
+                console.log(`✅ Layer 2 SUCCESS (Stats): Found price $${amazonPrice.toFixed(2)}`);
+              }
+            }
+
+            // Strategy 3: Direct AMAZON data field
+            if (!amazonPrice && product.data?.AMAZON) {
+              const amazonData = product.data.AMAZON;
+              if (Array.isArray(amazonData) && amazonData.length > 0) {
+                const latestPrice = amazonData[amazonData.length - 1];
+                if (latestPrice > 0) {
+                  amazonPrice = latestPrice / 100;
+                  priceSource = 'keepa-data-amazon';
+                  console.log(`✅ Layer 2 SUCCESS (Data): Found price $${amazonPrice.toFixed(2)}`);
+                }
+              }
+            }
+
+            if (!amazonPrice) {
+              console.log(`⚠️ Layer 2 failed: Could not parse price from Keepa response`);
+            }
+          } else {
+            console.log(`⚠️ Layer 2 failed: Keepa returned no products or error:`, keepaError);
+          }
+        } catch (error) {
+          console.log(`⚠️ Layer 2 error for ${asin}:`, error);
+        }
+      }
+
+      // LAYER 3: If still no ASIN and no price, try to search Amazon by title and author
+      if (!amazonPrice && !asin && keepaApiKey) {
+        console.log(`🔍 Layer 3: No ASIN found for "${book.title}" - searching Amazon...`);
         try {
           const { data: searchData, error: searchError } = await supabase.functions.invoke('search-amazon-product', {
             body: { 
@@ -61,7 +151,7 @@ serve(async (req) => {
             asin = searchData.asin;
             foundNewAsin = true;
             searched++;
-            console.log(`✅ Found ASIN via search: ${asin}`);
+            console.log(`✅ Layer 3: Found ASIN via search: ${asin}`);
 
             // Update the book record with the found ASIN
             const asinField = marketplace === 'us' ? 'us_asin' : 'uk_asin';
@@ -73,47 +163,22 @@ serve(async (req) => {
             // If search returned price, use it
             if (searchData.productDetails?.currentPrice) {
               amazonPrice = searchData.productDetails.currentPrice;
-              console.log(`💰 Got price from search: $${amazonPrice.toFixed(2)}`);
+              priceSource = 'search-by-title';
+              console.log(`✅ Layer 3 SUCCESS: Got price $${amazonPrice.toFixed(2)} from title search`);
             }
           } else {
-            console.log(`⚠️ Could not find "${book.title}" on Amazon`);
+            console.log(`⚠️ Layer 3 failed: Could not find "${book.title}" on Amazon`);
           }
         } catch (error) {
-          console.log(`⚠️ Amazon search error for "${book.title}":`, error);
+          console.log(`⚠️ Layer 3 error for "${book.title}":`, error);
         }
       }
 
-      // Skip if still no ASIN after search attempt
-      if (!asin) {
+      // Skip if still no ASIN or price after all attempts
+      if (!asin && !amazonPrice) {
         skipped++;
-        console.log(`⏭️ Skipping "${book.title}" - no ASIN found`);
+        console.log(`⏭️ Skipping "${book.title}" - no ASIN or price found after all attempts`);
         continue;
-      }
-
-      // If we don't have price yet, try to fetch it via Keepa
-      if (!amazonPrice && keepaApiKey) {
-        try {
-          console.log(`🔎 Fetching price for "${book.title}" (ASIN: ${asin})`);
-          
-          const { data: keepaData, error: keepaError } = await supabase.functions.invoke('keepa-product', {
-            body: { isbn: asin, marketplace }
-          });
-
-          if (!keepaError && keepaData?.products?.[0]) {
-            const product = keepaData.products[0];
-            // Get current Amazon price from Keepa data (index 0 is Amazon price)
-            if (product.csv && product.csv[0]) {
-              const prices = product.csv[0];
-              const latestPrice = prices[prices.length - 1];
-              if (latestPrice > 0) {
-                amazonPrice = latestPrice / 100; // Keepa stores prices in cents
-                console.log(`✅ Found Amazon price: $${amazonPrice.toFixed(2)}`);
-              }
-            }
-          }
-        } catch (error) {
-          console.log(`⚠️ Keepa API error for ${asin}:`, error);
-        }
       }
 
       // Only store verified Amazon prices (no fallbacks)
@@ -136,7 +201,8 @@ serve(async (req) => {
             title: book.title,
             amazon_price: amazonPrice,
             marketplace,
-            foundViaSearch: foundNewAsin
+            foundViaSearch: foundNewAsin,
+            priceSource: priceSource // Track which method succeeded
           });
         }
       } else {
