@@ -405,18 +405,24 @@ const HostDashboardNew = () => {
     try {
       toast({
         title: "Syncing Publisher Data",
-        description: "Fetching prices from publisher APIs...",
+        description: "Fetching prices from Google Books, ISBNdb, and publisher APIs...",
       });
 
-      await supabase.functions.invoke('fetch-publisher-prices');
+      // Fetch publisher prices (Google Books → ISBNdb → Bowker → ONIX)
+      const { data: pubData, error: pubError } = await supabase.functions.invoke('fetch-publisher-prices');
+      if (pubError) throw pubError;
+      
+      // Fetch Amazon prices
       await supabase.functions.invoke('fetch-amazon-prices');
+      
+      // Calculate unit economics
       await supabase.functions.invoke('calc-unit-econ', {
         body: { roiTarget: 0.20 }
       });
 
       toast({
         title: "Sync Complete",
-        description: "All pricing data has been updated.",
+        description: `Updated ${pubData?.updated || 0} books with publisher pricing. All data refreshed.`,
       });
 
       await Promise.all([fetchBooks(), fetchStats()]);
@@ -846,7 +852,7 @@ const HostDashboardNew = () => {
               <CardHeader>
                 <CardTitle>Publisher API Sync</CardTitle>
                 <CardDescription>
-                  Fetch pricing data from Bowker, Nielsen, and other publisher APIs
+                  Fetch pricing data from Google Books, ISBNdb, Bowker, and publisher APIs for all books missing cost data
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

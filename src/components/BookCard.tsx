@@ -154,6 +154,32 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
       </Badge>
     ) : null;
   };
+
+  const getPricingStatusBadge = () => {
+    const hasPublisherPrice = publisher_rrp && publisher_rrp > 0;
+    const hasAmazonPrice = amazonPrice && amazonPrice > 0;
+    const hasWholesale = wholesalePrice && wholesalePrice > 0;
+    
+    if (hasPublisherPrice && hasAmazonPrice && hasWholesale) {
+      return (
+        <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-700">
+          ✓ Complete Pricing
+        </Badge>
+      );
+    } else if (hasAmazonPrice) {
+      return (
+        <Badge variant="secondary" className="text-xs">
+          ⚠ Partial Data
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="outline" className="text-xs border-red-500 text-red-500">
+          ✗ Missing Cost
+        </Badge>
+      );
+    }
+  };
   return (
     <>
       <Card className="group hover:shadow-xl transition-all duration-300 border-border overflow-hidden">
@@ -202,6 +228,7 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
           <Badge variant="outline" className="text-xs">{category}</Badge>
           <Badge variant="outline" className="text-xs">{publisher}</Badge>
           {getMarketBadge()}
+          {getPricingStatusBadge()}
         </div>
         
         <div className="pt-2 border-t border-border space-y-2">

@@ -6,9 +6,65 @@ import { parseOnix, pickBestRRP } from "../_shared/onixParser.ts";
 type Input = { isbns?: string[]; territory?: "GB" | "US" };
 
 const BOWKER_API_KEY = Deno.env.get("BOWKER_API_KEY");
+const GOOGLE_BOOKS_API_KEY = Deno.env.get("GOOGLE_BOOKS_API_KEY");
+const ISBNDB_API_KEY = Deno.env.get("ISBNDB_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const BOWKER_ENDPOINT = "https://api.bowker.com/book/v1/metadata?isbn="; // replace when you have the real endpoint
+const BOWKER_ENDPOINT = "https://api.bowker.com/book/v1/metadata?isbn=";
+
+async function fetchGoogleBooksPrice(isbn13: string) {
+  if (!GOOGLE_BOOKS_API_KEY) return null;
+  try {
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn13}&key=${GOOGLE_BOOKS_API_KEY}`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json.items || json.items.length === 0) return null;
+    
+    const item = json.items[0];
+    const saleInfo = item.saleInfo;
+    
+    // Try retailPrice first, then listPrice
+    const priceInfo = saleInfo?.retailPrice || saleInfo?.listPrice;
+    if (!priceInfo) return null;
+    
+    return {
+      isbn13,
+      territory: priceInfo.currencyCode === "USD" ? "US" : "GB",
+      price_amount: Number(priceInfo.amount),
+      currency: priceInfo.currencyCode,
+      price_type: "01", // RRP
+      raw: item,
+      source: "google_books",
+    };
+  } catch { return null; }
+}
+
+async function fetchIsbndbPrice(isbn13: string) {
+  if (!ISBNDB_API_KEY) return null;
+  try {
+    const res = await fetch(`https://api2.isbndb.com/book/${isbn13}`, {
+      headers: { Authorization: ISBNDB_API_KEY },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const book = json.book;
+    if (!book) return null;
+    
+    // ISBNdb provides msrp field
+    const msrp = book.msrp ? parseFloat(book.msrp) : null;
+    if (!msrp) return null;
+    
+    return {
+      isbn13,
+      territory: "US", // ISBNdb primarily US market
+      price_amount: msrp,
+      currency: "USD",
+      price_type: "01", // RRP
+      raw: book,
+      source: "isbndb",
+    };
+  } catch { return null; }
+}
 
 async function fetchBowkerPrice(isbn13: string) {
   if (!BOWKER_API_KEY) return null;
@@ -72,7 +128,16 @@ serve(async (req) => {
     for (const raw of target) {
       const isbn13 = String(raw).replace(/[^0-9Xx]/g, "");
 
-      let picked: any = await fetchBowkerPrice(isbn13);
+      // Try sources in priority order: Google Books -> ISBNdb -> Bowker -> ONIX
+      let picked: any = await fetchGoogleBooksPrice(isbn13);
+      
+      if (!picked) {
+        picked = await fetchIsbndbPrice(isbn13);
+      }
+
+      if (!picked) {
+        picked = await fetchBowkerPrice(isbn13);
+      }
 
       if (!picked) {
         const onix = await fetchOnixFallback();
