@@ -136,11 +136,15 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
       
       // Step 1: Get ASIN from database or search Amazon by title
       let asinToUse = marketplace === 'uk' ? book.uk_asin : book.us_asin;
-      let searchedAsin = null;
       
-      // If no ASIN exists, search Amazon by book title and author
+      console.log(`[BookDetails] 📚 Book: "${book.title}" by ${book.author}`);
+      console.log(`[BookDetails] 🌍 Requested market: ${market} (${marketplaceLower})`);
+      console.log(`[BookDetails] 📋 Database ASINs - US: ${book.us_asin || 'NULL'}, UK: ${book.uk_asin || 'NULL'}`);
+      console.log(`[BookDetails] 🎯 Selected ASIN for ${market}: ${asinToUse || 'NULL - will search'}`);
+      
+      // CRITICAL: If no ASIN for requested market, search Amazon by title
       if (!asinToUse) {
-        console.log('[BookDetails] No ASIN found, searching Amazon by title:', book.title);
+        console.log(`[BookDetails] 🔍 Searching Amazon ${market} marketplace for: "${book.title}" by ${book.author}`);
         
         const searchResponse = await supabase.functions.invoke('search-amazon-product', {
           body: {
@@ -150,13 +154,16 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
           }
         });
         
+        console.log('[BookDetails] 📡 Search response:', searchResponse);
+        
         if (searchResponse.data?.found && searchResponse.data?.asin) {
-          searchedAsin = searchResponse.data.asin;
-          asinToUse = searchedAsin;
-          console.log('[BookDetails] Found ASIN via search:', asinToUse);
+          asinToUse = searchResponse.data.asin;
+          console.log(`[BookDetails] ✅ Found ${market} ASIN via search: ${asinToUse}`);
         } else {
-          console.log('[BookDetails] Product not found on Amazon:', book.title);
+          console.log(`[BookDetails] ❌ No results from Amazon ${market} search`);
         }
+      } else {
+        console.log(`[BookDetails] ✅ Using existing ${market} ASIN from database: ${asinToUse}`);
       }
       
       if (marketplace === 'both') {
@@ -239,6 +246,15 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   const cost = book.wholesale_price || book.wholesalePrice || book.publisher_rrp || 0;
   
   // Use unified signal selector for Amazon pricing
+  console.log('[BookDetails] 💰 Selecting Amazon price signal:', {
+    market: unifiedMarket,
+    currentAsin,
+    hasKeepaData: !!keepaData,
+    keepaDataCurrent: keepaData?.current,
+    referenceRRP: book.rrp,
+    dbAmazonPrice: book.amazon_price
+  });
+  
   const amazonSignal = selectAmazonSignal({
     market: unifiedMarket,
     asin: currentAsin,
@@ -246,6 +262,12 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     amazonReferenceUS: book.amazon_price || book.amazonPrice || book.rrp,
     amazonReferenceUK: book.amazon_price || book.amazonPrice || book.rrp,
     prefer: "buyBox",
+  });
+  
+  console.log('[BookDetails] 🎯 Amazon signal result:', {
+    value: amazonSignal.value,
+    signalType: amazonSignal.signalType,
+    source: amazonSignal.source
   });
   
   const amazonPrice = amazonSignal.value;
