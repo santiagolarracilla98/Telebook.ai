@@ -177,21 +177,15 @@ const ClientDashboard = () => {
       );
     }
 
-    // Filter by marketplace
+    // Filter by marketplace (only when not showing "both")
     if (marketplace === 'usa') {
-      filtered = filtered.filter(book => book.us_asin || book.currency === 'USD');
+      filtered = filtered.filter(book => book.us_asin || book.currency === 'USD' || !book.market_flag);
     } else if (marketplace === 'uk') {
-      filtered = filtered.filter(book => book.uk_asin || book.currency === 'GBP');
+      filtered = filtered.filter(book => book.uk_asin || book.currency === 'GBP' || !book.market_flag);
     }
+    // When marketplace is 'both', show all books
 
-    // Always filter to show only books with cost data
-    filtered = filtered.filter(book => {
-      const hasCost = (book.publisher_rrp && book.publisher_rrp > 0) || 
-                     (book.wholesale_price && book.wholesale_price > 0) ||
-                     (book.wholesalePrice && book.wholesalePrice > 0);
-      return hasCost;
-    });
-
+    // Note: No longer filtering by cost data - we'll fetch Amazon prices live when needed
     setFilteredBooks(filtered);
   };
 

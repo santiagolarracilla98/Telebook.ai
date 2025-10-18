@@ -179,17 +179,20 @@ const Index = () => {
   const filterBooks = () => {
     let filtered = [...books];
 
-    // Filter by marketplace
+    // Filter by marketplace (only when not showing "both")
     if (marketplace !== 'both') {
       filtered = filtered.filter(book => {
         if (marketplace === 'usa') {
-          return book.us_asin || book.market_flag === 'US';
+          // Show if has US ASIN, or if no market flag specified (will try to fetch)
+          return book.us_asin || book.market_flag === 'US' || !book.market_flag;
         } else if (marketplace === 'uk') {
-          return book.uk_asin || book.market_flag === 'UK';
+          // Show if has UK ASIN, or if no market flag specified (will try to fetch)
+          return book.uk_asin || book.market_flag === 'UK' || !book.market_flag;
         }
         return true;
       });
     }
+    // When marketplace is 'both', show all books
 
     // Filter by search query
     if (searchQuery) {
@@ -216,14 +219,7 @@ const Index = () => {
       );
     }
 
-    // Always filter to show only books with cost data
-    filtered = filtered.filter(book => {
-      const hasCost = (book.publisher_rrp && book.publisher_rrp > 0) || 
-                     (book.wholesale_price && book.wholesale_price > 0) ||
-                     (book.wholesalePrice && book.wholesalePrice > 0);
-      return hasCost;
-    });
-
+    // Note: No longer filtering by cost data - we'll fetch Amazon prices live when needed
     setFilteredBooks(filtered);
   };
 
