@@ -132,18 +132,20 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     
     try {
       if (marketplace === 'both') {
-        // Fetch data from both marketplaces using the appropriate ASIN
+        // Fetch data from both marketplaces using keepa-price-history
         const [usaResponse, ukResponse] = await Promise.all([
-          supabase.functions.invoke('keepa-product', {
+          supabase.functions.invoke('keepa-price-history', {
             body: { 
-              isbn: book.us_asin || book.isbn,
-              marketplace: 'usa'
+              asin: book.us_asin,
+              isbn: book.isbn,
+              market: 'US'
             }
           }),
-          supabase.functions.invoke('keepa-product', {
+          supabase.functions.invoke('keepa-price-history', {
             body: { 
-              isbn: book.uk_asin || book.isbn,
-              marketplace: 'uk'
+              asin: book.uk_asin,
+              isbn: book.isbn,
+              market: 'UK'
             }
           })
         ]);
@@ -152,6 +154,9 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
           throw new Error('Failed to fetch Amazon data from both marketplaces');
         }
         
+        console.log('Keepa US response:', usaResponse.data);
+        console.log('Keepa UK response:', ukResponse.data);
+        
         // Combine the data from both marketplaces
         setKeepaData({
           usa: usaResponse.data,
@@ -159,12 +164,15 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
           marketplace: 'both'
         });
       } else {
-        // Fetch from single marketplace using the appropriate ASIN or ISBN
-        const identifier = marketplace === 'uk' ? (book.uk_asin || book.isbn) : (book.us_asin || book.isbn);
-        const { data, error: functionError } = await supabase.functions.invoke('keepa-product', {
+        // Fetch from single marketplace using keepa-price-history
+        const market = marketplace === 'uk' ? 'UK' : 'US';
+        const asin = marketplace === 'uk' ? book.uk_asin : book.us_asin;
+        
+        const { data, error: functionError } = await supabase.functions.invoke('keepa-price-history', {
           body: { 
-            isbn: identifier,
-            marketplace: marketplace
+            asin,
+            isbn: book.isbn,
+            market
           }
         });
         
@@ -172,36 +180,11 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
           throw new Error(functionError.message || 'Failed to fetch Amazon data');
         }
         
-        console.log('Keepa response:', data);
+        console.log('Keepa price history response:', data);
+        console.log('Current prices:', data?.current);
         
-        // Normalize Keepa data to extract current prices
-        if (data?.products && data.products.length > 0) {
-          const product = data.products[0];
-          const csvData = product.csv;
-          
-          // Helper to get the latest price from Keepa CSV array
-          const getCurrentPrice = (csvArray: number[] | null | undefined): number | null => {
-            if (!csvArray || csvArray.length < 2) return null;
-            // CSV format: [timestamp1, price1, timestamp2, price2, ...]
-            // Get the last price value (second-to-last element)
-            const lastPrice = csvArray[csvArray.length - 1];
-            return lastPrice === -1 ? null : lastPrice;
-          };
-          
-          const normalized = {
-            ...data,
-            current: {
-              buyBox: getCurrentPrice(csvData[18]), // Buy Box price index
-              lowestNew: getCurrentPrice(csvData[1]), // New price index
-              lowestUsed: getCurrentPrice(csvData[2]), // Used price index
-            }
-          };
-          
-          console.log('Normalized Keepa data:', normalized.current);
-          setKeepaData(normalized);
-        } else {
-          setKeepaData(data);
-        }
+        // keepa-price-history already returns normalized data with current prices
+        setKeepaData(data);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Could not load Amazon product data';
