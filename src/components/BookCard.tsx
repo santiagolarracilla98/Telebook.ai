@@ -1,10 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, TrendingUp, Eye, ShoppingCart } from "lucide-react";
+import { ShieldCheck, Eye, ShoppingCart, Heart } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import BookDetailsDialog from "./BookDetailsDialog";
 import { useCart } from "@/contexts/CartContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import type { Book } from "@/data/mockBooks";
 
 interface BookCardProps extends Book {
@@ -13,7 +26,100 @@ interface BookCardProps extends Book {
 
 const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [loginAlertOpen, setLoginAlertOpen] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistId, setWishlistId] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { addItem } = useCart();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    checkWishlistStatus();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      checkWishlistStatus();
+    });
+
+    return () => subscription.unsubscribe();
+  }, [book.id]);
+
+  const checkWishlistStatus = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsLoggedIn(!!session);
+    
+    if (session) {
+      const { data } = await supabase
+        .from('wishlist')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('book_id', book.id)
+        .maybeSingle();
+      
+      if (data) {
+        setIsInWishlist(true);
+        setWishlistId(data.id);
+      } else {
+        setIsInWishlist(false);
+        setWishlistId(null);
+      }
+    }
+  };
+
+  const handleWishlistClick = async () => {
+    if (!isLoggedIn) {
+      setLoginAlertOpen(true);
+      return;
+    }
+
+    try {
+      if (isInWishlist && wishlistId) {
+        // Remove from wishlist
+        const { error } = await supabase
+          .from('wishlist')
+          .delete()
+          .eq('id', wishlistId);
+
+        if (error) throw error;
+
+        setIsInWishlist(false);
+        setWishlistId(null);
+        toast({
+          title: "Removed from wishlist",
+          description: `${book.title} has been removed from your wishlist`,
+        });
+      } else {
+        // Add to wishlist
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { data, error } = await supabase
+          .from('wishlist')
+          .insert({
+            user_id: session.user.id,
+            book_id: book.id,
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+
+        setIsInWishlist(true);
+        setWishlistId(data.id);
+        toast({
+          title: "Added to wishlist",
+          description: `${book.title} has been added to your wishlist`,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating wishlist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update wishlist",
+        variant: "destructive",
+      });
+    }
+  };
 
   const {
     title,
@@ -49,24 +155,42 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
     ) : null;
   };
   return (
-    <Card className="group hover:shadow-xl transition-all duration-300 border-border overflow-hidden">
-      <CardHeader className="p-0">
-        <div className="relative h-48 bg-muted overflow-hidden">
-          {imageUrl ? (
-            <img src={imageUrl} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-          ) : (
-            <div className="flex items-center justify-center h-full bg-gradient-to-br from-primary/10 to-secondary/10">
-              <span className="text-4xl font-bold text-muted-foreground/30">📚</span>
-            </div>
-          )}
-          {verified && (
-            <Badge className="absolute top-3 right-3 bg-success text-success-foreground gap-1">
-              <ShieldCheck className="w-3 h-3" />
-              Verified
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
+    <>
+      <Card className="group hover:shadow-xl transition-all duration-300 border-border overflow-hidden">
+        <CardHeader className="p-0">
+          <div className="relative h-48 bg-muted overflow-hidden">
+            {imageUrl ? (
+              <img src={imageUrl} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            ) : (
+              <div className="flex items-center justify-center h-full bg-gradient-to-br from-primary/10 to-secondary/10">
+                <span className="text-4xl font-bold text-muted-foreground/30">📚</span>
+              </div>
+            )}
+            
+            {/* Wishlist Heart Icon */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-3 left-3 h-8 w-8 bg-background/80 hover:bg-background/90 backdrop-blur-sm"
+              onClick={handleWishlistClick}
+            >
+              <Heart
+                className={`h-4 w-4 transition-colors ${
+                  isInWishlist
+                    ? "fill-red-500 text-red-500"
+                    : "text-muted-foreground hover:text-red-500"
+                }`}
+              />
+            </Button>
+            
+            {verified && (
+              <Badge className="absolute top-3 right-3 bg-success text-success-foreground gap-1">
+                <ShieldCheck className="w-3 h-3" />
+                Verified
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
       
       <CardContent className="p-4 space-y-3">
         <div>
@@ -134,6 +258,24 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
         marketplace={marketplace}
       />
     </Card>
+
+    <AlertDialog open={loginAlertOpen} onOpenChange={setLoginAlertOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Login Required</AlertDialogTitle>
+          <AlertDialogDescription>
+            Please log in or sign up to add books to your wishlist.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={() => navigate('/auth')}>
+            Go to Login
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
   );
 };
 
