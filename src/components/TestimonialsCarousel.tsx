@@ -65,6 +65,10 @@ const VideoTestimonial = ({ videoUrl, id }: { videoUrl: string; id: number }) =>
           </div>
         </div>
       )}
+      
+      <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-lg">
+        <span className="font-headline font-bold text-primary text-sm tracking-tight">Telebook</span>
+      </div>
     </div>
   );
 };
@@ -78,6 +82,10 @@ export const TestimonialsCarousel = () => {
     {
       videoUrl: "/videos/testimonial-2.mp4",
       id: 2
+    },
+    {
+      videoUrl: "/videos/testimonial-3.mp4",
+      id: 3
     }
   ];
 
