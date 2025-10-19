@@ -211,6 +211,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   // Market-aware pricing calculations
   const cost = book.wholesale_price || book.wholesalePrice || book.publisher_rrp || 0;
   const currency = selectedMarket === 'uk' ? '£' : '$';
+  const marketLabel = selectedMarket === 'uk' ? 'UK' : 'US';
   const liveAmazonPrice = selectedMarket === 'uk' ? liveAmazonPrices.uk : liveAmazonPrices.usa;
   const amazonPrice = liveAmazonPrice || book.amazon_price || book.amazonPrice || 0;
   
@@ -342,13 +343,13 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                 <div className="p-4 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                    <h4 className="text-sm font-medium">Amazon Price ({selectedMarket.toUpperCase()})</h4>
+                    <h4 className="text-sm font-medium">Amazon Price ({marketLabel})</h4>
                   </div>
                   <p className="text-2xl font-bold">
                     {liveAmazonPrice ? `${currency}${liveAmazonPrice.toFixed(2)}` : (amazonPrice > 0 ? `${currency}${amazonPrice.toFixed(2)}` : 'NA')}
                   </p>
                   {liveAmazonPrice ? (
-                    <p className="text-xs text-success mt-1">✓ Live from Amazon {selectedMarket.toUpperCase()}</p>
+                    <p className="text-xs text-success mt-1">✓ Live from Amazon {marketLabel}</p>
                   ) : (
                     <div className="mt-2">
                       <p className="text-xs text-muted-foreground">No live data found</p>
@@ -358,7 +359,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                         rel="noopener noreferrer"
                         className="text-xs text-primary hover:underline"
                       >
-                        Search on Amazon {selectedMarket.toUpperCase()} →
+                        Search on Amazon {marketLabel} →
                       </a>
                     </div>
                   )}
@@ -449,11 +450,12 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     
                     {['usa', 'uk'].map((market) => {
                       const data = keepaData[market as 'usa' | 'uk'];
+                      const marketDisplayLabel = market === 'uk' ? 'UK' : 'US';
                       return (
                         <TabsContent key={market} value={market} className="space-y-4">
                           {data?.products && data.products.length > 0 && data.products[0] ? (
                             <div className="p-4 rounded-lg border border-border">
-                              <h3 className="font-semibold text-lg mb-3">Amazon Product Data ({market.toUpperCase()})</h3>
+                              <h3 className="font-semibold text-lg mb-3">Amazon Product Data ({marketDisplayLabel})</h3>
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between py-2 border-b border-border">
                                   <span className="text-muted-foreground">ASIN</span>
@@ -507,19 +509,19 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center text-primary hover:underline font-medium"
                                   >
-                                    View on Amazon ({market.toUpperCase()}) →
+                                    View on Amazon ({marketDisplayLabel}) →
                                   </a>
                                 </div>
                               </div>
                             </div>
                           ) : (
                             <div className="p-4 rounded-lg border border-border">
-                              <h3 className="font-semibold text-lg mb-3">Amazon Product Data ({market.toUpperCase()})</h3>
+                              <h3 className="font-semibold text-lg mb-3">Amazon Product Data ({marketDisplayLabel})</h3>
                               <p className="text-muted-foreground mb-3">
                                 No Amazon data found for ISBN: {book.isbn}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                This could mean the product is not available on Amazon {market.toUpperCase()}, or the ISBN doesn't match any Amazon listing.
+                                This could mean the product is not available on Amazon {marketDisplayLabel}, or the ISBN doesn't match any Amazon listing.
                               </p>
                               <div className="mt-4">
                                 <a
@@ -528,7 +530,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center text-primary hover:underline font-medium"
                                 >
-                                  Search on Amazon ({market.toUpperCase()}) →
+                                  Search on Amazon {marketDisplayLabel} →
                                 </a>
                               </div>
                             </div>
