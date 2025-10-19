@@ -180,6 +180,17 @@ const Index = () => {
   const filterBooks = () => {
     let filtered = [...books];
 
+    // Filter out books without price information
+    filtered = filtered.filter(book => {
+      const hasWholesalePrice = book.wholesale_price && book.wholesale_price > 0;
+      const hasPublisherPrice = book.publisher_rrp && book.publisher_rrp > 0;
+      const hasAmazonPrice = book.amazon_price && book.amazon_price > 0;
+      const hasRRP = book.rrp && book.rrp > 0;
+      
+      // Book must have at least wholesale/publisher price AND (amazon price OR rrp)
+      return (hasWholesalePrice || hasPublisherPrice) && (hasAmazonPrice || hasRRP);
+    });
+
     // Filter by marketplace (only when not showing "both")
     if (marketplace !== 'both') {
       filtered = filtered.filter(book => {
