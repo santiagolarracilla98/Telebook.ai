@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Hero from "@/components/Hero";
+import { HowItWorks } from "@/components/HowItWorks";
 import FilterBar from "@/components/FilterBar";
 import BookCard from "@/components/BookCard";
 import { ROICalculator } from "@/components/ROICalculator";
@@ -236,6 +237,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       <Hero />
+      <HowItWorks />
       <div id="pricing-engine">
         <ROICalculator />
       </div>
