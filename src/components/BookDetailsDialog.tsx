@@ -56,6 +56,26 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     checkAuthAndFetch();
   }, [open, book.isbn, marketplace]);
 
+  const savePriceToDatabase = async (livePrice: number) => {
+    try {
+      const { error } = await supabase
+        .from('books')
+        .update({
+          amazon_price: livePrice,
+          last_price_check: new Date().toISOString()
+        })
+        .eq('id', book.id);
+
+      if (error) {
+        console.error('Error saving price to database:', error);
+      } else {
+        console.log(`✅ Saved live price $${livePrice} to database`);
+      }
+    } catch (err) {
+      console.error('Error updating book price:', err);
+    }
+  };
+
   const fetchSimilarBooks = async () => {
     setLoadingSimilar(true);
     try {
@@ -159,6 +179,9 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
             const livePrice = priceValue / 100;
             setLiveAmazonPrice(livePrice);
             console.log(`✅ Live Amazon price extracted: $${livePrice}`);
+            
+            // Save live price to database
+            await savePriceToDatabase(livePrice);
           }
         }
       } else {
@@ -186,6 +209,9 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
             const livePrice = priceValue / 100;
             setLiveAmazonPrice(livePrice);
             console.log(`✅ Live Amazon price extracted: $${livePrice}`);
+            
+            // Save live price to database
+            await savePriceToDatabase(livePrice);
           }
         }
       }

@@ -30,6 +30,7 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistId, setWishlistId] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [bookData, setBookData] = useState<Book>(book);
   const { addItem } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -43,6 +44,37 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
 
     return () => subscription.unsubscribe();
   }, [book.id]);
+
+  const refreshBookData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('books')
+        .select('*')
+        .eq('id', book.id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setBookData({
+          ...book,
+          amazon_price: data.amazon_price,
+          amazonPrice: data.amazon_price,
+          last_price_check: data.last_price_check,
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing book data:', error);
+    }
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      // Refresh book data when dialog closes
+      refreshBookData();
+    }
+  };
 
   const checkWishlistStatus = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -136,7 +168,7 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
     publisher_rrp,
     roi_target_price,
     market_flag,
-  } = book;
+  } = bookData;
 
   const getMarketBadge = () => {
     if (!market_flag) return null;
@@ -279,9 +311,9 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
       </CardFooter>
       
       <BookDetailsDialog 
-        book={book}
+        book={bookData}
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={handleDialogClose}
         marketplace={marketplace}
       />
     </Card>
