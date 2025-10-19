@@ -156,6 +156,7 @@ export type Database = {
           book_count: number | null
           created_at: string | null
           created_by: string | null
+          exclude_books_without_price: boolean | null
           id: string
           is_active: boolean | null
           last_synced_at: string | null
@@ -167,6 +168,7 @@ export type Database = {
           book_count?: number | null
           created_at?: string | null
           created_by?: string | null
+          exclude_books_without_price?: boolean | null
           id?: string
           is_active?: boolean | null
           last_synced_at?: string | null
@@ -178,6 +180,7 @@ export type Database = {
           book_count?: number | null
           created_at?: string | null
           created_by?: string | null
+          exclude_books_without_price?: boolean | null
           id?: string
           is_active?: boolean | null
           last_synced_at?: string | null

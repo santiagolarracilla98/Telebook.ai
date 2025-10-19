@@ -100,7 +100,8 @@ const ClientDashboard = () => {
           dataset:datasets!inner(
             id,
             name,
-            is_active
+            is_active,
+            exclude_books_without_price
           )
         `)
         .eq('dataset.is_active', true)
@@ -108,8 +109,18 @@ const ClientDashboard = () => {
 
       if (error) throw error;
       
+      // Filter books based on dataset's exclude_books_without_price setting
+      const filteredData = (data || []).filter(book => {
+        const dataset = book.dataset as any;
+        // If dataset excludes books without price and this book has no publisher_rrp, exclude it
+        if (dataset?.exclude_books_without_price && !book.publisher_rrp) {
+          return false;
+        }
+        return true;
+      });
+      
       // Transform database books to match BookCard interface
-      const transformedBooks = (data || []).map(book => {
+      const transformedBooks = filteredData.map(book => {
         const cost = book.wholesale_price || book.publisher_rrp || 0;
         const amazonPrice = book.amazon_price || book.rrp || 0;
         const targetPrice = book.roi_target_price || (cost > 0 ? cost * 1.25 : 0);

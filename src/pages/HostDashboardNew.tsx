@@ -27,8 +27,10 @@ import {
   DollarSign,
   LogOut,
   Loader2,
-  Trash2
+  Trash2,
+  Filter
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import type { User } from "@supabase/supabase-js";
 import { DeleteDatasetDialog } from "@/components/DeleteDatasetDialog";
 import { ManualPriceEntry } from "@/components/ManualPriceEntry";
@@ -43,6 +45,7 @@ interface Dataset {
   book_count: number;
   metadata?: any;
   last_synced_at?: string;
+  exclude_books_without_price?: boolean;
 }
 
 interface Book {
@@ -84,6 +87,7 @@ const HostDashboardNew = () => {
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [datasetToDelete, setDatasetToDelete] = useState<Dataset | null>(null);
+  const [excludedCounts, setExcludedCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     checkAuth();
@@ -153,6 +157,27 @@ const HostDashboardNew = () => {
 
     if (!error && data) {
       setDatasets(data);
+      
+      // Fetch excluded counts for active datasets with the filter enabled
+      const countsPromises = data
+        .filter(d => d.is_active && d.exclude_books_without_price)
+        .map(async (dataset) => {
+          const { count } = await supabase
+            .from('books')
+            .select('*', { count: 'exact', head: true })
+            .eq('dataset_id', dataset.id)
+            .is('publisher_rrp', null);
+          
+          return { id: dataset.id, count: count || 0 };
+        });
+      
+      const counts = await Promise.all(countsPromises);
+      const countsMap = counts.reduce((acc, { id, count }) => {
+        acc[id] = count;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      setExcludedCounts(countsMap);
     }
   };
 
@@ -174,6 +199,27 @@ const HostDashboardNew = () => {
         description: `Dataset ${!currentState ? 'activated' : 'deactivated'} successfully.`,
       });
       await Promise.all([fetchDatasets(), fetchBooks(), fetchStats()]);
+    }
+  };
+
+  const toggleExcludeWithoutPrice = async (datasetId: string, currentState: boolean) => {
+    const { error } = await supabase
+      .from('datasets')
+      .update({ exclude_books_without_price: !currentState })
+      .eq('id', datasetId);
+
+    if (error) {
+      toast({
+        title: "Update Failed",
+        description: "There was an error updating the filter setting.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Filter Updated",
+        description: `Books without publisher prices are now ${!currentState ? 'excluded' : 'included'} for clients.`,
+      });
+      await fetchDatasets();
     }
   };
 
@@ -709,35 +755,62 @@ const HostDashboardNew = () => {
                     </p>
                   ) : (
                     datasets.filter(d => d.is_active).map((dataset) => (
-                      <div key={dataset.id} className="flex items-center justify-between p-4 border rounded-lg bg-card">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium">{dataset.name}</h4>
-                            <Badge variant={dataset.source === 'google_books' ? 'default' : 'outline'}>
-                              {dataset.source.replace('_', ' ')}
-                            </Badge>
-                            <Badge variant="secondary">{dataset.book_count} books</Badge>
+                      <div key={dataset.id} className="flex flex-col gap-3 p-4 border rounded-lg bg-card">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium">{dataset.name}</h4>
+                              <Badge variant={dataset.source === 'google_books' ? 'default' : 'outline'}>
+                                {dataset.source.replace('_', ' ')}
+                              </Badge>
+                              <Badge variant="secondary">{dataset.book_count} books</Badge>
+                              {dataset.exclude_books_without_price && excludedCounts[dataset.id] > 0 && (
+                                <Badge variant="destructive" className="gap-1">
+                                  <Filter className="w-3 h-3" />
+                                  {excludedCounts[dataset.id]} excluded
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Created: {new Date(dataset.created_at).toLocaleDateString()}
+                              {dataset.last_synced_at && ` • Last synced: ${new Date(dataset.last_synced_at).toLocaleDateString()}`}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            Created: {new Date(dataset.created_at).toLocaleDateString()}
-                            {dataset.last_synced_at && ` • Last synced: ${new Date(dataset.last_synced_at).toLocaleDateString()}`}
-                          </p>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => toggleDatasetActive(dataset.id, dataset.is_active)}
+                            >
+                              Deactivate
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => openDeleteDialog(dataset)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => toggleDatasetActive(dataset.id, dataset.is_active)}
-                          >
-                            Deactivate
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => openDeleteDialog(dataset)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                        
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <div className="flex items-center gap-3">
+                            <Filter className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">Hide books without publisher price</p>
+                              <p className="text-xs text-muted-foreground">
+                                Clients will only see books with pricing data
+                                {dataset.exclude_books_without_price && excludedCounts[dataset.id] > 0 && (
+                                  <span className="font-medium text-destructive"> • {dataset.book_count - excludedCounts[dataset.id]} visible to clients</span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={dataset.exclude_books_without_price || false}
+                            onCheckedChange={() => toggleExcludeWithoutPrice(dataset.id, dataset.exclude_books_without_price || false)}
+                          />
                         </div>
                       </div>
                     ))
