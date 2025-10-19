@@ -122,11 +122,11 @@ export const TestimonialsCarousel = () => {
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          <div className="flex gap-6 w-fit">
+          <div className="flex gap-4 w-fit">
             {/* Duplicate testimonials for seamless loop */}
             {[...testimonials, ...testimonials].map((testimonial, index) => (
-              <div key={`${testimonial.id}-${index}`} className="min-w-[280px] flex-shrink-0">
-                <Card className="border-2 border-border/30 overflow-hidden bg-card shadow-xl hover:shadow-2xl hover:border-primary/30 transition-all duration-500 hover:-translate-y-1 rounded-2xl">
+              <div key={`${testimonial.id}-${index}`} className="w-[220px] flex-shrink-0">
+                <Card className="border-2 border-border/30 overflow-hidden bg-card shadow-lg hover:shadow-xl hover:border-primary/30 transition-all duration-300 rounded-lg">
                   <VideoTestimonial videoUrl={testimonial.videoUrl} id={testimonial.id} />
                 </Card>
               </div>
