@@ -103,11 +103,13 @@ export const TestimonialsCarousel = () => {
             align: "start",
             loop: true,
             slidesToScroll: 1,
+            duration: 30,
           }}
           plugins={[
             Autoplay({
-              delay: 4000,
-              stopOnInteraction: true,
+              delay: 3000,
+              stopOnInteraction: false,
+              stopOnMouseEnter: false,
             }),
           ]}
           className="w-full max-w-5xl mx-auto"
