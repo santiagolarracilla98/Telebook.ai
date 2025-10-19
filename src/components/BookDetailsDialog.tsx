@@ -27,6 +27,7 @@ interface BookDetailsDialogProps {
 const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: BookDetailsDialogProps) => {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const [selectedMarket, setSelectedMarket] = useState<'usa' | 'uk'>('usa');
   const [keepaData, setKeepaData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +35,10 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [selectedSimilarBook, setSelectedSimilarBook] = useState<Book | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [liveAmazonPrice, setLiveAmazonPrice] = useState<number | null>(null);
+  const [liveAmazonPrices, setLiveAmazonPrices] = useState<{
+    usa: number | null;
+    uk: number | null;
+  }>({ usa: null, uk: null });
 
   // Function to strip HTML tags from description
   const stripHtmlTags = (html: string) => {
@@ -142,78 +146,58 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     setError(null);
     
     try {
-      if (marketplace === 'both') {
-        // Fetch data from both marketplaces using the appropriate ASIN
-        const [usaResponse, ukResponse] = await Promise.all([
-          supabase.functions.invoke('keepa-product', {
-            body: { 
-              isbn: book.us_asin || book.isbn,
-              marketplace: 'usa'
-            }
-          }),
-          supabase.functions.invoke('keepa-product', {
-            body: { 
-              isbn: book.uk_asin || book.isbn,
-              marketplace: 'uk'
-            }
-          })
-        ]);
-        
-        if (usaResponse.error && ukResponse.error) {
-          throw new Error('Failed to fetch Amazon data from both marketplaces');
-        }
-        
-        // Combine the data from both marketplaces
-        const combinedData = {
-          usa: usaResponse.data,
-          uk: ukResponse.data,
-          marketplace: 'both'
-        };
-        setKeepaData(combinedData);
-        
-        // Extract live price from USA data (prioritize USA)
-        const usaProduct = usaResponse.data?.products?.[0];
-        if (usaProduct?.csv?.[0]) {
-          const priceValue = usaProduct.csv[0][usaProduct.csv[0].length - 1];
-          if (priceValue > 0) {
-            const livePrice = priceValue / 100;
-            setLiveAmazonPrice(livePrice);
-            console.log(`✅ Live Amazon price extracted: $${livePrice}`);
-            
-            // Save live price to database
-            await savePriceToDatabase(livePrice);
-          }
-        }
-      } else {
-        // Fetch from single marketplace using the appropriate ASIN
-        const asinToUse = marketplace === 'uk' ? (book.uk_asin || book.isbn) : (book.us_asin || book.isbn);
-        const { data, error: functionError } = await supabase.functions.invoke('keepa-product', {
+      // Always fetch both markets
+      const [usaResponse, ukResponse] = await Promise.all([
+        supabase.functions.invoke('keepa-product', {
           body: { 
-            isbn: asinToUse,
-            marketplace: marketplace
+            isbn: book.us_asin || book.isbn,
+            marketplace: 'usa'
           }
-        });
-        
-        if (functionError) {
-          throw new Error(functionError.message || 'Failed to fetch Amazon data');
-        }
-        
-        console.log('Keepa response:', data);
-        setKeepaData(data);
-        
-        // Extract live price from Keepa data
-        const product = data?.products?.[0];
-        if (product?.csv?.[0]) {
-          const priceValue = product.csv[0][product.csv[0].length - 1];
-          if (priceValue > 0) {
-            const livePrice = priceValue / 100;
-            setLiveAmazonPrice(livePrice);
-            console.log(`✅ Live Amazon price extracted: $${livePrice}`);
-            
-            // Save live price to database
-            await savePriceToDatabase(livePrice);
+        }),
+        supabase.functions.invoke('keepa-product', {
+          body: { 
+            isbn: book.uk_asin || book.isbn,
+            marketplace: 'uk'
           }
+        })
+      ]);
+      
+      // Combine the data from both marketplaces
+      const combinedData = {
+        usa: usaResponse.data,
+        uk: ukResponse.data,
+        marketplace: 'both'
+      };
+      setKeepaData(combinedData);
+      
+      // Extract live prices from both markets
+      const usaProduct = usaResponse.data?.products?.[0];
+      const ukProduct = ukResponse.data?.products?.[0];
+      
+      let usaPrice = null;
+      let ukPrice = null;
+      
+      if (usaProduct?.csv?.[0]) {
+        const priceValue = usaProduct.csv[0][usaProduct.csv[0].length - 1];
+        if (priceValue > 0) {
+          usaPrice = priceValue / 100;
+          console.log(`✅ Live Amazon USA price: $${usaPrice}`);
         }
+      }
+      
+      if (ukProduct?.csv?.[0]) {
+        const priceValue = ukProduct.csv[0][ukProduct.csv[0].length - 1];
+        if (priceValue > 0) {
+          ukPrice = priceValue / 100;
+          console.log(`✅ Live Amazon UK price: £${ukPrice}`);
+        }
+      }
+      
+      setLiveAmazonPrices({ usa: usaPrice, uk: ukPrice });
+      
+      // Save prices to database
+      if (usaPrice || ukPrice) {
+        await savePriceToDatabase(usaPrice || ukPrice || 0);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Could not load Amazon product data';
@@ -224,10 +208,20 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     }
   };
 
+  // Market-aware pricing calculations
   const cost = book.wholesale_price || book.wholesalePrice || book.publisher_rrp || 0;
+  const currency = selectedMarket === 'uk' ? '£' : '$';
+  const liveAmazonPrice = selectedMarket === 'uk' ? liveAmazonPrices.uk : liveAmazonPrices.usa;
   const amazonPrice = liveAmazonPrice || book.amazon_price || book.amazonPrice || 0;
-  const amazonFees = book.amazon_fee || (amazonPrice * 0.15);
-  const targetPrice = book.roi_target_price || book.suggestedPrice || 0;
+  
+  // Fee structure varies by market
+  const feePercentage = selectedMarket === 'uk' ? 0.15 : 0.15;
+  const fixedFee = selectedMarket === 'uk' ? 2 : 3;
+  const amazonFees = amazonPrice * feePercentage + fixedFee;
+  
+  // Calculate smart target price ensuring 20% ROI
+  const minROI = 0.20;
+  const targetPrice = (cost * (1 + minROI) + fixedFee) / (1 - feePercentage);
   
   // Calculate net profit and ROI at our smart target price (25% target)
   const targetFees = targetPrice * 0.15; // Approximate Amazon fees
@@ -253,20 +247,36 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                 by {book.author}
               </DialogDescription>
             </div>
-            <Button 
-              size="lg"
-              onClick={() => addItem({
-                id: book.id,
-                title: book.title,
-                author: book.author,
-                imageUrl: book.imageUrl,
-                price: targetPrice,
-                isbn: book.isbn,
-              })}
-            >
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              Add to Cart
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={selectedMarket === 'usa' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedMarket('usa')}
+              >
+                🇺🇸 US
+              </Button>
+              <Button
+                variant={selectedMarket === 'uk' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedMarket('uk')}
+              >
+                🇬🇧 UK
+              </Button>
+              <Button 
+                size="lg"
+                onClick={() => addItem({
+                  id: book.id,
+                  title: book.title,
+                  author: book.author,
+                  imageUrl: book.imageUrl,
+                  price: targetPrice,
+                  isbn: book.isbn,
+                })}
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Add to Cart
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -312,30 +322,45 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     <h4 className="text-sm font-medium">Cost (Publisher)</h4>
                   </div>
                   <p className="text-2xl font-bold">
-                    {cost > 0 ? `$${cost.toFixed(2)}` : 'NA'}
+                    {cost > 0 ? `${currency}${cost.toFixed(2)}` : 'NA'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {book.currency === 'GBP' ? 'UK Publisher' : 'US Publisher'}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-lg bg-primary/10">
                   <div className="flex items-center gap-2 mb-2">
                     <DollarSign className="w-4 h-4 text-primary" />
-                    <h4 className="text-sm font-medium">Smart Price (25% ROI)</h4>
+                    <h4 className="text-sm font-medium">Smart Price (20% ROI)</h4>
                   </div>
                   <p className="text-2xl font-bold text-primary">
-                    {targetPrice > 0 ? `$${targetPrice.toFixed(2)}` : 'Calculating...'}
+                    {targetPrice > 0 ? `${currency}${targetPrice.toFixed(2)}` : 'Calculating...'}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                    <h4 className="text-sm font-medium">Amazon Price (Ref)</h4>
+                    <h4 className="text-sm font-medium">Amazon Price ({selectedMarket.toUpperCase()})</h4>
                   </div>
                   <p className="text-2xl font-bold">
-                    {liveAmazonPrice ? `$${liveAmazonPrice.toFixed(2)}` : (amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA')}
+                    {liveAmazonPrice ? `${currency}${liveAmazonPrice.toFixed(2)}` : (amazonPrice > 0 ? `${currency}${amazonPrice.toFixed(2)}` : 'NA')}
                   </p>
-                  {liveAmazonPrice && (
-                    <p className="text-xs text-success mt-1">✓ Live from Amazon</p>
+                  {liveAmazonPrice ? (
+                    <p className="text-xs text-success mt-1">✓ Live from Amazon {selectedMarket.toUpperCase()}</p>
+                  ) : (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground">No live data found</p>
+                      <a 
+                        href={`https://www.amazon.${selectedMarket === 'uk' ? 'co.uk' : 'com'}/s?k=${encodeURIComponent(book.isbn || book.title)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Search on Amazon {selectedMarket.toUpperCase()} →
+                      </a>
+                    </div>
                   )}
                 </div>
 
@@ -392,6 +417,8 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     id: book.id,
                     imageUrl: book.imageUrl
                   }}
+                  marketplace={selectedMarket}
+                  currency={currency}
                 />
               </div>
             )}

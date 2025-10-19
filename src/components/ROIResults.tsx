@@ -27,6 +27,9 @@ interface ROIResultsProps {
     quantity: number;
     priceSource?: string;
     livePriceFetchedAt?: Date;
+    marketplace?: 'usa' | 'uk';
+    currency?: string;
+    marketCompetitiveness?: string;
   };
 }
 
@@ -34,6 +37,8 @@ export const ROIResults = ({ result }: ROIResultsProps) => {
   const roiValue = parseFloat(result.potentialROI);
   const roiColor = roiValue > 40 ? "text-green-600" : roiValue > 25 ? "text-blue-600" : "text-yellow-600";
   const { addItem } = useCart();
+  const currency = result.currency || '$';
+  const marketLabel = result.marketplace === 'uk' ? '🇬🇧 UK' : '🇺🇸 US';
 
   // Format price source badge
   const getPriceSourceBadge = () => {
@@ -102,7 +107,8 @@ export const ROIResults = ({ result }: ROIResultsProps) => {
                   <DollarSign className="h-5 w-5 text-primary" />
                   <span className="text-sm font-medium text-muted-foreground">Your Final Acquisition Cost (Per Unit)</span>
                 </div>
-                <p className="text-3xl font-bold">${result.ourAcquisitionCost}</p>
+                <p className="text-3xl font-bold">{currency}{result.ourAcquisitionCost}</p>
+                <p className="text-xs text-muted-foreground mt-1">Market: {marketLabel}</p>
               </div>
 
               <div className={`p-4 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200`}>
@@ -112,19 +118,19 @@ export const ROIResults = ({ result }: ROIResultsProps) => {
                 </div>
                 <p className={`text-5xl font-bold ${roiColor}`}>{result.potentialROI}%</p>
                 <p className="text-sm text-green-700 mt-2">
-                  Net Profit: ${result.estimatedNetProfit} per unit
+                  Net Profit: {currency}{result.estimatedNetProfit} per unit
                 </p>
               </div>
 
               <div className="p-4 rounded-lg bg-muted">
                 <div className="flex items-center gap-2 mb-2">
                   <Tag className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-medium text-muted-foreground">Smart Selling Price</span>
+                  <span className="text-sm font-medium text-muted-foreground">Smart Selling Price ({marketLabel})</span>
                 </div>
-                <p className="text-2xl font-bold">${result.smartPrice}</p>
+                <p className="text-2xl font-bold">{currency}{result.smartPrice}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <p className="text-sm text-muted-foreground">
-                    Amazon Reference RRP: ${result.amazonReferencePrice}
+                    Amazon Reference RRP: {currency}{result.amazonReferencePrice}
                   </p>
                   {getPriceSourceBadge()}
                 </div>
@@ -159,19 +165,19 @@ export const ROIResults = ({ result }: ROIResultsProps) => {
               <div className="p-4 rounded-lg bg-muted space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Amazon Fee ({result.fulfillmentMethod})</span>
-                  <span className="font-medium">${result.amazonFee}</span>
+                  <span className="font-medium">{currency}{result.amazonFee}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Acquisition Cost</span>
-                  <span className="font-medium">${result.ourAcquisitionCost}</span>
+                  <span className="font-medium">{currency}{result.ourAcquisitionCost}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Smart Selling Price</span>
-                  <span className="font-medium">${result.smartPrice}</span>
+                  <span className="font-medium">{currency}{result.smartPrice}</span>
                 </div>
                 <div className="border-t pt-2 flex justify-between font-bold">
                   <span>Net Profit per Unit</span>
-                  <span className="text-green-600">${result.estimatedNetProfit}</span>
+                  <span className="text-green-600">{currency}{result.estimatedNetProfit}</span>
                 </div>
               </div>
             </div>

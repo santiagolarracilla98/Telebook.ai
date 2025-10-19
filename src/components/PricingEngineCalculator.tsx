@@ -25,9 +25,15 @@ interface PrefilledBook {
 
 interface PricingEngineCalculatorProps {
   prefilledBook?: PrefilledBook;
+  marketplace?: 'usa' | 'uk';
+  currency?: string;
 }
 
-export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculatorProps) => {
+export const PricingEngineCalculator = ({ 
+  prefilledBook, 
+  marketplace = 'usa',
+  currency = '$'
+}: PricingEngineCalculatorProps) => {
   const [bookInput, setBookInput] = useState(prefilledBook?.title || "");
   const [fulfillmentMethod, setFulfillmentMethod] = useState<"FBA" | "FBM">("FBA");
   const [quantity, setQuantity] = useState(100);
@@ -36,10 +42,10 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
   const { fetchLivePrice } = useAmazonPrice();
   
   // Helper function to calculate smart price with minimum ROI guarantee
-  const calculateSmartPrice = (acquisitionCost: number, fulfillment: "FBA" | "FBM") => {
+  const calculateSmartPrice = (acquisitionCost: number, fulfillment: "FBA" | "FBM", market: 'usa' | 'uk' = 'usa') => {
     const minROITarget = 0.20; // 20% minimum ROI
     const feePercentage = fulfillment === "FBA" ? 0.15 : 0.08;
-    const fixedFee = fulfillment === "FBA" ? 3 : 0;
+    const fixedFee = fulfillment === "FBA" ? (market === 'uk' ? 2 : 3) : 0;
     
     // Formula: Price = (Cost × (1 + Target ROI) + Fixed Fee) / (1 - Fee %)
     return (acquisitionCost * (1 + minROITarget) + fixedFee) / (1 - feePercentage);
@@ -48,8 +54,9 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
   const [calculationResult, setCalculationResult] = useState<any>(
     prefilledBook ? (() => {
       // Always calculate fresh - ignore outdated database roi_target_price
-      const smartPrice = calculateSmartPrice(prefilledBook.cost, "FBA");
-      const amazonFee = smartPrice * 0.15 + 3;
+      const smartPrice = calculateSmartPrice(prefilledBook.cost, "FBA", marketplace);
+      const fixedFee = marketplace === 'uk' ? 2 : 3;
+      const amazonFee = smartPrice * 0.15 + fixedFee;
       const netProfit = smartPrice - amazonFee - prefilledBook.cost;
       const roi = (netProfit / prefilledBook.cost) * 100;
       
@@ -75,14 +82,16 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
         potentialROI: roi.toFixed(1),
         smartPrice: smartPrice.toFixed(2),
         amazonReferencePrice: prefilledBook.amazonPrice.toFixed(2),
-        priceRange: `$${(smartPrice * 0.95).toFixed(2)} - $${(smartPrice * 1.05).toFixed(2)}`,
+        priceRange: `${currency}${(smartPrice * 0.95).toFixed(2)} - ${currency}${(smartPrice * 1.05).toFixed(2)}`,
         pricingEdge: "Competitive",
         volumeDiscount: "15",
         estimatedNetProfit: netProfit.toFixed(2),
         amazonFee: amazonFee.toFixed(2),
         fulfillmentMethod: "FBA",
         quantity: 100,
-        marketCompetitiveness
+        marketCompetitiveness,
+        marketplace,
+        currency
       };
     })() : null
   );
@@ -121,11 +130,11 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
 
       const book = books[0];
 
-      // Fetch live Amazon price
+      // Fetch live Amazon price for selected marketplace
       let livePriceData = null;
       let priceSource = 'database';
       try {
-        livePriceData = await fetchLivePrice(book.title, book.author, 'usa');
+        livePriceData = await fetchLivePrice(book.title, book.author, marketplace);
         if (livePriceData.price && livePriceData.price > 0) {
           priceSource = livePriceData.source;
           
@@ -151,13 +160,8 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
       const volumeDiscount = getVolumeDiscount(quantity);
       const ourAcquisitionCost = book.wholesale_price || book.publisher_rrp || 0;
       
-      // Calculate smart price that ensures minimum 20% ROI
-      const minROITarget = 0.20; // 20% minimum ROI
-      const feePercentage = fulfillmentMethod === "FBA" ? 0.15 : 0.08;
-      const fixedFee = fulfillmentMethod === "FBA" ? 3 : 0;
-      
-      // Formula: Price = (Cost × (1 + Target ROI) + Fixed Fee) / (1 - Fee %)
-      const calculatedSmartPrice = (ourAcquisitionCost * (1 + minROITarget) + fixedFee) / (1 - feePercentage);
+      // Calculate smart price that ensures minimum 20% ROI (market-aware)
+      const calculatedSmartPrice = calculateSmartPrice(ourAcquisitionCost, fulfillmentMethod, marketplace);
       
       // Market-aware pricing: Use live Amazon price if available, otherwise fallback
       const amazonPrice = (livePriceData?.price && livePriceData.price > 0) 
@@ -180,8 +184,9 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
       }
       
       const amazonReferencePrice = book.amazon_price || book.rrp || smartPrice;
+      const fixedFee = marketplace === 'uk' ? 2 : 3;
       const amazonFee = fulfillmentMethod === "FBA" 
-        ? smartPrice * 0.15 + 3
+        ? smartPrice * 0.15 + fixedFee
         : smartPrice * 0.08;
       const estimatedNetProfit = smartPrice - amazonFee - ourAcquisitionCost;
       const potentialROI = (estimatedNetProfit / ourAcquisitionCost) * 100;
@@ -202,7 +207,7 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
         potentialROI: potentialROI.toFixed(1),
         smartPrice: smartPrice.toFixed(2),
         amazonReferencePrice: amazonReferencePrice.toFixed(2),
-        priceRange: `$${(smartPrice * 0.95).toFixed(2)} - $${(smartPrice * 1.05).toFixed(2)}`,
+        priceRange: `${currency}${(smartPrice * 0.95).toFixed(2)} - ${currency}${(smartPrice * 1.05).toFixed(2)}`,
         pricingEdge,
         volumeDiscount: (volumeDiscount * 100).toFixed(0),
         estimatedNetProfit: estimatedNetProfit.toFixed(2),
@@ -211,7 +216,9 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
         quantity,
         marketCompetitiveness,
         priceSource,
-        livePriceFetchedAt: livePriceData?.fetchedAt
+        livePriceFetchedAt: livePriceData?.fetchedAt,
+        marketplace,
+        currency
       };
       
       setCalculationResult(result);

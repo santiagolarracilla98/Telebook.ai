@@ -13,6 +13,8 @@ interface SensitivityAnalysisProps {
     amazonReferencePrice: string;
     amazonFee: string;
     fulfillmentMethod: string;
+    marketplace?: 'usa' | 'uk';
+    currency?: string;
   };
 }
 
@@ -20,6 +22,8 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
   const acquisitionCost = parseFloat(result.ourAcquisitionCost);
   const initialPrice = parseFloat(result.smartPrice);
   const amazonPrice = parseFloat(result.amazonReferencePrice);
+  const currency = result.currency || '$';
+  const fixedFee = result.marketplace === 'uk' ? 2 : 3;
   
   // Handle missing Amazon price data
   const hasAmazonPrice = amazonPrice > 0;
@@ -29,7 +33,7 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
   
   // Calculate break-even price (where net profit = 0)
   const breakEvenPrice = result.fulfillmentMethod === "FBA"
-    ? (acquisitionCost + 3) / 0.85  // (cost + fixed fee) / (1 - 15%)
+    ? (acquisitionCost + fixedFee) / 0.85  // (cost + fixed fee) / (1 - 15%)
     : acquisitionCost / 0.92;        // cost / (1 - 8%)
   
   const [simulatedPrice, setSimulatedPrice] = useState(initialPrice);
@@ -71,7 +75,7 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
   // Calculate dynamic metrics based on simulated price
   const calculateMetrics = (price: number) => {
     const amazonFee = result.fulfillmentMethod === "FBA" 
-      ? price * 0.15 + 3
+      ? price * 0.15 + fixedFee
       : price * 0.08;
     
     const netProfit = price - amazonFee - acquisitionCost;
@@ -100,10 +104,10 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label htmlFor="priceSlider" className="text-base font-semibold">
-              Simulate Your Selling Price: ${simulatedPrice.toFixed(2)}
+              Simulate Your Selling Price: {currency}{simulatedPrice.toFixed(2)}
             </Label>
             <span className="bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-semibold whitespace-nowrap shadow-md">
-              Smart Price: ${initialPrice.toFixed(2)}
+              Smart Price: {currency}{initialPrice.toFixed(2)}
             </span>
           </div>
           
@@ -196,7 +200,7 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
           <div className="relative pt-2 pb-16">
             {/* Min label positioned at the very bottom left */}
             <div className="absolute bottom-0 left-0 text-sm text-muted-foreground">
-              <span>Min: ${(acquisitionCost * 1.1).toFixed(2)} (Acquisition cost)</span>
+              <span>Min: {currency}{(acquisitionCost * 1.1).toFixed(2)} (Acquisition cost)</span>
             </div>
             
             {/* Break-even label positioned below its tick mark */}
@@ -210,7 +214,7 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
                 Break-Even
               </span>
               <span className="font-bold text-orange-600">
-                ${breakEvenPrice.toFixed(2)}
+                {currency}{breakEvenPrice.toFixed(2)}
               </span>
             </div>
             
@@ -232,7 +236,7 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
                   "font-bold",
                   isAboveAmazon ? "text-red-600" : "text-blue-600"
                 )}>
-                  ${amazonPrice.toFixed(2)}
+                  {currency}{amazonPrice.toFixed(2)}
                 </span>
               </div>
             )}
@@ -250,20 +254,20 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
             <TableBody>
               <TableRow>
                 <TableCell className="font-medium">Simulated Selling Price</TableCell>
-                <TableCell className="text-right font-bold text-lg">${simulatedPrice.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-bold text-lg">{currency}{simulatedPrice.toFixed(2)}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Acquisition Cost</TableCell>
-                <TableCell className="text-right">${result.ourAcquisitionCost}</TableCell>
+                <TableCell className="text-right">{currency}{result.ourAcquisitionCost}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Amazon Fee ({result.fulfillmentMethod})</TableCell>
-                <TableCell className="text-right">${metrics.amazonFee}</TableCell>
+                <TableCell className="text-right">{currency}{metrics.amazonFee}</TableCell>
               </TableRow>
               <TableRow className="bg-primary/5">
                 <TableCell className="font-medium">Net Profit per Unit</TableCell>
                 <TableCell className={`text-right font-bold ${parseFloat(metrics.netProfit) > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ${metrics.netProfit}
+                  {currency}{metrics.netProfit}
                 </TableCell>
               </TableRow>
               <TableRow className="bg-gradient-to-r from-green-50 to-emerald-50 border-t-2">
@@ -288,7 +292,7 @@ export const SensitivityAnalysis = ({ result }: SensitivityAnalysisProps) => {
                 ? "Amazon price data is not available for this book. The pricing range is estimated based on your smart price."
                 : isAboveAmazon 
                   ? `You are pricing ${((simulatedPrice / amazonPrice - 1) * 100).toFixed(1)}% above Amazon's current price. This may reduce your competitiveness and sales velocity.`
-                  : `This analysis shows how your ROI changes with different selling prices. Amazon's current price is $${amazonPrice.toFixed(2)}.`
+                  : `This analysis shows how your ROI changes with different selling prices. Amazon's current price is ${currency}${amazonPrice.toFixed(2)}.`
             }
           </p>
         </div>
