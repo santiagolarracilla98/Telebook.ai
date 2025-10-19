@@ -119,17 +119,19 @@ const VideoTestimonial = ({ videoUrl, id, onPlay }: { videoUrl: string; id: numb
 
       <Dialog open={isExpanded} onOpenChange={handleDialogClose}>
         <DialogContent className="max-w-2xl p-0 bg-transparent border-none">
-          <video
-            ref={expandedVideoRef}
-            className="w-full aspect-video object-cover rounded-xl"
-            controls
-            autoPlay
-            playsInline
-            onClick={handleClick}
-          >
-            <source src={videoUrl} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+          <div className="relative" onClick={handleClick}>
+            <video
+              ref={expandedVideoRef}
+              className="w-full aspect-video object-cover rounded-xl"
+              controls
+              autoPlay
+              playsInline
+              onClick={(e) => e.stopPropagation()}
+            >
+              <source src={videoUrl} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
         </DialogContent>
       </Dialog>
     </>
