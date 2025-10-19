@@ -77,9 +77,9 @@ export const AnimatedBackground = () => {
 
   return (
     <div 
-      className="fixed inset-0 pointer-events-none opacity-40 z-0"
+      className="fixed inset-0 pointer-events-none opacity-50 z-0"
       style={{
-        transform: `translateY(${scrollY * 0.3}px)`,
+        transform: `translateY(${scrollY * 0.15}px)`,
       }}
     >
       {books.map((book, index) => (
