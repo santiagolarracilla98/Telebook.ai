@@ -113,7 +113,7 @@ const Navigation = () => {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-popover" align="end">
+                <DropdownMenuContent className="w-56 bg-popover z-[100]" align="end" sideOffset={5}>
                   <DropdownMenuItem onClick={() => navigate('/my-business')} className="gap-2 cursor-pointer">
                     <Briefcase className="w-4 h-4" />
                     My Business
