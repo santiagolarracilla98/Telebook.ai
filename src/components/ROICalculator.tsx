@@ -192,8 +192,10 @@ export const ROICalculator = () => {
   return (
     <div className="w-full max-w-6xl mx-auto py-24 px-4">
       <div className="text-center mb-12 animate-fade-in-up">
-        <h2 className="font-headline text-4xl md:text-5xl font-bold mb-4 text-foreground tracking-tight">
-          Unlock Your True Profit Potential: The Telebook ROI Calculator
+        <h2 className="font-headline text-4xl md:text-5xl font-bold mb-4 tracking-tight">
+          <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+            Unlock Your True Profit Potential: The Telebook ROI Calculator
+          </span>
         </h2>
         <p className="font-body text-sm text-muted-foreground/70 mb-4">
           (Your First Analysis is Free)

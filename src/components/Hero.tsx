@@ -56,20 +56,20 @@ const Hero = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-20">
         <div className="text-center max-w-5xl mx-auto animate-fade-in-up">
           <h1 className="font-headline text-5xl sm:text-6xl md:text-7xl font-bold mb-8 leading-[1.1] tracking-tight">
-            <span className="bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent animate-fade-in">
+            <span className="text-foreground animate-fade-in">
               Stop Competing on Price.
             </span>
             <br />
-            <span className="bg-gradient-to-r from-secondary via-accent to-secondary bg-clip-text text-transparent">
+            <span className="text-foreground">
               Start Dominating on Margin.
             </span>
           </h1>
           
-          <p className="font-body text-2xl font-semibold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-6 max-w-3xl mx-auto leading-relaxed">
+          <p className="font-body text-2xl font-semibold text-foreground mb-6 max-w-3xl mx-auto leading-relaxed">
             Unleash 20%+ Net ROI on Amazon Book Resale with Telebook's Proprietary Sourcing.
           </p>
           
-          <p className="font-body text-xl bg-gradient-to-r from-muted-foreground to-foreground bg-clip-text text-transparent mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="font-body text-xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
             We cut out wholesalers and use AI to guarantee the lowest acquisition costs on profitable ASINs. Higher margins, lower risk, scalable inventory.
           </p>
           

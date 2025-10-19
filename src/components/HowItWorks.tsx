@@ -31,8 +31,10 @@ export const HowItWorks = () => {
     <section className="py-24 px-4 bg-gradient-to-b from-background via-muted/20 to-background">
       <div className="container mx-auto max-w-7xl">
         <div className="text-center mb-16 animate-fade-in-up">
-          <h2 className="font-headline text-4xl md:text-5xl font-bold mb-6 text-foreground tracking-tight">
-            How It Works: Your Path to Higher Net Profit
+          <h2 className="font-headline text-4xl md:text-5xl font-bold mb-6 tracking-tight">
+            <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              How It Works: Your Path to Higher Net Profit
+            </span>
           </h2>
           <p className="font-body text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
             We eliminate the "too good to be true" factor with transparency and efficiency. 

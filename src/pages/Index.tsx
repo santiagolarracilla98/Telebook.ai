@@ -246,7 +246,18 @@ const Index = () => {
       <TestimonialsCarousel />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" id="inventory">
-        <FilterBar 
+        <div className="text-center mb-12 animate-fade-in-up">
+          <h2 className="font-headline text-4xl md:text-5xl font-bold mb-4 tracking-tight">
+            <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              Featured Inventory: The ASINs Driving 35%+ ROI Today
+            </span>
+          </h2>
+          <p className="font-body text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            Data is updated in real time. Grab these high-profit titles before they're gone.
+          </p>
+        </div>
+        
+        <FilterBar
           marketplace={marketplace}
           onMarketplaceChange={(value) => setMarketplace(value as 'usa' | 'uk' | 'both')}
           onSearch={setTempSearchQuery}

@@ -46,7 +46,11 @@ const Suppliers = () => {
     <section id="suppliers" className="py-16 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-4">Our Trusted Publishers</h2>
+          <h2 className="text-3xl font-bold mb-4">
+            <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              Our Trusted Publishers
+            </span>
+          </h2>
           <p className="text-muted-foreground">
             We partner with leading publishers to bring you quality books
           </p>
