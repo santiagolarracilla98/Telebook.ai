@@ -42,7 +42,7 @@ const Hero = () => {
               variant="outline" 
               className="bg-background/10 backdrop-blur-sm border-primary-foreground/30 text-primary-foreground hover:bg-background/20"
               onClick={() => {
-                document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('pricing-engine')?.scrollIntoView({ behavior: 'smooth' });
               }}
             >
               View Pricing Engine
