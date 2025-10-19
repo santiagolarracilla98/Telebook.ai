@@ -1,14 +1,6 @@
 import { Card } from "@/components/ui/card";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 import { Play } from "lucide-react";
-import { useState, useRef } from "react";
-import Autoplay from "embla-carousel-autoplay";
+import { useState, useRef, useEffect } from "react";
 
 const VideoTestimonial = ({ videoUrl, id }: { videoUrl: string; id: number }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -71,6 +63,9 @@ const VideoTestimonial = ({ videoUrl, id }: { videoUrl: string; id: number }) =>
 };
 
 export const TestimonialsCarousel = () => {
+  const [isPaused, setIsPaused] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const testimonials = [
     {
       videoUrl: "/videos/testimonial-1.mp4",
@@ -86,6 +81,29 @@ export const TestimonialsCarousel = () => {
     }
   ];
 
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    let animationId: number;
+    let scrollPosition = 0;
+
+    const scroll = () => {
+      if (!isPaused && scrollContainer) {
+        scrollPosition += 0.5;
+        if (scrollPosition >= scrollContainer.scrollWidth / 2) {
+          scrollPosition = 0;
+        }
+        scrollContainer.scrollLeft = scrollPosition;
+      }
+      animationId = requestAnimationFrame(scroll);
+    };
+
+    animationId = requestAnimationFrame(scroll);
+
+    return () => cancelAnimationFrame(animationId);
+  }, [isPaused]);
+
   return (
     <section className="py-24 px-4 bg-gradient-to-b from-muted/20 via-background to-muted/20">
       <div className="container mx-auto max-w-6xl">
@@ -98,36 +116,23 @@ export const TestimonialsCarousel = () => {
           </p>
         </div>
 
-        <Carousel
-          opts={{
-            align: "start",
-            loop: true,
-            slidesToScroll: 1,
-            duration: 30,
-          }}
-          plugins={[
-            Autoplay({
-              delay: 3000,
-              stopOnInteraction: false,
-              stopOnMouseEnter: false,
-            }),
-          ]}
-          className="w-full max-w-5xl mx-auto"
+        <div
+          ref={scrollRef}
+          className="overflow-hidden relative w-full max-w-6xl mx-auto"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
         >
-          <CarouselContent className="-ml-2 md:-ml-4">
-            {testimonials.map((testimonial) => (
-              <CarouselItem key={testimonial.id} className="pl-2 md:pl-4 md:basis-1/2">
-                <div className="p-1">
-                  <Card className="border-2 border-border/30 overflow-hidden bg-card shadow-xl hover:shadow-2xl hover:border-primary/30 transition-all duration-500 hover:-translate-y-1 rounded-2xl">
-                    <VideoTestimonial videoUrl={testimonial.videoUrl} id={testimonial.id} />
-                  </Card>
-                </div>
-              </CarouselItem>
+          <div className="flex gap-6 w-fit">
+            {/* Duplicate testimonials for seamless loop */}
+            {[...testimonials, ...testimonials].map((testimonial, index) => (
+              <div key={`${testimonial.id}-${index}`} className="min-w-[500px] flex-shrink-0">
+                <Card className="border-2 border-border/30 overflow-hidden bg-card shadow-xl hover:shadow-2xl hover:border-primary/30 transition-all duration-500 hover:-translate-y-1 rounded-2xl">
+                  <VideoTestimonial videoUrl={testimonial.videoUrl} id={testimonial.id} />
+                </Card>
+              </div>
             ))}
-          </CarouselContent>
-          <CarouselPrevious className="-left-12 glass-strong border-2 border-border/20 hover:border-primary/30 shadow-lg hover:shadow-xl transition-all" />
-          <CarouselNext className="-right-12 glass-strong border-2 border-border/20 hover:border-primary/30 shadow-lg hover:shadow-xl transition-all" />
-        </Carousel>
+          </div>
+        </div>
       </div>
     </section>
   );
