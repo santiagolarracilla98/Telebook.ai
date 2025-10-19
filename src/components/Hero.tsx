@@ -9,20 +9,23 @@ const Hero = () => {
         <div className="text-center">
           <div className="inline-flex items-center gap-2 bg-background/10 backdrop-blur-sm border border-primary-foreground/20 rounded-full px-4 py-2 mb-8">
             <Zap className="w-4 h-4 text-primary-foreground" />
-            <span className="text-sm font-medium text-primary-foreground">Smart Wholesale Platform</span>
+            <span className="text-sm font-medium text-primary-foreground">Telebook's Proprietary Sourcing</span>
           </div>
           
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight">
-            Maximize Your Book Resale
+            Stop Competing on Price.
             <br />
             <span className="bg-gradient-to-r from-success to-warning bg-clip-text text-transparent">
-              Profits with AI
+              Start Dominating on Margin.
             </span>
           </h1>
           
-          <p className="text-xl text-primary-foreground/90 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Real-time pricing insights from Amazon and publishers. Smart price engine calculates optimal resale prices. 
-            Verified suppliers with transparent ROI after all fees.
+          <p className="text-2xl font-semibold text-primary-foreground mb-4 max-w-3xl mx-auto leading-relaxed">
+            Unleash 20%+ Net ROI on Amazon Book Resale with Telebook's Proprietary Sourcing.
+          </p>
+          
+          <p className="text-lg text-primary-foreground/90 mb-8 max-w-3xl mx-auto leading-relaxed">
+            We cut out wholesalers and use AI to guarantee the lowest acquisition costs on profitable ASINs. Higher margins, lower risk, scalable inventory.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -31,10 +34,10 @@ const Hero = () => {
               variant="secondary" 
               className="group"
               onClick={() => {
-                document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('pricing-engine')?.scrollIntoView({ behavior: 'smooth' });
               }}
             >
-              Explore Inventory
+              Calculate My Profit Now
               <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button 
@@ -42,10 +45,10 @@ const Hero = () => {
               variant="outline" 
               className="bg-background/10 backdrop-blur-sm border-primary-foreground/30 text-primary-foreground hover:bg-background/20"
               onClick={() => {
-                document.getElementById('pricing-engine')?.scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
               }}
             >
-              View Pricing Engine
+              See Available High-Margin Inventory
             </Button>
           </div>
           
