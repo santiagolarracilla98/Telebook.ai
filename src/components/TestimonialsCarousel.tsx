@@ -6,6 +6,68 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Play } from "lucide-react";
+import { useState, useRef } from "react";
+
+const VideoTestimonial = ({ videoUrl, id }: { videoUrl: string; id: number }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    if (videoRef.current && !isPlaying) {
+      videoRef.current.muted = true;
+      videoRef.current.play();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (videoRef.current && !isPlaying) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  };
+
+  const handleClick = () => {
+    if (videoRef.current && !isPlaying) {
+      setIsPlaying(true);
+      videoRef.current.muted = false;
+      videoRef.current.controls = true;
+      videoRef.current.currentTime = 0;
+      videoRef.current.play();
+    }
+  };
+
+  return (
+    <div 
+      className="relative group cursor-pointer"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
+    >
+      <video
+        ref={videoRef}
+        className="w-full aspect-video object-cover rounded-xl"
+        preload="metadata"
+        controls={isPlaying}
+        playsInline
+      >
+        <source src={videoUrl} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+      
+      {!isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-xl transition-opacity duration-300 hover:bg-black/30">
+          <div className="w-20 h-20 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-2xl transform transition-transform duration-300 group-hover:scale-110">
+            <Play className="w-10 h-10 text-primary fill-primary ml-1" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const TestimonialsCarousel = () => {
   const testimonials = [
@@ -43,14 +105,7 @@ export const TestimonialsCarousel = () => {
               <CarouselItem key={testimonial.id} className="md:basis-1/2 lg:basis-1/2">
                 <div className="p-3">
                   <Card className="border-2 border-border/30 overflow-hidden bg-card shadow-xl hover:shadow-2xl hover:border-primary/30 transition-all duration-500 hover:-translate-y-1 rounded-2xl">
-                    <video
-                      controls
-                      className="w-full aspect-video object-cover"
-                      preload="metadata"
-                    >
-                      <source src={testimonial.videoUrl} type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
+                    <VideoTestimonial videoUrl={testimonial.videoUrl} id={testimonial.id} />
                   </Card>
                 </div>
               </CarouselItem>
