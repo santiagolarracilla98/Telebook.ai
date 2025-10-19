@@ -116,14 +116,15 @@ serve(async (req) => {
             if (product.csv && product.csv[0] && Array.isArray(product.csv[0])) {
               const prices = product.csv[0];
               // Keepa stores prices as: [timestamp1, price1, timestamp2, price2, ...]
-              // Get the last price value (skip timestamp, get actual price)
+              // Loop backwards through price-timestamp pairs to find latest valid price
               // Keepa uses -1 for "no data available"
-              if (prices.length >= 2) {
-                const latestPrice = prices[prices.length - 1];
-                if (latestPrice > 0 && latestPrice !== -1) {
-                  amazonPrice = latestPrice / 100; // Keepa stores prices in cents
-                  priceSource = 'keepa-csv';
-                  console.log(`✅ Layer 2 SUCCESS (CSV): Found price £${amazonPrice.toFixed(2)}`);
+              for (let i = prices.length - 1; i >= 1; i -= 2) {
+                const priceValue = prices[i];
+                if (priceValue > 0 && priceValue !== -1 && priceValue < 1000000) { // < 1M to exclude timestamps
+                  amazonPrice = priceValue / 100; // Keepa stores prices in cents
+                  priceSource = 'keepa-csv[0]';
+                  console.log(`✅ Layer 2 SUCCESS (CSV[0]): Found price £${amazonPrice.toFixed(2)}`);
+                  break;
                 }
               }
             }
@@ -131,12 +132,13 @@ serve(async (req) => {
             // Strategy 2: Try csv[1] (New Amazon price)
             if (!amazonPrice && product.csv && product.csv[1] && Array.isArray(product.csv[1])) {
               const prices = product.csv[1];
-              if (prices.length >= 2) {
-                const latestPrice = prices[prices.length - 1];
-                if (latestPrice > 0 && latestPrice !== -1) {
-                  amazonPrice = latestPrice / 100;
-                  priceSource = 'keepa-csv-new';
-                  console.log(`✅ Layer 2 SUCCESS (CSV New): Found price £${amazonPrice.toFixed(2)}`);
+              for (let i = prices.length - 1; i >= 1; i -= 2) {
+                const priceValue = prices[i];
+                if (priceValue > 0 && priceValue !== -1 && priceValue < 1000000) {
+                  amazonPrice = priceValue / 100;
+                  priceSource = 'keepa-csv[1]';
+                  console.log(`✅ Layer 2 SUCCESS (CSV[1]): Found price £${amazonPrice.toFixed(2)}`);
+                  break;
                 }
               }
             }
