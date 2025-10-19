@@ -8,6 +8,7 @@ import BookCard from "@/components/BookCard";
 import { ROICalculator } from "@/components/ROICalculator";
 import Suppliers from "@/components/Suppliers";
 import { ChatWidget } from "@/components/ChatWidget";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -235,17 +236,24 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-      <Hero />
-      <HowItWorks />
-      <div id="pricing-engine">
-        <ROICalculator />
+    <div className="min-h-screen bg-background relative">
+      {/* Animated background for all sections except inventory */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <AnimatedBackground />
       </div>
       
-      <TestimonialsCarousel />
+      <div className="relative z-10">
+        <Navigation />
+        <Hero />
+        <HowItWorks />
+        <div id="pricing-engine">
+          <ROICalculator />
+        </div>
+        
+        <TestimonialsCarousel />
+      </div>
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" id="inventory">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10 bg-background" id="inventory">
         <div className="text-center mb-12 animate-fade-in-up">
           <h2 className="font-headline text-4xl md:text-5xl font-bold mb-4 tracking-tight">
             <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
@@ -367,7 +375,9 @@ const Index = () => {
         <Suppliers />
       </main>
       
-      <ChatWidget mode="public" />
+      <div className="relative z-10">
+        <ChatWidget mode="public" />
+      </div>
     </div>
   );
 };

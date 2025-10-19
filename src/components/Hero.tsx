@@ -1,57 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, TrendingUp, ShieldCheck, Zap, Calculator, BookOpen } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowRight, TrendingUp, ShieldCheck, Zap } from "lucide-react";
 
 const Hero = () => {
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
     <section className="relative min-h-[700px] flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-transparent"></div>
-      
-      {/* Animated floating books background */}
-      <div 
-        className="absolute inset-0 opacity-20"
-        style={{
-          transform: `translateY(${scrollY * 0.3}px)`,
-        }}
-      >
-        <svg className="absolute top-20 left-[10%] w-32 h-32 text-secondary animate-pulse-soft" viewBox="0 0 100 100" style={{ transform: `rotate(${scrollY * 0.05}deg)` }}>
-          <rect x="20" y="15" width="60" height="70" rx="3" fill="currentColor" opacity="0.6"/>
-          <rect x="25" y="20" width="50" height="3" fill="white" opacity="0.8"/>
-          <rect x="25" y="28" width="50" height="2" fill="white" opacity="0.6"/>
-          <rect x="25" y="34" width="40" height="2" fill="white" opacity="0.6"/>
-        </svg>
-        
-        <svg className="absolute top-40 right-[15%] w-40 h-40 text-accent animate-pulse-soft" viewBox="0 0 100 100" style={{ transform: `rotate(${-scrollY * 0.04}deg)`, animationDelay: '0.5s' }}>
-          <rect x="15" y="20" width="70" height="60" rx="3" fill="currentColor" opacity="0.5"/>
-          <rect x="20" y="25" width="60" height="3" fill="white" opacity="0.7"/>
-          <rect x="20" y="32" width="55" height="2" fill="white" opacity="0.5"/>
-          <rect x="20" y="38" width="50" height="2" fill="white" opacity="0.5"/>
-        </svg>
-
-        <svg className="absolute bottom-32 left-[20%] w-36 h-36 text-primary animate-pulse-soft" viewBox="0 0 100 100" style={{ transform: `rotate(${scrollY * 0.06}deg)`, animationDelay: '1s' }}>
-          <rect x="18" y="18" width="64" height="64" rx="3" fill="currentColor" opacity="0.55"/>
-          <rect x="23" y="23" width="54" height="3" fill="white" opacity="0.75"/>
-          <rect x="23" y="30" width="50" height="2" fill="white" opacity="0.55"/>
-          <rect x="23" y="36" width="45" height="2" fill="white" opacity="0.55"/>
-        </svg>
-
-        <svg className="absolute top-60 right-[25%] w-28 h-28 text-secondary animate-pulse-soft" viewBox="0 0 100 100" style={{ transform: `rotate(${-scrollY * 0.07}deg)`, animationDelay: '1.5s' }}>
-          <rect x="22" y="25" width="56" height="50" rx="3" fill="currentColor" opacity="0.45"/>
-          <rect x="27" y="30" width="46" height="2" fill="white" opacity="0.7"/>
-          <rect x="27" y="36" width="42" height="2" fill="white" opacity="0.5"/>
-        </svg>
-      </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-20">
         <div className="text-center max-w-5xl mx-auto animate-fade-in-up">
