@@ -35,6 +35,8 @@ interface Book {
   roi_target_price?: number;
   market_flag?: string;
   currency?: string;
+  dataset_id?: string;
+  exclude_books_without_price?: boolean;
 }
 
 const Index = () => {
@@ -104,7 +106,8 @@ const Index = () => {
           dataset:datasets!inner(
             id,
             name,
-            is_active
+            is_active,
+            exclude_books_without_price
           )
         `)
         .eq('dataset.is_active', true)
@@ -144,6 +147,8 @@ const Index = () => {
           market_flag: book.market_flag,
           currency: book.currency,
           last_price_check: book.last_price_check,
+          dataset_id: book.dataset_id,
+          exclude_books_without_price: book.dataset?.exclude_books_without_price,
         };
       });
 
@@ -159,15 +164,20 @@ const Index = () => {
   const filterBooks = () => {
     let filtered = [...books];
 
-    // Filter out books without price information
+    // Filter out books without price information ONLY if their dataset has the exclude flag enabled
     filtered = filtered.filter(book => {
-      const hasWholesalePrice = book.wholesale_price && book.wholesale_price > 0;
-      const hasPublisherPrice = book.publisher_rrp && book.publisher_rrp > 0;
-      const hasAmazonPrice = book.amazon_price && book.amazon_price > 0;
-      const hasRRP = book.rrp && book.rrp > 0;
-      
-      // Book must have at least wholesale/publisher price AND (amazon price OR rrp)
-      return (hasWholesalePrice || hasPublisherPrice) && (hasAmazonPrice || hasRRP);
+      // If the dataset has exclude_books_without_price enabled, check for prices
+      if (book.exclude_books_without_price) {
+        const hasWholesalePrice = book.wholesale_price && book.wholesale_price > 0;
+        const hasPublisherPrice = book.publisher_rrp && book.publisher_rrp > 0;
+        const hasAmazonPrice = book.amazon_price && book.amazon_price > 0;
+        const hasRRP = book.rrp && book.rrp > 0;
+        
+        // Book must have at least wholesale/publisher price AND (amazon price OR rrp)
+        return (hasWholesalePrice || hasPublisherPrice) && (hasAmazonPrice || hasRRP);
+      }
+      // If the dataset doesn't have the exclude flag, show all books
+      return true;
     });
 
     // Filter by marketplace (only when not showing "both")
