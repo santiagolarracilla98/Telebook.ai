@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Hero from "@/components/Hero";
 import { HowItWorks } from "@/components/HowItWorks";
+import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
 import FilterBar from "@/components/FilterBar";
 import BookCard from "@/components/BookCard";
 import { ROICalculator } from "@/components/ROICalculator";
@@ -241,6 +242,8 @@ const Index = () => {
       <div id="pricing-engine">
         <ROICalculator />
       </div>
+      
+      <TestimonialsCarousel />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" id="inventory">
         <FilterBar 
