@@ -190,71 +190,73 @@ export const ROICalculator = () => {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto py-12 px-4">
-      <div className="text-center mb-8">
-        <h2 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+    <div className="w-full max-w-6xl mx-auto py-24 px-4">
+      <div className="text-center mb-12 animate-fade-in-up">
+        <h2 className="font-headline text-4xl md:text-5xl font-bold mb-4 text-foreground tracking-tight">
           Unlock Your True Profit Potential: The Telebook ROI Calculator
         </h2>
-        <p className="text-sm text-muted-foreground/70 mb-3">
+        <p className="font-body text-sm text-muted-foreground/70 mb-4">
           (Your First Analysis is Free)
         </p>
-        <p className="text-lg text-muted-foreground">
+        <p className="font-body text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
           Stop guessing. Start earning. Get an instant, precise net profit breakdown for any book ASIN and uncover high-margin inventory others miss. Your first analysis is always free!
         </p>
       </div>
 
-      <Card className="shadow-lg border-primary/20">
-        <CardHeader>
+      <Card className="shadow-2xl border-2 border-border/30 bg-gradient-to-br from-card to-card/50 rounded-2xl overflow-hidden">
+        <CardHeader className="pb-6">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-6 w-6 text-primary" />
+              <CardTitle className="font-headline text-2xl font-bold flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-primary to-primary-glow rounded-xl shadow-lg shadow-primary/20">
+                  <Calculator className="h-7 w-7 text-white" />
+                </div>
                 Calculate Your Profit Potential
               </CardTitle>
-              <CardDescription className="mt-2">
+              <CardDescription className="mt-3 font-body text-base">
                 Enter book details to calculate your profit potential
               </CardDescription>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setShowExplanation(true)}>
-              <Info className="h-5 w-5" />
+            <Button variant="ghost" size="icon" onClick={() => setShowExplanation(true)} className="hover:bg-primary/10 hover:text-primary">
+              <Info className="h-6 w-6" />
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="bookInput">Book Title or ASIN *</Label>
+        <CardContent className="space-y-8 p-8">
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <Label htmlFor="bookInput" className="font-body text-base font-semibold">Book Title or ASIN *</Label>
               <Input
                 id="bookInput"
                 placeholder="Enter title or ASIN"
                 value={bookInput}
                 onChange={(e) => setBookInput(e.target.value)}
-                className="text-base"
+                className="text-base h-12 border-2 border-border/30 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all rounded-xl"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Fulfillment Method *</Label>
-              <div className="flex gap-4 p-3 bg-muted rounded-md">
-                <label className="flex items-center gap-2 cursor-pointer">
+            <div className="space-y-3">
+              <Label className="font-body text-base font-semibold">Fulfillment Method *</Label>
+              <div className="flex gap-4 p-4 bg-muted/50 rounded-xl border-2 border-border/20">
+                <label className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="radio"
                     name="fulfillment"
                     checked={fulfillmentMethod === "FBA"}
                     onChange={() => setFulfillmentMethod("FBA")}
-                    className="w-4 h-4"
+                    className="w-5 h-5 accent-primary"
                   />
-                  <span className="font-medium">FBA (Amazon)</span>
+                  <span className="font-body font-semibold group-hover:text-primary transition-colors">FBA (Amazon)</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="radio"
                     name="fulfillment"
                     checked={fulfillmentMethod === "FBM"}
                     onChange={() => setFulfillmentMethod("FBM")}
-                    className="w-4 h-4"
+                    className="w-5 h-5 accent-primary"
                   />
-                  <span className="font-medium">FBM (Merchant)</span>
+                  <span className="font-body font-semibold group-hover:text-primary transition-colors">FBM (Merchant)</span>
                 </label>
               </div>
             </div>
@@ -287,17 +289,17 @@ export const ROICalculator = () => {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="currentCost">Current Supplier Acquisition Cost (Optional)</Label>
+          <div className="space-y-3">
+            <Label htmlFor="currentCost" className="font-body text-base font-semibold">Current Supplier Acquisition Cost (Optional)</Label>
             <Input
               id="currentCost"
               type="number"
               placeholder="What is your current cost price?"
               value={currentCost}
               onChange={(e) => setCurrentCost(e.target.value)}
-              className="text-base"
+              className="text-base h-12 border-2 border-border/30 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all rounded-xl"
             />
-            <p className="text-sm text-muted-foreground">
+            <p className="font-body text-sm text-muted-foreground">
               Enter your current cost to see how much you could save
             </p>
           </div>
@@ -305,14 +307,14 @@ export const ROICalculator = () => {
           <Button 
             onClick={calculateROI} 
             disabled={isCalculating}
-            className="w-full text-lg h-12"
+            className="w-full text-lg h-14 font-bold text-base shadow-2xl hover:shadow-primary/40 disabled:opacity-50"
             size="lg"
           >
             {isCalculating ? (
               "Calculating..."
             ) : (
               <>
-                <TrendingUp className="mr-2 h-5 w-5" />
+                <TrendingUp className="mr-2 h-6 w-6" />
                 Calculate Maximum ROI
               </>
             )}

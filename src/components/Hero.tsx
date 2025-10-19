@@ -1,44 +1,43 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, TrendingUp, ShieldCheck, Zap } from "lucide-react";
+import { ArrowRight, TrendingUp, ShieldCheck, Zap, Calculator, BookOpen } from "lucide-react";
 
 const Hero = () => {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-glow to-secondary py-16 px-4 sm:px-6 lg:px-8">
-      <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
-      <div className="relative max-w-7xl mx-auto">
-        <div className="text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight">
+    <section className="relative min-h-[700px] flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-transparent"></div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-20">
+        <div className="text-center max-w-5xl mx-auto animate-fade-in-up">
+          <h1 className="font-headline text-5xl sm:text-6xl md:text-7xl font-bold mb-8 text-foreground leading-[1.1] tracking-tight">
             Stop Competing on Price.
             <br />
-            <span className="bg-gradient-to-r from-success to-warning bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">
               Start Dominating on Margin.
             </span>
           </h1>
           
-          <p className="text-2xl font-semibold text-primary-foreground mb-4 max-w-3xl mx-auto leading-relaxed">
+          <p className="font-body text-2xl font-semibold text-foreground mb-6 max-w-3xl mx-auto leading-relaxed">
             Unleash 20%+ Net ROI on Amazon Book Resale with Telebook's Proprietary Sourcing.
           </p>
           
-          <p className="text-lg text-primary-foreground/90 mb-8 max-w-3xl mx-auto leading-relaxed">
+          <p className="font-body text-xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
             We cut out wholesalers and use AI to guarantee the lowest acquisition costs on profitable ASINs. Higher margins, lower risk, scalable inventory.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20">
             <Button 
               size="lg" 
-              variant="secondary" 
-              className="group"
+              className="text-lg px-10 py-7 text-base font-bold shadow-2xl hover:shadow-primary/40"
               onClick={() => {
                 document.getElementById('pricing-engine')?.scrollIntoView({ behavior: 'smooth' });
               }}
             >
               Calculate My Profit Now
-              <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button 
               size="lg" 
               variant="outline" 
-              className="bg-background/10 backdrop-blur-sm border-primary-foreground/30 text-primary-foreground hover:bg-background/20"
+              className="text-lg px-10 py-7 text-base font-semibold border-2"
               onClick={() => {
                 document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
               }}
@@ -47,23 +46,29 @@ const Hero = () => {
             </Button>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-16 max-w-4xl mx-auto">
-            <div className="bg-background/10 backdrop-blur-sm rounded-2xl p-6 border border-primary-foreground/20">
-              <TrendingUp className="w-8 h-8 text-success mb-3 mx-auto" />
-              <h3 className="text-lg font-semibold text-primary-foreground mb-2">Smart Pricing</h3>
-              <p className="text-sm text-primary-foreground/80">AI-powered price optimization for maximum ROI</p>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="glass-strong p-8 rounded-2xl border border-border/20 hover:border-primary/30 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 group">
+              <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-secondary to-secondary/80 rounded-xl mb-5 mx-auto shadow-lg shadow-secondary/20 group-hover:shadow-xl group-hover:shadow-secondary/30 transition-all">
+                <TrendingUp className="h-7 w-7 text-white" strokeWidth={2.5} />
+              </div>
+              <h3 className="font-headline text-xl font-bold mb-3 text-foreground">Smart Pricing</h3>
+              <p className="font-body text-sm text-muted-foreground leading-relaxed">AI-powered price optimization for maximum ROI</p>
             </div>
             
-            <div className="bg-background/10 backdrop-blur-sm rounded-2xl p-6 border border-primary-foreground/20">
-              <ShieldCheck className="w-8 h-8 text-success mb-3 mx-auto" />
-              <h3 className="text-lg font-semibold text-primary-foreground mb-2">Verified Suppliers</h3>
-              <p className="text-sm text-primary-foreground/80">Authentic sources with full documentation</p>
+            <div className="glass-strong p-8 rounded-2xl border border-border/20 hover:border-secondary/30 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 group">
+              <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-secondary to-secondary/80 rounded-xl mb-5 mx-auto shadow-lg shadow-secondary/20 group-hover:shadow-xl group-hover:shadow-secondary/30 transition-all">
+                <ShieldCheck className="h-7 w-7 text-white" strokeWidth={2.5} />
+              </div>
+              <h3 className="font-headline text-xl font-bold mb-3 text-foreground">Verified Suppliers</h3>
+              <p className="font-body text-sm text-muted-foreground leading-relaxed">Authentic sources with full documentation</p>
             </div>
             
-            <div className="bg-background/10 backdrop-blur-sm rounded-2xl p-6 border border-primary-foreground/20">
-              <Zap className="w-8 h-8 text-warning mb-3 mx-auto" />
-              <h3 className="text-lg font-semibold text-primary-foreground mb-2">Real-Time Data</h3>
-              <p className="text-sm text-primary-foreground/80">Live pricing from Amazon and publishers</p>
+            <div className="glass-strong p-8 rounded-2xl border border-border/20 hover:border-accent/30 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 group">
+              <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-accent to-accent/80 rounded-xl mb-5 mx-auto shadow-lg shadow-accent/20 group-hover:shadow-xl group-hover:shadow-accent/30 transition-all">
+                <Zap className="h-7 w-7 text-white" strokeWidth={2.5} />
+              </div>
+              <h3 className="font-headline text-xl font-bold mb-3 text-foreground">Real-Time Data</h3>
+              <p className="font-body text-sm text-muted-foreground leading-relaxed">Live pricing from Amazon and publishers</p>
             </div>
           </div>
         </div>

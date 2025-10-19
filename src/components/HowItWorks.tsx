@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Truck, CheckCircle2 } from "lucide-react";
+import { TrendingUp, Truck, CheckCircle2, DollarSign } from "lucide-react";
 
 export const HowItWorks = () => {
   const scrollToInventory = () => {
@@ -21,43 +21,42 @@ export const HowItWorks = () => {
       description: "Streamlined fulfillment processes ensure your inventory moves quickly."
     },
     {
-      icon: CheckCircle2,
+      icon: DollarSign,
       title: "Guaranteed Profitability: Know Your Earnings.",
       description: "Transparent pricing models give you certainty on every transaction."
     }
   ];
 
   return (
-    <section className="py-16 px-4 bg-gradient-to-b from-background to-muted/20">
-      <div className="container mx-auto max-w-6xl">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+    <section className="py-24 px-4 bg-gradient-to-b from-background via-muted/20 to-background">
+      <div className="container mx-auto max-w-7xl">
+        <div className="text-center mb-16 animate-fade-in-up">
+          <h2 className="font-headline text-4xl md:text-5xl font-bold mb-6 text-foreground tracking-tight">
             How It Works: Your Path to Higher Net Profit
           </h2>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+          <p className="font-body text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
             We eliminate the "too good to be true" factor with transparency and efficiency. 
             Telebook uses a data-driven model that guarantees an acquisition cost that is 
             structurally lower than any traditional distributor.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
+        <div className="grid md:grid-cols-3 gap-10 mb-16">
           {features.map((feature, index) => (
             <div 
               key={index}
-              className="bg-card p-6 rounded-lg border border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-lg"
+              className="group relative bg-gradient-to-br from-card to-card/50 p-10 rounded-2xl border-2 border-border/30 hover:border-primary/40 transition-all duration-500 hover:shadow-2xl hover:-translate-y-3"
             >
-              <div className="flex flex-col items-center text-center">
-                <div className="mb-4 p-3 bg-primary/10 rounded-full">
-                  <feature.icon className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold mb-3 text-foreground">
-                  {feature.title}
-                </h3>
-                <p className="text-muted-foreground">
-                  {feature.description}
-                </p>
+              <div className="absolute -top-6 -left-6 text-8xl font-headline font-bold text-primary/10 group-hover:text-primary/20 transition-all">0{index + 1}</div>
+              <div className="relative flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-primary-glow rounded-2xl mb-6 shadow-lg shadow-primary/30 group-hover:shadow-xl group-hover:shadow-primary/40 group-hover:scale-110 transition-all duration-300">
+                <feature.icon className="h-8 w-8 text-white" strokeWidth={2.5} />
               </div>
+              <h3 className="font-headline text-2xl font-bold mb-4 text-foreground group-hover:text-primary transition-colors">
+                {feature.title}
+              </h3>
+              <p className="font-body text-muted-foreground leading-relaxed">
+                {feature.description}
+              </p>
             </div>
           ))}
         </div>
@@ -66,7 +65,7 @@ export const HowItWorks = () => {
           <Button 
             size="lg" 
             onClick={scrollToInventory}
-            className="font-semibold"
+            className="text-lg px-10 py-7 shadow-2xl hover:shadow-primary/40 font-bold"
           >
             See Available High-Margin Inventory
           </Button>
