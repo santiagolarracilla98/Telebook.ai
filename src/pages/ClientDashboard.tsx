@@ -44,7 +44,7 @@ const ClientDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedPublisher, setSelectedPublisher] = useState<string>("");
-  const [marketplace, setMarketplace] = useState<'usa' | 'uk' | 'both'>('usa');
+  const [marketplace, setMarketplace] = useState<'usa' | 'uk' | 'both'>('both');
   const [currentPage, setCurrentPage] = useState(1);
   const booksPerPage = 15;
 
@@ -188,11 +188,11 @@ const ClientDashboard = () => {
       );
     }
 
-    // Filter by marketplace (only when not showing "both")
+    // Filter by marketplace
     if (marketplace === 'usa') {
-      filtered = filtered.filter(book => book.us_asin || book.currency === 'USD' || !book.market_flag);
+      filtered = filtered.filter(book => book.us_asin || book.currency === 'USD');
     } else if (marketplace === 'uk') {
-      filtered = filtered.filter(book => book.uk_asin || book.currency === 'GBP' || !book.market_flag);
+      filtered = filtered.filter(book => book.uk_asin || book.currency === 'GBP');
     }
     // When marketplace is 'both', show all books
 
