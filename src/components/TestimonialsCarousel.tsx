@@ -15,18 +15,22 @@ const VideoTestimonial = ({ videoUrl, id, onPlay }: { videoUrl: string; id: numb
   useEffect(() => {
     // Pause this video if another video is playing
     const handleOtherVideoPlay = (event: CustomEvent) => {
-      if (event.detail.id !== id && isExpanded) {
+      if (event.detail.id !== id) {
         setIsExpanded(false);
         if (expandedVideoRef.current) {
           expandedVideoRef.current.pause();
           expandedVideoRef.current.currentTime = 0;
+        }
+        if (videoRef.current) {
+          videoRef.current.pause();
+          videoRef.current.currentTime = 0;
         }
       }
     };
 
     window.addEventListener('videoPlaying', handleOtherVideoPlay as EventListener);
     return () => window.removeEventListener('videoPlaying', handleOtherVideoPlay as EventListener);
-  }, [id, isExpanded]);
+  }, [id]);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -115,31 +119,17 @@ const VideoTestimonial = ({ videoUrl, id, onPlay }: { videoUrl: string; id: numb
 
       <Dialog open={isExpanded} onOpenChange={handleDialogClose}>
         <DialogContent className="max-w-2xl p-0 bg-transparent border-none">
-          <div className="relative group">
-            <video
-              ref={expandedVideoRef}
-              className="w-full aspect-video object-cover rounded-xl"
-              controls
-              autoPlay
-              playsInline
-            >
-              <source src={videoUrl} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-            
-            <div 
-              className="absolute inset-0 flex items-center justify-center pointer-events-none"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClick();
-              }}
-              style={{ pointerEvents: 'auto' }}
-            >
-              <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-xl cursor-pointer hover:scale-110 transition-transform">
-                <Play className="w-10 h-10 text-white/60 fill-white/60 ml-1" />
-              </div>
-            </div>
-          </div>
+          <video
+            ref={expandedVideoRef}
+            className="w-full aspect-video object-cover rounded-xl"
+            controls
+            autoPlay
+            playsInline
+            onClick={handleClick}
+          >
+            <source src={videoUrl} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
         </DialogContent>
       </Dialog>
     </>
