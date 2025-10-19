@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/carousel";
 import { Play } from "lucide-react";
 import { useState, useRef } from "react";
+import Autoplay from "embla-carousel-autoplay";
 
 const VideoTestimonial = ({ videoUrl, id }: { videoUrl: string; id: number }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -65,10 +66,6 @@ const VideoTestimonial = ({ videoUrl, id }: { videoUrl: string; id: number }) =>
           </div>
         </div>
       )}
-      
-      <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-lg">
-        <span className="font-headline font-bold text-primary text-sm tracking-tight">Telebook</span>
-      </div>
     </div>
   );
 };
@@ -107,6 +104,12 @@ export const TestimonialsCarousel = () => {
             loop: true,
             slidesToScroll: 1,
           }}
+          plugins={[
+            Autoplay({
+              delay: 4000,
+              stopOnInteraction: true,
+            }),
+          ]}
           className="w-full max-w-5xl mx-auto"
         >
           <CarouselContent className="-ml-2 md:-ml-4">
