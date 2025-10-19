@@ -192,11 +192,14 @@ export const ROICalculator = () => {
   return (
     <div className="w-full max-w-6xl mx-auto py-12 px-4">
       <div className="text-center mb-8">
-        <h2 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          The ROI Calculator: Find Your Next Star Book
+        <h2 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          Unlock Your True Profit Potential: The Telebook ROI Calculator
         </h2>
+        <p className="text-sm text-muted-foreground/70 mb-3">
+          (Your First Analysis is Free)
+        </p>
         <p className="text-lg text-muted-foreground">
-          Leverage our proprietary pricing to instantly discover your maximum profit potential
+          Stop guessing. Start earning. Get an instant, precise net profit breakdown for any book ASIN and uncover high-margin inventory others miss. Your first analysis is always free!
         </p>
       </div>
 
