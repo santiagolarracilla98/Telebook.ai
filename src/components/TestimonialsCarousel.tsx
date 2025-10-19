@@ -2,10 +2,28 @@ import { Card } from "@/components/ui/card";
 import { Play } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
-const VideoTestimonial = ({ videoUrl, id }: { videoUrl: string; id: number }) => {
+const VideoTestimonial = ({ videoUrl, id, onPlay }: { videoUrl: string; id: number; onPlay: (id: number) => void }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    // Pause this video if another video is playing
+    const handleOtherVideoPlay = (event: CustomEvent) => {
+      if (event.detail.id !== id && isPlaying) {
+        setIsPlaying(false);
+        if (videoRef.current) {
+          videoRef.current.pause();
+          videoRef.current.currentTime = 0;
+          videoRef.current.muted = true;
+          videoRef.current.controls = false;
+        }
+      }
+    };
+
+    window.addEventListener('videoPlaying', handleOtherVideoPlay as EventListener);
+    return () => window.removeEventListener('videoPlaying', handleOtherVideoPlay as EventListener);
+  }, [id, isPlaying]);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -26,6 +44,9 @@ const VideoTestimonial = ({ videoUrl, id }: { videoUrl: string; id: number }) =>
   const handleClick = () => {
     if (videoRef.current && !isPlaying) {
       setIsPlaying(true);
+      onPlay(id);
+      // Dispatch custom event to notify other videos
+      window.dispatchEvent(new CustomEvent('videoPlaying', { detail: { id } }));
       videoRef.current.muted = false;
       videoRef.current.controls = true;
       videoRef.current.currentTime = 0;
@@ -64,6 +85,7 @@ const VideoTestimonial = ({ videoUrl, id }: { videoUrl: string; id: number }) =>
 
 export const TestimonialsCarousel = () => {
   const [isPaused, setIsPaused] = useState(false);
+  const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const testimonials = [
@@ -90,7 +112,7 @@ export const TestimonialsCarousel = () => {
 
     const scroll = () => {
       if (!isPaused && scrollContainer) {
-        scrollPosition += 0.5;
+        scrollPosition += 0.3; // Reduced from 0.5 to 0.3 for slower scrolling
         if (scrollPosition >= scrollContainer.scrollWidth / 2) {
           scrollPosition = 0;
         }
@@ -103,6 +125,10 @@ export const TestimonialsCarousel = () => {
 
     return () => cancelAnimationFrame(animationId);
   }, [isPaused]);
+
+  const handleVideoPlay = (id: number) => {
+    setPlayingVideoId(id);
+  };
 
   return (
     <section className="py-24 px-4 bg-gradient-to-b from-muted/20 via-background to-muted/20">
@@ -127,7 +153,11 @@ export const TestimonialsCarousel = () => {
             {[...testimonials, ...testimonials].map((testimonial, index) => (
               <div key={`${testimonial.id}-${index}`} className="w-[220px] flex-shrink-0">
                 <Card className="border-2 border-border/30 overflow-hidden bg-card shadow-lg hover:shadow-xl hover:border-primary/30 transition-all duration-300 rounded-lg">
-                  <VideoTestimonial videoUrl={testimonial.videoUrl} id={testimonial.id} />
+                  <VideoTestimonial 
+                    videoUrl={testimonial.videoUrl} 
+                    id={testimonial.id}
+                    onPlay={handleVideoPlay}
+                  />
                 </Card>
               </div>
             ))}
