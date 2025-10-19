@@ -128,6 +128,21 @@ export const PricingEngineCalculator = ({ prefilledBook }: PricingEngineCalculat
         livePriceData = await fetchLivePrice(book.title, book.author, 'usa');
         if (livePriceData.price && livePriceData.price > 0) {
           priceSource = livePriceData.source;
+          
+          // Save the fetched price to database for future use
+          const { error: updateError } = await supabase
+            .from('books')
+            .update({ 
+              amazon_price: livePriceData.price,
+              last_price_check: new Date().toISOString()
+            })
+            .eq('id', book.id);
+          
+          if (updateError) {
+            console.error('Failed to save Amazon price:', updateError);
+          } else {
+            console.log(`✅ Saved Amazon price $${livePriceData.price} for "${book.title}"`);
+          }
         }
       } catch (err) {
         console.log('Live price fetch failed, using database price');
