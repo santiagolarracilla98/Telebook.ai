@@ -34,6 +34,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [selectedSimilarBook, setSelectedSimilarBook] = useState<Book | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [liveAmazonPrice, setLiveAmazonPrice] = useState<number | null>(null);
 
   // Function to strip HTML tags from description
   const stripHtmlTags = (html: string) => {
@@ -143,11 +144,23 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
         }
         
         // Combine the data from both marketplaces
-        setKeepaData({
+        const combinedData = {
           usa: usaResponse.data,
           uk: ukResponse.data,
           marketplace: 'both'
-        });
+        };
+        setKeepaData(combinedData);
+        
+        // Extract live price from USA data (prioritize USA)
+        const usaProduct = usaResponse.data?.products?.[0];
+        if (usaProduct?.csv?.[0]) {
+          const priceValue = usaProduct.csv[0][usaProduct.csv[0].length - 1];
+          if (priceValue > 0) {
+            const livePrice = priceValue / 100;
+            setLiveAmazonPrice(livePrice);
+            console.log(`✅ Live Amazon price extracted: $${livePrice}`);
+          }
+        }
       } else {
         // Fetch from single marketplace using the appropriate ASIN
         const asinToUse = marketplace === 'uk' ? (book.uk_asin || book.isbn) : (book.us_asin || book.isbn);
@@ -164,6 +177,17 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
         
         console.log('Keepa response:', data);
         setKeepaData(data);
+        
+        // Extract live price from Keepa data
+        const product = data?.products?.[0];
+        if (product?.csv?.[0]) {
+          const priceValue = product.csv[0][product.csv[0].length - 1];
+          if (priceValue > 0) {
+            const livePrice = priceValue / 100;
+            setLiveAmazonPrice(livePrice);
+            console.log(`✅ Live Amazon price extracted: $${livePrice}`);
+          }
+        }
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Could not load Amazon product data';
@@ -175,7 +199,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
   };
 
   const cost = book.wholesale_price || book.wholesalePrice || book.publisher_rrp || 0;
-  const amazonPrice = book.amazon_price || book.amazonPrice || 0;
+  const amazonPrice = liveAmazonPrice || book.amazon_price || book.amazonPrice || 0;
   const amazonFees = book.amazon_fee || (amazonPrice * 0.15);
   const targetPrice = book.roi_target_price || book.suggestedPrice || 0;
   
@@ -282,8 +306,11 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     <h4 className="text-sm font-medium">Amazon Price (Ref)</h4>
                   </div>
                   <p className="text-2xl font-bold">
-                    {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA'}
+                    {liveAmazonPrice ? `$${liveAmazonPrice.toFixed(2)}` : (amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA')}
                   </p>
+                  {liveAmazonPrice && (
+                    <p className="text-xs text-success mt-1">✓ Live from Amazon</p>
+                  )}
                 </div>
 
                 <div className="p-4 rounded-lg bg-success/10">
@@ -335,7 +362,7 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     isbn: book.isbn,
                     cost: cost,
                     smartPrice: targetPrice,
-                    amazonPrice: amazonPrice,
+                    amazonPrice: liveAmazonPrice || amazonPrice,
                     id: book.id,
                     imageUrl: book.imageUrl
                   }}
