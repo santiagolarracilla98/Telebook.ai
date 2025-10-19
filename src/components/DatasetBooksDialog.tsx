@@ -38,7 +38,7 @@ export const DatasetBooksDialog = ({
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         
-        <div className="overflow-x-auto overflow-y-auto max-h-[65vh] border rounded-md">
+        <div className="overflow-x-scroll overflow-y-auto max-h-[65vh] border rounded-md [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar-track]:bg-muted [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/50">
           <Table className="min-w-full">
             <TableHeader>
               <TableRow>
