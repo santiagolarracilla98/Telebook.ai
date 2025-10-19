@@ -39,9 +39,29 @@ serve(async (req) => {
     // Map marketplace to Keepa domain: USA = 1, UK = 2
     const domain = marketplace === 'uk' ? 2 : 1;
 
-    // Build search query - combine title and author for better results
-    const searchQuery = author ? `${title} ${author}` : title;
-    console.log(`🔎 Searching Amazon for: \"${searchQuery}\" in ${marketplace.toUpperCase()} marketplace`);
+    // Simplify title by removing common subtitle patterns and taking main title
+    const simplifyTitle = (fullTitle: string): string => {
+      // Remove common promotional phrases
+      let simplified = fullTitle
+        .replace(/An Absolutely [^:]+/gi, '')
+        .replace(/A [^:]+Page-turner/gi, '')
+        .replace(/\([^)]*\)/g, '') // Remove parentheses content
+        .trim();
+      
+      // Take only the part before the first colon or subtitle marker
+      const colonIndex = simplified.indexOf(':');
+      if (colonIndex > 0) {
+        simplified = simplified.substring(0, colonIndex);
+      }
+      
+      return simplified.trim();
+    };
+
+    // Try simplified title first, then fall back to full title if needed
+    const simplifiedTitle = simplifyTitle(title);
+    const searchQuery = author ? `${simplifiedTitle} ${author}` : simplifiedTitle;
+    
+    console.log(`🔎 Searching Amazon for: \"${searchQuery}\" (simplified from: \"${title}\") in ${marketplace.toUpperCase()} marketplace`);
 
     // Use Keepa's product finder endpoint
     const keepaUrl = `https://api.keepa.com/search?key=${KEEPA_API_KEY}&domain=${domain}&type=product&term=${encodeURIComponent(searchQuery)}`;
@@ -104,9 +124,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         found: true,
-        asin: bestMatchAsin,
-        allAsins: asins,
-        productDetails,
+        bestMatch: {
+          asin: bestMatchAsin,
+          ...productDetails
+        },
+        asins: asins,
         searchQuery
       }),
       { 
