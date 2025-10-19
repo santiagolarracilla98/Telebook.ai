@@ -88,7 +88,7 @@ const VideoTestimonial = ({ videoUrl, id, onPlay }: { videoUrl: string; id: numb
       </div>
 
       <Dialog open={isExpanded} onOpenChange={handleDialogClose}>
-        <DialogContent className="max-w-4xl p-0 bg-transparent border-none">
+        <DialogContent className="max-w-2xl p-0 bg-transparent border-none">
           <video
             ref={expandedVideoRef}
             className="w-full aspect-video object-cover rounded-xl"
