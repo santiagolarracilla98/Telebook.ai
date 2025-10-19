@@ -5,6 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import type { User } from "@supabase/supabase-js";
 
 export const CartButton = () => {
   const { totalItems } = useCart();
@@ -30,6 +34,29 @@ export const CartButton = () => {
 
 const CartContent = () => {
   const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCart();
+  const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleCheckout = () => {
+    if (!user) {
+      navigate('/auth');
+    } else {
+      // Proceed with checkout
+      // TODO: Implement checkout functionality
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -108,12 +135,14 @@ const CartContent = () => {
           <span>Total</span>
           <span className="text-primary">${totalPrice.toFixed(2)}</span>
         </div>
-        <Button className="w-full" size="lg">
-          Proceed to Checkout
+        <Button className="w-full" size="lg" onClick={handleCheckout}>
+          {user ? 'Proceed to Checkout' : 'Sign in to Continue'}
         </Button>
-        <p className="text-xs text-center text-muted-foreground">
-          Checkout functionality coming soon
-        </p>
+        {!user && (
+          <p className="text-xs text-center text-muted-foreground">
+            Please sign in to complete your purchase
+          </p>
+        )}
       </div>
     </div>
   );

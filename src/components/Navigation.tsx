@@ -101,7 +101,7 @@ const Navigation = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            {user && <CartButton />}
+            <CartButton />
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
