@@ -28,7 +28,9 @@ serve(async (req) => {
       .from('books')
       .select('id, us_asin, uk_asin, title, author, publisher_rrp, google_books_id, currency, amazon_price, last_price_check')
       .or(`amazon_price.is.null,last_price_check.is.null,last_price_check.lt.${sevenDaysAgo.toISOString()}`)
-      .limit(50); // Process in batches to avoid timeout
+      .order('amazon_price', { ascending: true, nullsFirst: true }) // Process books without prices first
+      .order('last_price_check', { ascending: true, nullsFirst: true }) // Then oldest checks
+      .limit(100); // Increased batch size to process more books
 
     if (booksError) throw booksError;
 
