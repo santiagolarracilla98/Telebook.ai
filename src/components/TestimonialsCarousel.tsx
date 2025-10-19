@@ -105,13 +105,14 @@ export const TestimonialsCarousel = () => {
           opts={{
             align: "start",
             loop: true,
+            slidesToScroll: 1,
           }}
           className="w-full max-w-5xl mx-auto"
         >
-          <CarouselContent>
+          <CarouselContent className="-ml-2 md:-ml-4">
             {testimonials.map((testimonial) => (
-              <CarouselItem key={testimonial.id} className="md:basis-1/2 lg:basis-1/2">
-                <div className="p-3">
+              <CarouselItem key={testimonial.id} className="pl-2 md:pl-4 md:basis-1/2">
+                <div className="p-1">
                   <Card className="border-2 border-border/30 overflow-hidden bg-card shadow-xl hover:shadow-2xl hover:border-primary/30 transition-all duration-500 hover:-translate-y-1 rounded-2xl">
                     <VideoTestimonial videoUrl={testimonial.videoUrl} id={testimonial.id} />
                   </Card>
@@ -119,8 +120,8 @@ export const TestimonialsCarousel = () => {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="left-0 -translate-x-12 glass-strong border-2 border-border/20 hover:border-primary/30 shadow-lg hover:shadow-xl transition-all" />
-          <CarouselNext className="right-0 translate-x-12 glass-strong border-2 border-border/20 hover:border-primary/30 shadow-lg hover:shadow-xl transition-all" />
+          <CarouselPrevious className="-left-12 glass-strong border-2 border-border/20 hover:border-primary/30 shadow-lg hover:shadow-xl transition-all" />
+          <CarouselNext className="-right-12 glass-strong border-2 border-border/20 hover:border-primary/30 shadow-lg hover:shadow-xl transition-all" />
         </Carousel>
       </div>
     </section>
