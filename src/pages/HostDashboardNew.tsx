@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import type { User } from "@supabase/supabase-js";
 import { DeleteDatasetDialog } from "@/components/DeleteDatasetDialog";
 import { ManualPriceEntry } from "@/components/ManualPriceEntry";
+import { DatasetBooksDialog } from "@/components/DatasetBooksDialog";
 
 interface Dataset {
   id: string;
@@ -87,6 +88,10 @@ const HostDashboardNew = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [datasetToDelete, setDatasetToDelete] = useState<Dataset | null>(null);
   const [excludedCounts, setExcludedCounts] = useState<Record<string, number>>({});
+  const [booksDialogOpen, setBooksDialogOpen] = useState(false);
+  const [selectedDatasetBooks, setSelectedDatasetBooks] = useState<Book[]>([]);
+  const [booksDialogTitle, setBooksDialogTitle] = useState("");
+  const [booksDialogDescription, setBooksDialogDescription] = useState("");
 
   useEffect(() => {
     checkAuth();
@@ -261,6 +266,39 @@ const HostDashboardNew = () => {
   const openDeleteDialog = (dataset: Dataset) => {
     setDatasetToDelete(dataset);
     setDeleteDialogOpen(true);
+  };
+
+  const openBooksDialog = async (datasetId: string, datasetName: string, showExcluded: boolean = false) => {
+    try {
+      let query = supabase
+        .from('books')
+        .select('id, title, author, publisher, publisher_rrp, amazon_price, price_source, available_stock, wholesale_price, rrp')
+        .eq('dataset_id', datasetId);
+
+      if (showExcluded) {
+        query = query.is('publisher_rrp', null);
+      }
+
+      const { data, error } = await query.order('title');
+
+      if (error) throw error;
+
+      setSelectedDatasetBooks(data || []);
+      setBooksDialogTitle(showExcluded ? `Excluded Books - ${datasetName}` : `All Books - ${datasetName}`);
+      setBooksDialogDescription(
+        showExcluded 
+          ? `${data?.length || 0} books without publisher pricing`
+          : `${data?.length || 0} total books in this dataset`
+      );
+      setBooksDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching dataset books:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load books from dataset.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleImportGoogleBooks = async () => {
@@ -733,14 +771,24 @@ const HostDashboardNew = () => {
                       <div key={dataset.id} className="flex flex-col gap-3 p-4 border rounded-lg bg-card">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                             <div className="flex items-center gap-2 mb-1">
                               <h4 className="font-medium">{dataset.name}</h4>
                               <Badge variant={dataset.source === 'google_books' ? 'default' : 'outline'}>
                                 {dataset.source.replace('_', ' ')}
                               </Badge>
-                              <Badge variant="secondary">{dataset.book_count} books</Badge>
+                              <Badge 
+                                variant="secondary" 
+                                className="cursor-pointer hover:bg-secondary/80"
+                                onClick={() => openBooksDialog(dataset.id, dataset.name, false)}
+                              >
+                                {dataset.book_count} books
+                              </Badge>
                               {dataset.exclude_books_without_price && excludedCounts[dataset.id] > 0 && (
-                                <Badge variant="destructive" className="gap-1">
+                                <Badge 
+                                  variant="destructive" 
+                                  className="gap-1 cursor-pointer hover:bg-destructive/80"
+                                  onClick={() => openBooksDialog(dataset.id, dataset.name, true)}
+                                >
                                   <Filter className="w-3 h-3" />
                                   {excludedCounts[dataset.id]} excluded
                                 </Badge>
@@ -1173,6 +1221,14 @@ const HostDashboardNew = () => {
         onOpenChange={setDeleteDialogOpen}
         datasetName={datasetToDelete?.name || ''}
         onConfirmDelete={handleDeleteDataset}
+      />
+
+      <DatasetBooksDialog
+        open={booksDialogOpen}
+        onOpenChange={setBooksDialogOpen}
+        books={selectedDatasetBooks}
+        title={booksDialogTitle}
+        description={booksDialogDescription}
       />
     </div>
   );
