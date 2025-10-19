@@ -32,14 +32,15 @@ export const DatasetBooksDialog = ({
 }: DatasetBooksDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[80vh]">
+      <DialogContent className="max-w-[90vw] max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         
-        <ScrollArea className="h-[60vh] pr-4">
-          <Table>
+        <ScrollArea className="h-[60vh] w-full">
+          <div className="min-w-max pr-4">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
@@ -95,6 +96,7 @@ export const DatasetBooksDialog = ({
               ))}
             </TableBody>
           </Table>
+          </div>
         </ScrollArea>
       </DialogContent>
     </Dialog>
