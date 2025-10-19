@@ -278,16 +278,46 @@ const ClientDashboard = () => {
               Previous
             </Button>
             
-            {Array.from({ length: Math.ceil(filteredBooks.length / booksPerPage) }, (_, i) => i + 1).map((page) => (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCurrentPage(page)}
-              >
-                {page}
-              </Button>
-            ))}
+            {(() => {
+              const totalPages = Math.ceil(filteredBooks.length / booksPerPage);
+              const maxVisiblePages = 5;
+              let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+              let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+              
+              if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+              }
+              
+              const pages = [];
+              
+              for (let i = startPage; i <= endPage; i++) {
+                pages.push(
+                  <Button
+                    key={i}
+                    variant={currentPage === i ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(i)}
+                  >
+                    {i}
+                  </Button>
+                );
+              }
+              
+              if (endPage < totalPages) {
+                pages.push(
+                  <Button
+                    key="more"
+                    variant="outline"
+                    size="sm"
+                    disabled
+                  >
+                    ...
+                  </Button>
+                );
+              }
+              
+              return pages;
+            })()}
             
             <Button
               variant="outline"
