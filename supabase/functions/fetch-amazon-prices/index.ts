@@ -30,7 +30,7 @@ serve(async (req) => {
       .or(`amazon_price.is.null,last_price_check.is.null,last_price_check.lt.${sevenDaysAgo.toISOString()}`)
       .order('amazon_price', { ascending: true, nullsFirst: true }) // Process books without prices first
       .order('last_price_check', { ascending: true, nullsFirst: true }) // Then oldest checks
-      .limit(100); // Increased batch size to process more books
+      .limit(500); // Process up to 500 books per run to ensure all books without prices get processed
 
     if (booksError) throw booksError;
 
