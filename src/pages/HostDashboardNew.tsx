@@ -82,8 +82,7 @@ const HostDashboardNew = () => {
   const [stats, setStats] = useState({
     totalBooks: 0,
     totalStock: 0,
-    inventoryValue: 0,
-    avgRoi: 0
+    inventoryValue: 0
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [datasetToDelete, setDatasetToDelete] = useState<Dataset | null>(null);
@@ -420,25 +419,11 @@ const HostDashboardNew = () => {
       const inventoryValue = data.reduce((sum, book) => 
         sum + (book.wholesale_price * book.available_stock), 0
       );
-      
-      // Calculate average ROI
-      const rois = data
-        .filter(book => book.publisher_rrp && book.amazon_price)
-        .map(book => {
-          const fee = (book.amazon_price || 0) * 0.15;
-          const margin = (book.amazon_price || 0) - fee - (book.publisher_rrp || 0);
-          return (book.publisher_rrp || 0) > 0 ? (margin / (book.publisher_rrp || 0)) * 100 : 0;
-        });
-      
-      const avgRoi = rois.length > 0 
-        ? rois.reduce((sum, roi) => sum + roi, 0) / rois.length 
-        : 0;
 
       setStats({
         totalBooks,
         totalStock,
-        inventoryValue,
-        avgRoi
+        inventoryValue
       });
     }
   };
@@ -633,7 +618,7 @@ const HostDashboardNew = () => {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium">Total Books</CardTitle>
@@ -661,16 +646,6 @@ const HostDashboardNew = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">${stats.inventoryValue.toFixed(2)}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Avg ROI</CardTitle>
-                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.avgRoi.toFixed(1)}%</div>
                 </CardContent>
               </Card>
             </div>
