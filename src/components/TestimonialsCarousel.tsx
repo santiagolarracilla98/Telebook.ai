@@ -45,20 +45,44 @@ const VideoTestimonial = ({ videoUrl, id, onPlay }: { videoUrl: string; id: numb
   };
 
   const handleClick = () => {
-    if (!isExpanded) {
+    if (isExpanded) {
+      // Close expansion and transfer playback to small video
+      const currentTime = expandedVideoRef.current?.currentTime || 0;
+      setIsExpanded(false);
+      
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.currentTime = currentTime;
+          videoRef.current.muted = false;
+          videoRef.current.play();
+        }
+      }, 100);
+    } else {
+      // Expand the video
+      const currentTime = videoRef.current?.currentTime || 0;
       setIsExpanded(true);
       onPlay(id);
-      // Dispatch custom event to notify other videos
       window.dispatchEvent(new CustomEvent('videoPlaying', { detail: { id } }));
+      
+      setTimeout(() => {
+        if (expandedVideoRef.current) {
+          expandedVideoRef.current.currentTime = currentTime;
+        }
+      }, 100);
     }
   };
 
   const handleDialogClose = () => {
+    const currentTime = expandedVideoRef.current?.currentTime || 0;
     setIsExpanded(false);
-    if (expandedVideoRef.current) {
-      expandedVideoRef.current.pause();
-      expandedVideoRef.current.currentTime = 0;
-    }
+    
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = currentTime;
+        videoRef.current.muted = false;
+        videoRef.current.play();
+      }
+    }, 100);
   };
 
   return (
@@ -67,7 +91,6 @@ const VideoTestimonial = ({ videoUrl, id, onPlay }: { videoUrl: string; id: numb
         className="relative group cursor-pointer"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        onClick={handleClick}
       >
         <video
           ref={videoRef}
@@ -80,7 +103,10 @@ const VideoTestimonial = ({ videoUrl, id, onPlay }: { videoUrl: string; id: numb
           Your browser does not support the video tag.
         </video>
         
-        <div className="absolute inset-0 flex items-center justify-center bg-black/5 rounded-xl transition-opacity duration-300 hover:bg-black/15">
+        <div 
+          className="absolute inset-0 flex items-center justify-center bg-black/5 rounded-xl transition-opacity duration-300 hover:bg-black/15"
+          onClick={handleClick}
+        >
           <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-xl transform transition-transform duration-300 group-hover:scale-110">
             <Play className="w-10 h-10 text-white/60 fill-white/60 ml-1" />
           </div>
@@ -89,16 +115,31 @@ const VideoTestimonial = ({ videoUrl, id, onPlay }: { videoUrl: string; id: numb
 
       <Dialog open={isExpanded} onOpenChange={handleDialogClose}>
         <DialogContent className="max-w-2xl p-0 bg-transparent border-none">
-          <video
-            ref={expandedVideoRef}
-            className="w-full aspect-video object-cover rounded-xl"
-            controls
-            autoPlay
-            playsInline
-          >
-            <source src={videoUrl} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+          <div className="relative group">
+            <video
+              ref={expandedVideoRef}
+              className="w-full aspect-video object-cover rounded-xl"
+              controls
+              autoPlay
+              playsInline
+            >
+              <source src={videoUrl} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            
+            <div 
+              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClick();
+              }}
+              style={{ pointerEvents: 'auto' }}
+            >
+              <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-xl cursor-pointer hover:scale-110 transition-transform">
+                <Play className="w-10 h-10 text-white/60 fill-white/60 ml-1" />
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>
