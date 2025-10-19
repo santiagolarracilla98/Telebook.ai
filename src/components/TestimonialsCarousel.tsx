@@ -1,33 +1,36 @@
 import { Card } from "@/components/ui/card";
 import { Play } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 
 const VideoTestimonial = ({ videoUrl, id, onPlay }: { videoUrl: string; id: number; onPlay: (id: number) => void }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const expandedVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     // Pause this video if another video is playing
     const handleOtherVideoPlay = (event: CustomEvent) => {
-      if (event.detail.id !== id && isPlaying) {
-        setIsPlaying(false);
-        if (videoRef.current) {
-          videoRef.current.pause();
-          videoRef.current.currentTime = 0;
-          videoRef.current.muted = true;
-          videoRef.current.controls = false;
+      if (event.detail.id !== id && isExpanded) {
+        setIsExpanded(false);
+        if (expandedVideoRef.current) {
+          expandedVideoRef.current.pause();
+          expandedVideoRef.current.currentTime = 0;
         }
       }
     };
 
     window.addEventListener('videoPlaying', handleOtherVideoPlay as EventListener);
     return () => window.removeEventListener('videoPlaying', handleOtherVideoPlay as EventListener);
-  }, [id, isPlaying]);
+  }, [id, isExpanded]);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
-    if (videoRef.current && !isPlaying) {
+    if (videoRef.current && !isExpanded) {
       videoRef.current.muted = true;
       videoRef.current.play();
     }
@@ -35,51 +38,70 @@ const VideoTestimonial = ({ videoUrl, id, onPlay }: { videoUrl: string; id: numb
 
   const handleMouseLeave = () => {
     setIsHovered(false);
-    if (videoRef.current && !isPlaying) {
+    if (videoRef.current && !isExpanded) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
     }
   };
 
   const handleClick = () => {
-    if (videoRef.current && !isPlaying) {
-      setIsPlaying(true);
+    if (!isExpanded) {
+      setIsExpanded(true);
       onPlay(id);
       // Dispatch custom event to notify other videos
       window.dispatchEvent(new CustomEvent('videoPlaying', { detail: { id } }));
-      videoRef.current.muted = false;
-      videoRef.current.controls = true;
-      videoRef.current.currentTime = 0;
-      videoRef.current.play();
+    }
+  };
+
+  const handleDialogClose = () => {
+    setIsExpanded(false);
+    if (expandedVideoRef.current) {
+      expandedVideoRef.current.pause();
+      expandedVideoRef.current.currentTime = 0;
     }
   };
 
   return (
-    <div 
-      className="relative group cursor-pointer"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
-    >
-      <video
-        ref={videoRef}
-        className="w-full aspect-video object-cover rounded-xl"
-        preload="metadata"
-        controls={isPlaying}
-        playsInline
+    <>
+      <div 
+        className="relative group cursor-pointer"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
       >
-        <source src={videoUrl} type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
-      
-      {!isPlaying && (
+        <video
+          ref={videoRef}
+          className="w-full aspect-video object-cover rounded-xl"
+          preload="metadata"
+          playsInline
+          muted
+        >
+          <source src={videoUrl} type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        
         <div className="absolute inset-0 flex items-center justify-center bg-black/5 rounded-xl transition-opacity duration-300 hover:bg-black/15">
           <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-xl transform transition-transform duration-300 group-hover:scale-110">
             <Play className="w-10 h-10 text-white/60 fill-white/60 ml-1" />
           </div>
         </div>
-      )}
-    </div>
+      </div>
+
+      <Dialog open={isExpanded} onOpenChange={handleDialogClose}>
+        <DialogContent className="max-w-4xl p-0 bg-transparent border-none">
+          <video
+            ref={expandedVideoRef}
+            className="w-full aspect-video object-cover rounded-xl"
+            controls
+            autoPlay
+            playsInline
+          >
+            <source src={videoUrl} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
