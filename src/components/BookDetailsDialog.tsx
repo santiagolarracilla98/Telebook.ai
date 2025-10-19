@@ -39,6 +39,10 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     usa: number | null;
     uk: number | null;
   }>({ usa: null, uk: null });
+  const [priceDataSource, setPriceDataSource] = useState<{
+    usa: string | null;
+    uk: string | null;
+  }>({ usa: null, uk: null });
 
   // Function to strip HTML tags from description
   const stripHtmlTags = (html: string) => {
@@ -146,58 +150,99 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
     setError(null);
     
     try {
-      // Always fetch both markets
-      const [usaResponse, ukResponse] = await Promise.all([
-        supabase.functions.invoke('keepa-product', {
-          body: { 
-            isbn: book.us_asin || book.isbn,
-            marketplace: 'usa'
+      // Helper function to extract price from Keepa product data
+      const extractPrice = (product: any): number | null => {
+        if (product?.csv?.[0]) {
+          const priceValue = product.csv[0][product.csv[0].length - 1];
+          if (priceValue > 0) {
+            return priceValue / 100;
           }
-        }),
-        supabase.functions.invoke('keepa-product', {
-          body: { 
-            isbn: book.uk_asin || book.isbn,
-            marketplace: 'uk'
+        }
+        return null;
+      };
+
+      // Helper function to fetch data for a single market with fallback
+      const fetchMarketData = async (market: 'usa' | 'uk') => {
+        const identifier = market === 'usa' ? (book.us_asin || book.isbn) : (book.uk_asin || book.isbn);
+        
+        console.log(`🔍 Layer 1: Trying Keepa with ${identifier} for ${market.toUpperCase()}`);
+        
+        // Layer 1: Try keepa-product with ISBN/ASIN
+        const keepaResponse = await supabase.functions.invoke('keepa-product', {
+          body: { isbn: identifier, marketplace: market }
+        });
+        
+        let productData = keepaResponse.data;
+        let price = extractPrice(productData?.products?.[0]);
+        let dataSource = 'keepa-isbn';
+        
+        // Layer 2: If no data found, try search-amazon-product with title + author
+        if (!price && book.title && book.author) {
+          console.log(`🔍 Layer 2: No price from ISBN, trying title search for ${market.toUpperCase()}`);
+          
+          const searchResponse = await supabase.functions.invoke('search-amazon-product', {
+            body: { 
+              title: book.title,
+              author: book.author,
+              marketplace: market
+            }
+          });
+          
+          // Layer 3: If search found an ASIN, try keepa-product with that ASIN
+          const foundAsin = searchResponse.data?.bestMatch?.asin || searchResponse.data?.asins?.[0];
+          if (foundAsin) {
+            console.log(`🔍 Layer 3: Found ASIN ${foundAsin}, fetching price data for ${market.toUpperCase()}`);
+            
+            const asinKeepaResponse = await supabase.functions.invoke('keepa-product', {
+              body: { isbn: foundAsin, marketplace: market }
+            });
+            
+            productData = asinKeepaResponse.data;
+            price = extractPrice(productData?.products?.[0]);
+            dataSource = 'keepa-search';
+            
+            if (price) {
+              console.log(`✅ Found price via search: ${market === 'usa' ? '$' : '£'}${price} (${market.toUpperCase()})`);
+            }
           }
-        })
+        }
+        
+        if (price) {
+          console.log(`✅ Live Amazon ${market.toUpperCase()} price: ${market === 'usa' ? '$' : '£'}${price} (source: ${dataSource})`);
+        } else {
+          console.log(`❌ No price found for ${market.toUpperCase()}`);
+        }
+        
+        return { productData, price, dataSource };
+      };
+
+      // Fetch both markets in parallel
+      const [usaResult, ukResult] = await Promise.all([
+        fetchMarketData('usa'),
+        fetchMarketData('uk')
       ]);
       
       // Combine the data from both marketplaces
       const combinedData = {
-        usa: usaResponse.data,
-        uk: ukResponse.data,
+        usa: usaResult.productData,
+        uk: ukResult.productData,
         marketplace: 'both'
       };
       setKeepaData(combinedData);
       
-      // Extract live prices from both markets
-      const usaProduct = usaResponse.data?.products?.[0];
-      const ukProduct = ukResponse.data?.products?.[0];
+      // Set prices and data sources
+      setLiveAmazonPrices({ 
+        usa: usaResult.price, 
+        uk: ukResult.price 
+      });
+      setPriceDataSource({
+        usa: usaResult.dataSource,
+        uk: ukResult.dataSource
+      });
       
-      let usaPrice = null;
-      let ukPrice = null;
-      
-      if (usaProduct?.csv?.[0]) {
-        const priceValue = usaProduct.csv[0][usaProduct.csv[0].length - 1];
-        if (priceValue > 0) {
-          usaPrice = priceValue / 100;
-          console.log(`✅ Live Amazon USA price: $${usaPrice}`);
-        }
-      }
-      
-      if (ukProduct?.csv?.[0]) {
-        const priceValue = ukProduct.csv[0][ukProduct.csv[0].length - 1];
-        if (priceValue > 0) {
-          ukPrice = priceValue / 100;
-          console.log(`✅ Live Amazon UK price: £${ukPrice}`);
-        }
-      }
-      
-      setLiveAmazonPrices({ usa: usaPrice, uk: ukPrice });
-      
-      // Save prices to database
-      if (usaPrice || ukPrice) {
-        await savePriceToDatabase(usaPrice || ukPrice || 0);
+      // Save prices to database (prioritize market with data)
+      if (usaResult.price || ukResult.price) {
+        await savePriceToDatabase(usaResult.price || ukResult.price || 0);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Could not load Amazon product data';
@@ -349,7 +394,10 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
                     {liveAmazonPrice ? `${currency}${liveAmazonPrice.toFixed(2)}` : (amazonPrice > 0 ? `${currency}${amazonPrice.toFixed(2)}` : 'NA')}
                   </p>
                   {liveAmazonPrice ? (
-                    <p className="text-xs text-success mt-1">✓ Live from Amazon {marketLabel}</p>
+                    <p className="text-xs text-success mt-1">
+                      ✓ Live from Amazon {marketLabel}
+                      {priceDataSource[selectedMarket] === 'keepa-search' && ' (via title search)'}
+                    </p>
                   ) : (
                     <div className="mt-2">
                       <p className="text-xs text-muted-foreground">No live data found</p>
