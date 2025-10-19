@@ -61,6 +61,7 @@ export type Database = {
           market_flag: string | null
           page_count: number | null
           preview_link: string | null
+          price_source: string | null
           published_date: string | null
           publisher: string | null
           publisher_rrp: number | null
@@ -94,6 +95,7 @@ export type Database = {
           market_flag?: string | null
           page_count?: number | null
           preview_link?: string | null
+          price_source?: string | null
           published_date?: string | null
           publisher?: string | null
           publisher_rrp?: number | null
@@ -127,6 +129,7 @@ export type Database = {
           market_flag?: string | null
           page_count?: number | null
           preview_link?: string | null
+          price_source?: string | null
           published_date?: string | null
           publisher?: string | null
           publisher_rrp?: number | null

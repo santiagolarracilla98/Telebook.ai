@@ -216,7 +216,8 @@ Deno.serve(async (req) => {
           available_stock: 0,
           rrp: publisherRrp || null,
           wholesale_price: estimatedWholesale || null,
-          publisher_rrp: publisherRrp || null, // Use ISBNdb pricing as publisher pricing for new imports
+          publisher_rrp: publisherRrp || null,
+          price_source: isbndbMsrp ? 'isbndb' : null, // Track price source
           // ISBNdb-specific tracking fields (for data source tracking)
           isbndb_msrp: isbndbMsrp,
           isbndb_price_currency: isbndbCurrency,

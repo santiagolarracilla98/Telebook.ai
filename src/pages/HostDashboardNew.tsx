@@ -57,6 +57,7 @@ interface Book {
   roi_target_price?: number;
   market_flag?: string;
   dataset_id?: string;
+  price_source?: string;
 }
 
 const HostDashboardNew = () => {
@@ -471,9 +472,46 @@ const HostDashboardNew = () => {
     }
   };
 
+  const handleFetchMissingPrices = async (estimateMissing: boolean = false) => {
+    setSyncing(true);
+    try {
+      const booksWithoutPrices = books.filter(book => !book.publisher_rrp || book.publisher_rrp === 0);
+      
+      toast({
+        title: "Fetching Missing Prices",
+        description: `Processing ${booksWithoutPrices.length} books without publisher pricing...`,
+      });
+
+      const { data, error } = await supabase.functions.invoke('fetch-missing-prices', {
+        body: { 
+          bookIds: booksWithoutPrices.map(b => b.id),
+          estimateMissing 
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Fetch Complete",
+        description: `Updated ${data.updated || 0} books (${data.estimated || 0} estimated prices)`,
+      });
+
+      await Promise.all([fetchBooks(), fetchStats()]);
+    } catch (error) {
+      console.error('Fetch missing prices error:', error);
+      toast({
+        title: "Fetch Failed",
+        description: "There was an error fetching missing prices.",
+        variant: "destructive"
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleExportCSV = () => {
     const csv = [
-      ['Title', 'Author', 'ISBN', 'Stock', 'Wholesale', 'Publisher RRP', 'Amazon Price', 'Target Price', 'Market Flag'].join(','),
+      ['Title', 'Author', 'ISBN', 'Stock', 'Wholesale', 'Publisher RRP', 'Price Source', 'Amazon Price', 'Target Price', 'Market Flag'].join(','),
       ...books.map(book => [
         `"${book.title}"`,
         `"${book.author}"`,
@@ -481,6 +519,7 @@ const HostDashboardNew = () => {
         book.available_stock,
         book.wholesale_price,
         book.publisher_rrp || '',
+        book.price_source || '',
         book.amazon_price || '',
         book.roi_target_price || '',
         book.market_flag || ''
@@ -599,41 +638,57 @@ const HostDashboardNew = () => {
                 <CardDescription>Manage your book catalog and pricing</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Author</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead>Wholesale</TableHead>
-                      <TableHead>Amazon</TableHead>
-                      <TableHead>Target</TableHead>
-                      <TableHead>Flag</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {books.map((book) => (
-                      <TableRow key={book.id}>
-                        <TableCell className="font-medium">{book.title}</TableCell>
-                        <TableCell>{book.author}</TableCell>
-                        <TableCell>{book.available_stock}</TableCell>
-                        <TableCell>{book.wholesale_price > 0 ? `$${book.wholesale_price.toFixed(2)}` : 'NA'}</TableCell>
-                        <TableCell>${book.amazon_price?.toFixed(2) || 'N/A'}</TableCell>
-                        <TableCell>${book.roi_target_price?.toFixed(2) || 'N/A'}</TableCell>
-                        <TableCell>
-                          {book.market_flag && (
-                            <Badge variant={
-                              book.market_flag === 'below_market' ? 'destructive' :
-                              book.market_flag === 'at_market' ? 'secondary' : 'default'
-                            }>
-                              {book.market_flag.replace('_', ' ')}
-                            </Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                  <Table>
+                   <TableHeader>
+                     <TableRow>
+                       <TableHead>Title</TableHead>
+                       <TableHead>Author</TableHead>
+                       <TableHead>Stock</TableHead>
+                       <TableHead>Publisher RRP</TableHead>
+                       <TableHead>Amazon</TableHead>
+                       <TableHead>Target</TableHead>
+                       <TableHead>Flag</TableHead>
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {books.map((book) => (
+                       <TableRow key={book.id}>
+                         <TableCell className="font-medium">{book.title}</TableCell>
+                         <TableCell>{book.author}</TableCell>
+                         <TableCell>{book.available_stock}</TableCell>
+                         <TableCell>
+                           {book.publisher_rrp > 0 ? (
+                             <div className="flex items-center gap-2">
+                               <span>${book.publisher_rrp.toFixed(2)}</span>
+                               {book.price_source && (
+                                 <Badge variant="outline" className="text-xs">
+                                   {book.price_source === 'isbndb' ? '📚' : 
+                                    book.price_source === 'google_books' ? '🔍' :
+                                    book.price_source === 'estimated' ? '📊' :
+                                    book.price_source === 'manual' ? '✏️' : ''}
+                                 </Badge>
+                               )}
+                             </div>
+                           ) : (
+                             <span className="text-muted-foreground">Missing</span>
+                           )}
+                         </TableCell>
+                         <TableCell>${book.amazon_price?.toFixed(2) || 'N/A'}</TableCell>
+                         <TableCell>${book.roi_target_price?.toFixed(2) || 'N/A'}</TableCell>
+                         <TableCell>
+                           {book.market_flag && (
+                             <Badge variant={
+                               book.market_flag === 'below_market' ? 'destructive' :
+                               book.market_flag === 'at_market' ? 'secondary' : 'default'
+                             }>
+                               {book.market_flag.replace('_', ' ')}
+                             </Badge>
+                           )}
+                         </TableCell>
+                       </TableRow>
+                     ))}
+                   </TableBody>
+                 </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -951,6 +1006,73 @@ const HostDashboardNew = () => {
                     <li>Discovers and saves real ASINs for future lookups</li>
                     <li>Falls back to Keepa API for detailed price history</li>
                     <li>Updates ROI targets based on current market prices</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Fetch Missing Prices</CardTitle>
+                <CardDescription>
+                  Automatically find prices for books without publisher pricing
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-sm space-y-2 bg-muted p-3 rounded-md">
+                  <p className="font-medium">
+                    📊 Books Missing Prices: {books.filter(b => !b.publisher_rrp || b.publisher_rrp === 0).length} of {books.length}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    This feature will search Google Books API and estimate prices for books without publisher pricing data.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    onClick={() => handleFetchMissingPrices(false)} 
+                    disabled={syncing || books.filter(b => !b.publisher_rrp || b.publisher_rrp === 0).length === 0}
+                    variant="default"
+                  >
+                    {syncing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Fetching...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Fetch From APIs
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => handleFetchMissingPrices(true)} 
+                    disabled={syncing || books.filter(b => !b.publisher_rrp || b.publisher_rrp === 0).length === 0}
+                    variant="secondary"
+                  >
+                    {syncing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Estimating...
+                      </>
+                    ) : (
+                      <>
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Estimate Prices
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                  <p className="font-medium mb-1">ℹ️ How it works:</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li><strong>Fetch From APIs:</strong> Searches Google Books API for actual publisher prices</li>
+                    <li><strong>Estimate Prices:</strong> Uses page count and category to estimate reasonable prices</li>
+                    <li>Price sources are tracked (📚 ISBNdb, 🔍 Google Books, 📊 Estimated, ✏️ Manual)</li>
+                    <li>Processes up to 50 books per run</li>
                   </ul>
                 </div>
               </CardContent>

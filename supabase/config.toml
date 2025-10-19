@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.client-chat]
 verify_jwt = false
+
+[functions.fetch-missing-prices]
+verify_jwt = true
