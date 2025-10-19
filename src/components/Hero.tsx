@@ -51,7 +51,7 @@ const Hero = () => {
           
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <div className="glass-strong p-8 rounded-2xl border border-border/20 hover:border-primary/30 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 group">
-              <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-secondary to-secondary/80 rounded-xl mb-5 mx-auto shadow-lg shadow-secondary/20 group-hover:shadow-xl group-hover:shadow-secondary/30 transition-all">
+              <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-xl mb-5 mx-auto shadow-lg shadow-primary/20 group-hover:shadow-xl group-hover:shadow-primary/30 transition-all">
                 <TrendingUp className="h-7 w-7 text-white" strokeWidth={2.5} />
               </div>
               <h3 className="font-headline text-xl font-bold mb-3 text-foreground">Smart Pricing</h3>
