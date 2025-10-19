@@ -51,13 +51,14 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
         .from('books')
         .select('*')
         .eq('id', book.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
       if (data) {
+        console.log('🔄 Refreshing BookCard with new price:', data.amazon_price);
         setBookData({
-          ...book,
+          ...bookData,
           amazon_price: data.amazon_price,
           amazonPrice: data.amazon_price,
           last_price_check: data.last_price_check,
