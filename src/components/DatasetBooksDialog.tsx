@@ -32,46 +32,45 @@ export const DatasetBooksDialog = ({
 }: DatasetBooksDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] max-h-[80vh]">
+      <DialogContent className="max-w-[95vw] max-h-[85vh]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         
-        <ScrollArea className="h-[60vh] w-full">
-          <div className="min-w-max pr-4">
-            <Table>
+        <div className="overflow-x-auto overflow-y-auto max-h-[65vh] border rounded-md">
+          <Table className="min-w-full">
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Author</TableHead>
-                <TableHead>Category/Genre</TableHead>
-                <TableHead>ISBN</TableHead>
-                <TableHead>Publisher</TableHead>
-                <TableHead>Publisher RRP</TableHead>
-                <TableHead>Amazon Price</TableHead>
-                <TableHead>Stock</TableHead>
+                <TableHead className="whitespace-nowrap">Title</TableHead>
+                <TableHead className="whitespace-nowrap">Author</TableHead>
+                <TableHead className="whitespace-nowrap">Category/Genre</TableHead>
+                <TableHead className="whitespace-nowrap">ISBN</TableHead>
+                <TableHead className="whitespace-nowrap">Publisher</TableHead>
+                <TableHead className="whitespace-nowrap">Publisher RRP</TableHead>
+                <TableHead className="whitespace-nowrap">Amazon Price</TableHead>
+                <TableHead className="whitespace-nowrap">Stock</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {books.map((book) => (
                 <TableRow key={book.id}>
-                  <TableCell className="font-medium max-w-xs">
+                  <TableCell className="font-medium max-w-md">
                     <div className="truncate" title={book.title}>
                       {book.title}
                     </div>
                   </TableCell>
-                  <TableCell>{book.author}</TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">{book.author}</TableCell>
+                  <TableCell className="whitespace-nowrap">
                     {book.category ? (
                       <Badge variant="secondary">{book.category}</Badge>
                     ) : (
                       <span className="text-muted-foreground text-xs">Uncategorized</span>
                     )}
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{book.id}</TableCell>
-                  <TableCell>{book.publisher || 'N/A'}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-mono text-xs whitespace-nowrap">{book.id}</TableCell>
+                  <TableCell className="whitespace-nowrap">{book.publisher || 'N/A'}</TableCell>
+                  <TableCell className="whitespace-nowrap">
                     {book.publisher_rrp ? (
                       <div className="flex items-center gap-2">
                         <span>${book.publisher_rrp.toFixed(2)}</span>
@@ -88,16 +87,15 @@ export const DatasetBooksDialog = ({
                       <span className="text-muted-foreground">Missing</span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     {book.amazon_price ? `$${book.amazon_price.toFixed(2)}` : 'N/A'}
                   </TableCell>
-                  <TableCell>{book.available_stock}</TableCell>
+                  <TableCell className="whitespace-nowrap">{book.available_stock}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
