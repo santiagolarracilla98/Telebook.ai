@@ -31,12 +31,14 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
   const [wishlistId, setWishlistId] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [bookData, setBookData] = useState<Book>(book);
+  const [fetchingPrice, setFetchingPrice] = useState(false);
   const { addItem } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     checkWishlistStatus();
+    fetchLivePriceIfNeeded();
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       checkWishlistStatus();
@@ -44,6 +46,70 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
 
     return () => subscription.unsubscribe();
   }, [book.id]);
+
+  const fetchLivePriceIfNeeded = async () => {
+    // Check if price is stale (>7 days) or missing
+    const lastCheck = (book as any).last_price_check;
+    const isPriceStale = lastCheck 
+      ? (Date.now() - new Date(lastCheck).getTime()) > 7 * 24 * 60 * 60 * 1000 
+      : true;
+    
+    const hasPrice = book.amazon_price && book.amazon_price > 0;
+    
+    if (!hasPrice || isPriceStale) {
+      await fetchAndSaveLivePrice();
+    }
+  };
+
+  const fetchAndSaveLivePrice = async () => {
+    setFetchingPrice(true);
+    try {
+      const asinToUse = marketplace === 'uk' 
+        ? (book.uk_asin || book.isbn) 
+        : (book.us_asin || book.isbn);
+      
+      const { data, error } = await supabase.functions.invoke('keepa-product', {
+        body: { 
+          isbn: asinToUse,
+          marketplace: marketplace
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Extract live price from Keepa data
+      const product = data?.products?.[0];
+      if (product?.csv?.[0]) {
+        const priceValue = product.csv[0][product.csv[0].length - 1];
+        if (priceValue > 0) {
+          const livePrice = priceValue / 100;
+          
+          // Save to database
+          const { error: updateError } = await supabase
+            .from('books')
+            .update({
+              amazon_price: livePrice,
+              last_price_check: new Date().toISOString()
+            })
+            .eq('id', book.id);
+
+          if (!updateError) {
+            console.log(`✅ BookCard: Updated live price $${livePrice} for ${book.title}`);
+            setBookData(prev => ({
+              ...prev,
+              amazon_price: livePrice,
+              amazonPrice: livePrice,
+              last_price_check: new Date().toISOString()
+            }));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching live price for card:', error);
+    } finally {
+      setFetchingPrice(false);
+    }
+  };
 
   const refreshBookData = async () => {
     try {
@@ -274,7 +340,13 @@ const BookCard = ({ marketplace = 'usa', ...book }: BookCardProps) => {
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground">Amazon Price (Ref)</span>
             <span className="font-medium text-foreground">
-              {amazonPrice > 0 ? `$${amazonPrice.toFixed(2)}` : 'NA'}
+              {fetchingPrice ? (
+                <span className="text-xs">Loading...</span>
+              ) : amazonPrice > 0 ? (
+                `$${amazonPrice.toFixed(2)}`
+              ) : (
+                'NA'
+              )}
             </span>
           </div>
           <div className="flex justify-between items-center">
