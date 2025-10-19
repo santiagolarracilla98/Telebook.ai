@@ -440,190 +440,98 @@ const BookDetailsDialog = ({ book, open, onOpenChange, marketplace = 'usa' }: Bo
 
             {!loading && !error && keepaData && (
               <div className="space-y-4">
-                {keepaData.marketplace === 'both' ? (
-                  // Display data from both marketplaces in tabs
-                  <Tabs defaultValue="usa" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="usa">🇺🇸 USA</TabsTrigger>
-                      <TabsTrigger value="uk">🇬🇧 UK</TabsTrigger>
-                    </TabsList>
-                    
-                    {['usa', 'uk'].map((market) => {
-                      const data = keepaData[market as 'usa' | 'uk'];
-                      const marketDisplayLabel = market === 'uk' ? 'UK' : 'US';
-                      return (
-                        <TabsContent key={market} value={market} className="space-y-4">
-                          {data?.products && data.products.length > 0 && data.products[0] ? (
-                            <div className="p-4 rounded-lg border border-border">
-                              <h3 className="font-semibold text-lg mb-3">Amazon Product Data ({marketDisplayLabel})</h3>
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between py-2 border-b border-border">
-                                  <span className="text-muted-foreground">ASIN</span>
-                                  <span className="font-mono">{data.products[0].asin || book.isbn.replace(/-/g, '')}</span>
-                                </div>
-                                {data.products[0].title && (
-                                  <div className="py-2 border-b border-border">
-                                    <span className="text-muted-foreground block mb-1">Amazon Title</span>
-                                    <span className="text-foreground">{data.products[0].title}</span>
-                                  </div>
-                                )}
-                                {data.products[0].stats && (
-                                  <>
-                                    <div className="flex justify-between py-2 border-b border-border">
-                                      <span className="text-muted-foreground">Sales Rank (Current)</span>
-                                      <span className="font-semibold">
-                                        {data.products[0].stats.current?.[0] && data.products[0].stats.current[0] > 0 
-                                          ? data.products[0].stats.current[0].toLocaleString() 
-                                          : 'N/A'}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between py-2 border-b border-border">
-                                      <span className="text-muted-foreground">Avg Sales Rank (180d)</span>
-                                      <span className="font-semibold">
-                                        {data.products[0].stats.avg?.[0] && data.products[0].stats.avg[0] > 0 
-                                          ? data.products[0].stats.avg[0].toLocaleString() 
-                                          : 'N/A'}
-                                      </span>
-                                    </div>
-                                  </>
-                                )}
-                                {data.products[0].csv && Array.isArray(data.products[0].csv) && data.products[0].csv[0] && (
-                                  <div className="py-2 border-b border-border">
-                                    <span className="text-muted-foreground block mb-2">Current Amazon Price</span>
-                                    {(() => {
-                                      const priceValue = data.products[0].csv[0][data.products[0].csv[0].length - 1] || -1;
-                                      return priceValue > 0 ? (
-                                        <span className="font-semibold text-lg text-primary">
-                                          {market === 'uk' ? '£' : '$'}{(priceValue / 100).toFixed(2)}
-                                        </span>
-                                      ) : (
-                                        <span className="font-semibold text-muted-foreground">N/A</span>
-                                      );
-                                    })()}
-                                  </div>
-                                )}
-                                <div className="mt-4">
-                                  <a
-                                    href={`https://www.amazon.${market === 'uk' ? 'co.uk' : 'com'}/dp/${data.products[0].asin || book.isbn.replace(/-/g, '')}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center text-primary hover:underline font-medium"
-                                  >
-                                    View on Amazon ({marketDisplayLabel}) →
-                                  </a>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="p-4 rounded-lg border border-border">
-                              <h3 className="font-semibold text-lg mb-3">Amazon Product Data ({marketDisplayLabel})</h3>
-                              <p className="text-muted-foreground mb-3">
-                                No Amazon data found for ISBN: {book.isbn}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                This could mean the product is not available on Amazon {marketDisplayLabel}, or the ISBN doesn't match any Amazon listing.
-                              </p>
-                              <div className="mt-4">
-                                <a
-                                  href={`https://www.amazon.${market === 'uk' ? 'co.uk' : 'com'}/s?k=${book.isbn.replace(/-/g, '')}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center text-primary hover:underline font-medium"
-                                >
-                                  Search on Amazon {marketDisplayLabel} →
-                                </a>
-                              </div>
+                {(() => {
+                  // Show only data for the selected market
+                  const data = keepaData[selectedMarket];
+                  const marketDisplayLabel = marketLabel;
+                  
+                  if (data?.products && data.products.length > 0 && data.products[0]) {
+                    return (
+                      <div className="p-4 rounded-lg border border-border">
+                        <h3 className="font-semibold text-lg mb-3">Amazon Product Data ({marketDisplayLabel})</h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between py-2 border-b border-border">
+                            <span className="text-muted-foreground">ASIN</span>
+                            <span className="font-mono">{data.products[0].asin || book.isbn.replace(/-/g, '')}</span>
+                          </div>
+                          {data.products[0].title && (
+                            <div className="py-2 border-b border-border">
+                              <span className="text-muted-foreground block mb-1">Amazon Title</span>
+                              <span className="text-foreground">{data.products[0].title}</span>
                             </div>
                           )}
-                        </TabsContent>
-                      );
-                    })}
-                  </Tabs>
-                ) : (
-                  // Display data from single marketplace
-                  keepaData.products && keepaData.products.length > 0 && keepaData.products[0] ? (
-                    <div className="p-4 rounded-lg border border-border">
-                      <h3 className="font-semibold text-lg mb-3">Amazon Product Data</h3>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between py-2 border-b border-border">
-                          <span className="text-muted-foreground">ASIN</span>
-                          <span className="font-mono">{keepaData.products[0].asin || book.isbn.replace(/-/g, '')}</span>
-                        </div>
-                        {keepaData.products[0].title && (
-                          <div className="py-2 border-b border-border">
-                            <span className="text-muted-foreground block mb-1">Amazon Title</span>
-                            <span className="text-foreground">{keepaData.products[0].title}</span>
-                          </div>
-                        )}
-                        {keepaData.products[0].stats && (
-                          <>
-                            <div className="flex justify-between py-2 border-b border-border">
-                              <span className="text-muted-foreground">Sales Rank (Current)</span>
-                              <span className="font-semibold">
-                                {keepaData.products[0].stats.current?.[0] && keepaData.products[0].stats.current[0] > 0 
-                                  ? keepaData.products[0].stats.current[0].toLocaleString() 
-                                  : 'N/A'}
-                              </span>
-                            </div>
-                            <div className="flex justify-between py-2 border-b border-border">
-                              <span className="text-muted-foreground">Avg Sales Rank (180d)</span>
-                              <span className="font-semibold">
-                                {keepaData.products[0].stats.avg?.[0] && keepaData.products[0].stats.avg[0] > 0 
-                                  ? keepaData.products[0].stats.avg[0].toLocaleString() 
-                                  : 'N/A'}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                        {keepaData.products[0].csv && Array.isArray(keepaData.products[0].csv) && keepaData.products[0].csv[0] && (
-                          <div className="py-2 border-b border-border">
-                            <span className="text-muted-foreground block mb-2">Current Amazon Price</span>
-                            {(() => {
-                              const priceValue = keepaData.products[0].csv[0][keepaData.products[0].csv[0].length - 1] || -1;
-                              return priceValue > 0 ? (
-                                <span className="font-semibold text-lg text-primary">
-                                  ${(priceValue / 100).toFixed(2)}
+                          {data.products[0].stats && (
+                            <>
+                              <div className="flex justify-between py-2 border-b border-border">
+                                <span className="text-muted-foreground">Sales Rank (Current)</span>
+                                <span className="font-semibold">
+                                  {data.products[0].stats.current?.[0] && data.products[0].stats.current[0] > 0 
+                                    ? data.products[0].stats.current[0].toLocaleString() 
+                                    : 'N/A'}
                                 </span>
-                              ) : (
-                                <span className="font-semibold text-muted-foreground">N/A</span>
-                              );
-                            })()}
+                              </div>
+                              <div className="flex justify-between py-2 border-b border-border">
+                                <span className="text-muted-foreground">Avg Sales Rank (180d)</span>
+                                <span className="font-semibold">
+                                  {data.products[0].stats.avg?.[0] && data.products[0].stats.avg[0] > 0 
+                                    ? data.products[0].stats.avg[0].toLocaleString() 
+                                    : 'N/A'}
+                                </span>
+                              </div>
+                            </>
+                          )}
+                          {data.products[0].csv && Array.isArray(data.products[0].csv) && data.products[0].csv[0] && (
+                            <div className="py-2 border-b border-border">
+                              <span className="text-muted-foreground block mb-2">Current Amazon Price</span>
+                              {(() => {
+                                const priceValue = data.products[0].csv[0][data.products[0].csv[0].length - 1] || -1;
+                                return priceValue > 0 ? (
+                                  <span className="font-semibold text-lg text-primary">
+                                    {currency}{(priceValue / 100).toFixed(2)}
+                                  </span>
+                                ) : (
+                                  <span className="font-semibold text-muted-foreground">N/A</span>
+                                );
+                              })()}
+                            </div>
+                          )}
+                          <div className="mt-4">
+                            <a
+                              href={`https://www.amazon.${selectedMarket === 'uk' ? 'co.uk' : 'com'}/dp/${data.products[0].asin || book.isbn.replace(/-/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-primary hover:underline font-medium"
+                            >
+                              View on Amazon ({marketDisplayLabel}) →
+                            </a>
                           </div>
-                        )}
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="p-4 rounded-lg border border-border">
+                        <h3 className="font-semibold text-lg mb-3">Amazon Product Data ({marketDisplayLabel})</h3>
+                        <p className="text-muted-foreground mb-3">
+                          No Amazon data found for ISBN: {book.isbn}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          This could mean the product is not available on Amazon {marketDisplayLabel}, or the ISBN doesn't match any Amazon listing.
+                        </p>
                         <div className="mt-4">
                           <a
-                            href={`https://www.amazon.${marketplace === 'uk' ? 'co.uk' : 'com'}/dp/${keepaData.products[0].asin || book.isbn.replace(/-/g, '')}`}
+                            href={`https://www.amazon.${selectedMarket === 'uk' ? 'co.uk' : 'com'}/s?k=${book.isbn.replace(/-/g, '')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center text-primary hover:underline font-medium"
                           >
-                            View on Amazon ({marketplace.toUpperCase()}) →
+                            Search on Amazon {marketDisplayLabel} →
                           </a>
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="p-4 rounded-lg border border-border">
-                      <h3 className="font-semibold text-lg mb-3">Amazon Product Data</h3>
-                      <p className="text-muted-foreground mb-3">
-                        No Amazon data found for ISBN: {book.isbn}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        This could mean the product is not available on Amazon, or the ISBN doesn't match any Amazon listing.
-                      </p>
-                      <div className="mt-4">
-                        <a
-                          href={`https://www.amazon.${marketplace === 'uk' ? 'co.uk' : 'com'}/s?k=${book.isbn.replace(/-/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-primary hover:underline font-medium"
-                        >
-                          Search on Amazon ({marketplace.toUpperCase()}) →
-                        </a>
-                      </div>
-                    </div>
-                  )
-                )}
+                    );
+                  }
+                })()}
               </div>
             )}
           </TabsContent>
