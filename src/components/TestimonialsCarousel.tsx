@@ -53,8 +53,8 @@ const VideoTestimonial = ({ videoUrl, id }: { videoUrl: string; id: number }) =>
       
       {!isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/5 rounded-xl transition-opacity duration-300 hover:bg-black/15">
-          <div className="w-20 h-20 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center shadow-2xl transform transition-transform duration-300 group-hover:scale-110">
-            <Play className="w-10 h-10 text-white fill-white/80 ml-1" />
+          <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-xl transform transition-transform duration-300 group-hover:scale-110">
+            <Play className="w-10 h-10 text-white/60 fill-white/60 ml-1" />
           </div>
         </div>
       )}
