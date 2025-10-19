@@ -7,6 +7,7 @@ interface Book {
   id: string;
   title: string;
   author: string;
+  category?: string;
   publisher?: string;
   publisher_rrp?: number;
   amazon_price?: number;
@@ -43,6 +44,7 @@ export const DatasetBooksDialog = ({
               <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Author</TableHead>
+                <TableHead>Category/Genre</TableHead>
                 <TableHead>ISBN</TableHead>
                 <TableHead>Publisher</TableHead>
                 <TableHead>Publisher RRP</TableHead>
@@ -59,6 +61,13 @@ export const DatasetBooksDialog = ({
                     </div>
                   </TableCell>
                   <TableCell>{book.author}</TableCell>
+                  <TableCell>
+                    {book.category ? (
+                      <Badge variant="secondary">{book.category}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">Uncategorized</span>
+                    )}
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{book.id}</TableCell>
                   <TableCell>{book.publisher || 'N/A'}</TableCell>
                   <TableCell>

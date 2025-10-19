@@ -272,7 +272,7 @@ const HostDashboardNew = () => {
     try {
       let query = supabase
         .from('books')
-        .select('id, title, author, publisher, publisher_rrp, amazon_price, price_source, available_stock, wholesale_price, rrp')
+        .select('id, title, author, category, publisher, publisher_rrp, amazon_price, price_source, available_stock, wholesale_price, rrp')
         .eq('dataset_id', datasetId);
 
       if (showExcluded) {
