@@ -56,11 +56,11 @@ const Hero = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-20">
         <div className="text-center max-w-5xl mx-auto animate-fade-in-up">
           <h1 className="font-headline text-5xl sm:text-6xl md:text-7xl font-bold mb-8 leading-[1.1] tracking-tight">
-            <span className="text-foreground animate-fade-in">
+            <span className="text-primary animate-fade-in">
               Stop Competing on Price.
             </span>
             <br />
-            <span className="text-foreground">
+            <span className="text-primary">
               Start Dominating on Margin.
             </span>
           </h1>

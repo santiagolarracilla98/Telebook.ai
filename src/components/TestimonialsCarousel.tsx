@@ -85,7 +85,7 @@ export const TestimonialsCarousel = () => {
     <section className="py-24 px-4 bg-gradient-to-b from-muted/20 via-background to-muted/20">
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16 animate-fade-in-up">
-          <h2 className="font-headline text-4xl md:text-5xl font-bold mb-6 text-foreground tracking-tight">
+          <h2 className="font-headline text-4xl md:text-5xl font-bold mb-6 text-primary tracking-tight">
             Trusted by Top Amazon Book Sellers
           </h2>
           <p className="font-body text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
