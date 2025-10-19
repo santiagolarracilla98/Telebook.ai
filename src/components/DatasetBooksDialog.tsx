@@ -39,17 +39,17 @@ export const DatasetBooksDialog = ({
         </DialogHeader>
         
         <div className="overflow-x-scroll overflow-y-auto max-h-[65vh] border rounded-md [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar-track]:bg-muted [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/50">
-          <Table className="w-max min-w-full">
+          <Table style={{ width: '1600px' }}>
             <TableHeader>
               <TableRow>
-                <TableHead className="whitespace-nowrap min-w-[300px]">Title</TableHead>
-                <TableHead className="whitespace-nowrap min-w-[200px]">Author</TableHead>
-                <TableHead className="whitespace-nowrap min-w-[150px]">Category/Genre</TableHead>
-                <TableHead className="whitespace-nowrap min-w-[280px]">ISBN</TableHead>
-                <TableHead className="whitespace-nowrap min-w-[150px]">Publisher</TableHead>
-                <TableHead className="whitespace-nowrap min-w-[150px]">Publisher RRP</TableHead>
-                <TableHead className="whitespace-nowrap min-w-[140px]">Amazon Price</TableHead>
-                <TableHead className="whitespace-nowrap min-w-[80px]">Stock</TableHead>
+                <TableHead className="whitespace-nowrap" style={{ width: '300px' }}>Title</TableHead>
+                <TableHead className="whitespace-nowrap" style={{ width: '200px' }}>Author</TableHead>
+                <TableHead className="whitespace-nowrap" style={{ width: '180px' }}>Category/Genre</TableHead>
+                <TableHead className="whitespace-nowrap" style={{ width: '300px' }}>ISBN</TableHead>
+                <TableHead className="whitespace-nowrap" style={{ width: '150px' }}>Publisher</TableHead>
+                <TableHead className="whitespace-nowrap" style={{ width: '170px' }}>Publisher RRP</TableHead>
+                <TableHead className="whitespace-nowrap" style={{ width: '150px' }}>Amazon Price</TableHead>
+                <TableHead className="whitespace-nowrap" style={{ width: '100px' }}>Stock</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
