@@ -96,27 +96,6 @@ const Index = () => {
 
   const fetchBooks = async () => {
     try {
-      // Helper function to add timeout to function calls
-      const invokeWithTimeout = async (functionName: string, options = {}, timeoutMs = 30000) => {
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error(`${functionName} timed out`)), timeoutMs)
-        );
-        
-        return Promise.race([
-          supabase.functions.invoke(functionName, options),
-          timeoutPromise
-        ]);
-      };
-
-      // Run enrichment functions with timeouts (non-blocking)
-      await Promise.allSettled([
-        invokeWithTimeout('categorize-books', {}, 10000),
-        invokeWithTimeout('fetch-book-covers', {}, 10000),
-        invokeWithTimeout('fetch-publisher-prices', {}, 30000),
-        invokeWithTimeout('fetch-amazon-prices', {}, 30000),
-        invokeWithTimeout('calc-unit-econ', { body: { roiTarget: 0.20 } }, 10000)
-      ]);
-
       // Fetch books from active datasets only
       const { data: booksData, error: booksError } = await supabase
         .from('books')
