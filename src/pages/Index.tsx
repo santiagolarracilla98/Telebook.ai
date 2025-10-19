@@ -96,25 +96,26 @@ const Index = () => {
 
   const fetchBooks = async () => {
     try {
-      // Trigger book categorization
-      await supabase.functions.invoke('categorize-books');
-      
-      // Fetch book covers from Amazon via Keepa API
-      await supabase.functions.invoke('fetch-book-covers');
-      
-      // Fetch publisher prices (from APIs or mock)
-      console.log('Fetching publisher prices...');
-      await supabase.functions.invoke('fetch-publisher-prices');
-      
-      // Fetch Amazon prices (from Keepa or calculated)
-      console.log('Fetching Amazon prices...');
-      await supabase.functions.invoke('fetch-amazon-prices');
-      
-      // Calculate unit economics
-      console.log('Calculating unit economics...');
-      await supabase.functions.invoke('calc-unit-econ', {
-        body: { roiTarget: 0.20 }
-      });
+      // Helper function to add timeout to function calls
+      const invokeWithTimeout = async (functionName: string, options = {}, timeoutMs = 30000) => {
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error(`${functionName} timed out`)), timeoutMs)
+        );
+        
+        return Promise.race([
+          supabase.functions.invoke(functionName, options),
+          timeoutPromise
+        ]);
+      };
+
+      // Run enrichment functions with timeouts (non-blocking)
+      await Promise.allSettled([
+        invokeWithTimeout('categorize-books', {}, 10000),
+        invokeWithTimeout('fetch-book-covers', {}, 10000),
+        invokeWithTimeout('fetch-publisher-prices', {}, 30000),
+        invokeWithTimeout('fetch-amazon-prices', {}, 30000),
+        invokeWithTimeout('calc-unit-econ', { body: { roiTarget: 0.20 } }, 10000)
+      ]);
 
       // Fetch books from active datasets only
       const { data: booksData, error: booksError } = await supabase
