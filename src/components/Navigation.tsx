@@ -113,17 +113,30 @@ const Navigation = () => {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-popover z-[100]" align="end" sideOffset={5}>
-                  <DropdownMenuItem onClick={() => navigate('/my-business')} className="gap-2 cursor-pointer">
+                <DropdownMenuContent 
+                  className="w-56 bg-card border border-border shadow-lg z-[100]" 
+                  align="end" 
+                  sideOffset={5}
+                >
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/my-business')} 
+                    className="gap-2 cursor-pointer hover:bg-accent"
+                  >
                     <Briefcase className="w-4 h-4" />
                     My Business
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/my-account')} className="gap-2 cursor-pointer">
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/my-account')} 
+                    className="gap-2 cursor-pointer hover:bg-accent"
+                  >
                     <Settings className="w-4 h-4" />
                     My Account
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer">
+                  <DropdownMenuItem 
+                    onClick={handleLogout} 
+                    className="gap-2 cursor-pointer hover:bg-accent"
+                  >
                     <LogOut className="w-4 h-4" />
                     Log out
                   </DropdownMenuItem>
