@@ -1,73 +1,21 @@
-# Welcome to your Lovable project
+# TeleBook
 
-## Project info
+TeleBook is a data-driven platform for **Amazon book resellers** to source wholesale books with confidence, **calculate true ROI after fees**, and make faster, smarter buying decisions across **UK and US** marketplaces.
 
-**URL**: https://lovable.dev/projects/4dda9358-5c70-433c-b0ce-2406a30ff892
+## What TeleBook does
 
-## How can I edit this code?
+- **Smart ROI / Profit Engine** – calculates net profit and ROI using Amazon fees (e.g., FBA/FBM), estimated shipping, taxes/VAT assumptions, and target margins.
+- **Dual-Market Comparator (UK vs US)** – compares fees, FX, and expected profit across marketplaces so you can see where the same ISBN performs best.
+- **Market Snapshot + Price History** – highlights current price ranges, demand signals, and historical pricing to avoid dead inventory and margin traps.
+- **Inventory & ISBN Discovery** – search/browse by ISBN, title, author, category, publisher (and quickly evaluate a list).
+- **Supplier Verification & Trust Scoring** – helps validate suppliers and reduce counterfeit / low-quality risk.
+- **Alerts & Sensitivity Tools** – margin alerts, profit sensitivity simulations (fees/price/FX), and “what-if” scenarios.
+- **AI Assistant* – conversational help for sourcing, ROI questions, and quick decision support.
 
-There are several ways of editing your application.
+## Who it’s for
 
-**Use Lovable**
+- Amazon book sellers sourcing **wholesale/bulk**
+- Arbitrage sellers who want a more rigorous **fee + ROI** workflow
+- Operators comparing **UK/US** profit opportunities
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4dda9358-5c70-433c-b0ce-2406a30ff892) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/4dda9358-5c70-433c-b0ce-2406a30ff892) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Project links
